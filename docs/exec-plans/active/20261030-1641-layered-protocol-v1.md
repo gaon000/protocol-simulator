@@ -3,7 +3,7 @@
 상태: In Progress
 작성일: 2026-10-30
 종료일: 미종료
-현재 단계: P6 로컬 저장·파일·과거 실행과 전체 로컬 검사 완료. 다음은 P7 최종 검증이다.
+현재 단계: P7 로컬 전체 검사·지원 브라우저·응답성 검증 완료. feature branch 원격 CI 결과 확인과 최종 문서 종료 감사 중이다.
 
 이 문서는 [ExecPlan 운영 규칙](../index.md)을 따른다. 최초 요청은 설계를 문서화하고 구현 계획을 작성하는 범위였으며 애플리케이션 구현·패키지 설치·배포는 수행하지 않았다. 문서의 커밋·push는 이후 사용자의 별도 요청 범위를 따른다. 사용자가 P0 구현을 요청하고 React·React DOM의 production dependency 추가를 승인했다. 이후 신규 production dependency도 추가 전에 사용자 확인을 받는다.
 
@@ -73,13 +73,17 @@
 | 2026-10-30 | P5 `8825c1b` 반영 후 P6 feature branch에서 native IndexedDB·revision CAS 선택 | 비동기 구조화 저장·원자적 전체 갱신·탭 충돌 보호, 추가 production dependency 없음 |
 | 2026-10-30 | invalid draft/raw와 frozen run snapshot의 별도 소유, 명시적 기록 탐색/재실행 | 편집·삭제·파일 충돌이 과거 결과를 바꾸지 않도록 [P6 계약](../../design-docs/p6-persistence-replay.md) 확정 |
 
+| 2026-10-30 | P6 `38b481a`를 master 병합·원격 SHA 검증 후 P7 feature branch 작업 | 단계별 병합·지속 구현 요청 |
+| 2026-10-30 | Chromium/Firefox 기능 검사와 별도 1-worker Chromium 응답성 기준 | [P7 검증 계약](../../design-docs/p7-validation.md). 390/768/1440px·키보드·native 저장과 실제 상한 fixture |
+| 2026-10-30 | 긴 실행 batch 64, trace 200행 페이지·유한 JSON 미리보기·native 불변 기록 공유 | baseline 병목을 개선하고 같은 수치 기준·결정성·session fencing을 재검증 |
+
 P2에서 큐·규칙·타이머·관찰 판정과 session fencing을 구현했다. 복잡한 조건의 동시 일치·동적 값·timer generation을 실제 실행으로 검사한다. 실제 장애·합쳐 읽기 환경은 [P4 계약](../../design-docs/p4-environments.md)에서 구현했다. 향후 계약 변경 시 문서·fixture와 engineVersion을 검토한다.
 
 이미 승인된 일반 구현 작업에 별도 반복 확인을 요구하지 않으며 신규 production dependency 확인은 유지한다. 전체 구현과 필수 검증이 끝날 때까지 계획을 Completed로 바꾸지 않는다.
 
 ## Outcomes & Retrospective
 
-P0~P5는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. P5에서 HTTP 코덱·여섯 시나리오·TCP 정상 연결과 버전 있는 catalog/사본을 구현했다. P6에서 IndexedDB transaction·revision 충돌·저장 복구·bundle·읽기 전용 기록과 snapshot 재실행을 구현했다. 최종 응답성/지원 브라우저/CI 검증은 남아 있고 계획은 In Progress다. 배포는 수행하지 않았다.
+P0~P6는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. P5에서 HTTP 코덱·여섯 시나리오·TCP 정상 연결과 버전 있는 catalog/사본을 구현했다. P6에서 IndexedDB transaction·revision 충돌·저장 복구·bundle·읽기 전용 기록과 snapshot 재실행을 구현했다. 최종 응답성/지원 브라우저/CI 검증은 남아 있고 계획은 In Progress다. 배포는 수행하지 않았다.
 
 ## Context and Orientation
 
@@ -87,7 +91,7 @@ P0~P5는 master에 반영했다. P3에서 메시지·상태·조건·동작·입
 
 - [제품 명세](../../product-specs/protocol-simulator-v1.md): 사용자 동작, 기능 범위, 화면, 예외·범위 밖 항목.
 - [기술 설계](../../design-docs/layered-protocol-v1.md): 데이터 소유권, 서비스 계약, 엔진·환경·코덱, 실패·복구와 검증 시나리오.
-- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `src/examples/`, `scripts/`, `tests/`다. 그 밖의 제안 경로는 해당 단계에서 생성한다.
+- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `src/examples/`, `src/persistence/`, `scripts/`, `tests/`, `.github/workflows/check.yml`이다.
 
 제안 구조는 `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `src/ui/`, `src/examples/`, `src/persistence/`와 `tests/unit/`, `tests/integration/`, `tests/e2e/`다. 단일 프로젝트로 시작하고 코드가 생기는 단계에만 필요한 경로를 만든다. 코어는 DOM·브라우저 저장과 독립적이어야 한다.
 
@@ -209,7 +213,7 @@ P0~P5는 master에 반영했다. P3에서 메시지·상태·조건·동작·입
 
 의존: P6.
 
-변경 위치: 향후 `tests/e2e/`, 필요한 CI 설정, UI 응답성 보완, 현재 구조·개발 문서와 이 계획.
+변경 위치: `tests/e2e/`·`tests/performance/`, 필요한 CI 설정, UI 응답성 보완, 현재 구조·개발 문서와 이 계획.
 
 1. 실제 브라우저에서 새 실험 작성 → 환경 변경 → 실행 → 원인 확인 → 저장/복원 전체 흐름을 검증한다. 정적 mock이나 코어 테스트로 대체하지 않는다.
 2. 지원 브라우저와 viewport를 확정하고 키보드 사용·초점 이동·오류 안내·패널 재배치를 확인한다.
@@ -309,6 +313,15 @@ P6 검증 기록:
 - 실제 Chromium IndexedDB에서 새로고침 복원·invalid draft 실행 차단/복구·다운로드 파일의 충돌 사본 import·손상/버전/64 MiB 초과 파일 거부·quota 실패/복구·put request 성공 후 transaction abort·두 탭 revision 충돌/사본 복구를 검사했다. 테스트가 API를 감싼 실패 주입이며 실제 디스크 quota 소진·OS fsync/전원 장애 검증은 아니다.
 - 과거 기록의 읽기 전용 상태/타이머 위치 이동, 원본 초안 삭제 뒤 재실행, 참조 중 정의 삭제 방지와 참조 해제 후 삭제, import 시 취소 checkpoint 보존, 삭제한 live 기록이 후속 편집으로 재생성되지 않음을 검사했다. replay projection의 종료 시 timer generation은 비활성 타이머도 증가시키는 엔진과 맞췄다.
 - 신규 정의 삭제 브라우저 검사에서 select의 label text exact 선택자가 option 텍스트를 함께 읽어 대기한 실패가 있었다. 실제 accessible role/name으로 선택자를 수정한 후 해당 검사와 전체 회귀가 통과했다. 원격 CI·최종 지원 브라우저/대형 기록 응답성·배포·실제 통신은 아직 검증하지 않았으며 P7이 남아 계획은 In Progress다.
+
+P7 검증 기록(최종 종료 감사 중):
+
+- 2026-10-30: P6 `38b481a`를 master 병합·push했고 HEAD/master/origin/master/ls-remote 일치를 확인했다. `codex/p7-v1-validation`에서 후속 검증·응답성 보완·CI를 구현했다. 신규 production dependency 없음.
+- `pnpm check` 로컬 전체 통과: lint·포맷·strict 타입, Node 215개(skip 없음), 문서 27개, production build, Chromium/Firefox 기능 E2E 78개, 1-worker Chromium 응답성 2개. Firefox 157.0, Chromium 156.0.8078.4, macOS arm64에서 실행했다. 별도 단일 명령의 성공을 전체 검사로 대체하지 않았다.
+- 실제 빈 실험 작성 → 필드/규칙/상태·기대 조건 → 실행 → 하위 환경 변경 → 원인 이벤트 → 저장 → reload → 과거 기록까지 한 흐름을 양쪽 브라우저에서 검사했다. 390/768/1440px의 skip link/본문 초점·Enter·진단 초점/수정·이름 있는 native controls·history range Home/End와 가로 넘침 검사를 포함한다. Chromium 390px library와 1440px 실행 캡처를 직접 열어 배치·문구·초점 표시를 확인했다.
+- 수치 기준은 baseline 전 고정했다([P7 기준](../../design-docs/p7-validation.md)). baseline 10k 실행 37,513ms와 1 MiB 상세 2,436ms/11,534,460자·최대 task 1,969ms가 실패했다. batch 64·200행 페이지·유한 preview·WeakSet 기반 native 불변 공유로 개선했다. Node에서 batch 64/전체의 실제 10k 기록 동등성과 정확히 1 MiB 송신/1바이트 초과 차단, 얕게 freeze한 외부 view의 복사 격리를 확인했다.
+- 최종 로컬 full check 측정(단위 ms): 10k 실행 2,975.3 / 클릭 38.3 / 상세 31.5 / 저장 35.2 / cursor 왕복 83.9 / frame p95 16.7 / 최대 longtask 0. 1 MiB 실행 254.1 / 클릭 29.6 / 상세 41.5(2,530자) / 저장 231.1 / cursor 67.9 / frame p95 33.4 / 최대 longtask 106. 저장된 native DB에서 trace 10,000개와 wire 1,048,576바이트가 잘리지 않았고 첫/다음/최근 페이지 이동도 검사했다. 결과는 기기별 성능 보증이 아니다.
+- `.github/workflows/check.yml`에 Ubuntu 24.04·고정 Node/pnpm/lockfile·Chromium/Firefox·동일 pnpm check·trace/report artifact를 구성했다. Actions enabled 여부를 읽어 확인했다. 현재 원격 job 결과 확인 전이므로 로컬 결과를 CI 통과로 표현하지 않는다. 최종 수용 감사 후에만 Completed/이동한다.
 
 ## Idempotence and Recovery
 

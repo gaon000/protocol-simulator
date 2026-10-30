@@ -283,6 +283,7 @@ test('a partial checkpoint compares only its recorded prefix and mutable source 
   assert.ok(created.success);
   created.value.step();
   const source = structuredClone(created.value.pause());
+  Object.freeze(source);
   const saved = captureRun(source, draft.id, 1);
   replaceAt(source, '/participants/A/variables/counter', 99);
   assert.notEqual(saved.view.participants.A.variables.counter, 99);

@@ -3,6 +3,7 @@ import type { JsonObject, JsonValue } from '../domain/execution-contract.ts';
 import type { EventTrace } from '../domain/protocol-model.ts';
 import type { EngineView } from '../engine/simulation.ts';
 import { WireInspector } from './WireInspector.tsx';
+import { previewJson } from '../application/preview-json.ts';
 
 const statusLabels = {
   idle: '실행 대기',
@@ -54,6 +55,10 @@ export function RunView({
       !messagesOnly ||
       ['send', 'parsed', 'deliver', 'diagnostic', 'environment'].includes(event.kind),
   );
+  const selectedIndex = events.findIndex((event) => event.eventId === selected);
+  const pageCount = Math.max(1, Math.ceil(events.length / 200));
+  const page = selectedIndex >= 0 ? Math.floor(selectedIndex / 200) : pageCount - 1;
+  const visibleEvents = events.slice(page * 200, (page + 1) * 200);
   return (
     <>
       <p className='run-status' role='status'>
@@ -87,7 +92,7 @@ export function RunView({
                     최초 송신 {actor.variables.initialSends}회 · 재시도 {actor.variables.retries}회
                   </p>
                 )}
-              <pre>{JSON.stringify(actor.variables, null, 2)}</pre>
+              <DataPreview value={actor.variables} />
               <p>
                 활성 타이머:{' '}
                 {actor.timers
@@ -112,16 +117,49 @@ export function RunView({
           </label>
         </div>
         <p className='hint'>
-          송신(send) → 하위 수신(receive) → 해석(parsed) → 상위 전달(deliver)을 구분합니다. 최근
-          200개를 표시합니다.
+          송신(send) → 하위 수신(receive) → 해석(parsed) → 상위 전달(deliver)을 구분합니다. 한
+          페이지에 최대 200개를 표시합니다.
         </p>
+        <nav className='run-toolbar' aria-label='기록 페이지 이동'>
+          <button
+            type='button'
+            disabled={page === 0}
+            onClick={() => onSelect(events[0]?.eventId ?? '')}
+          >
+            기록 첫 페이지
+          </button>
+          <button
+            type='button'
+            disabled={page === 0}
+            onClick={() => onSelect(events[(page - 1) * 200]?.eventId ?? '')}
+          >
+            기록 이전 페이지
+          </button>
+          <span role='status'>
+            {page + 1}/{pageCount} 페이지 · {events.length}개 이벤트
+          </span>
+          <button
+            type='button'
+            disabled={page >= pageCount - 1}
+            onClick={() => onSelect(events[(page + 1) * 200]?.eventId ?? '')}
+          >
+            기록 다음 페이지
+          </button>
+          <button
+            type='button'
+            disabled={page >= pageCount - 1}
+            onClick={() => onSelect(events.at(-1)?.eventId ?? '')}
+          >
+            기록 최근 페이지
+          </button>
+        </nav>
         <div className='sequence-head'>
           <span>가상 시간</span>
           <span>A</span>
           <span>B</span>
         </div>
         <div className='trace-list'>
-          {events.slice(-200).map((event) => (
+          {visibleEvents.map((event) => (
             <button
               type='button'
               key={event.eventId}
@@ -213,7 +251,7 @@ export function EventInspector({
               </div>
             )}
           <WireInspector data={event.data} />
-          <pre>{formatData(event.data)}</pre>
+          <DataPreview value={event.data} />
         </>
       ) : (
         <p>기록을 선택하면 메시지·바이트·규칙·상태 변화를 확인할 수 있습니다.</p>
@@ -222,6 +260,16 @@ export function EventInspector({
   );
 }
 
-function formatData(value: JsonValue): string {
-  return JSON.stringify(value, null, 2);
+function DataPreview({ value }: { value: JsonValue }) {
+  const preview = previewJson(value);
+  return (
+    <>
+      <pre>{preview.text}</pre>
+      {preview.truncated && (
+        <p className='hint'>
+          일부만 미리 표시합니다. 전체 값과 바이트는 상단 내보내기의 bundle에 보존됩니다.
+        </p>
+      )}
+    </>
+  );
 }

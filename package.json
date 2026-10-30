@@ -17,9 +17,10 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/unit/*.test.ts tests/integration/*.test.ts",
     "test:e2e": "pnpm build && playwright test",
+    "test:performance": "pnpm build && playwright test --config=playwright.performance.config.ts",
     "check:docs": "node scripts/check-docs.ts",
     "build": "pnpm typecheck && vite build",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm check:docs && pnpm test:e2e"
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm check:docs && pnpm test:e2e && pnpm test:performance"
   },
   "dependencies": {
     "react": "19.3.1",

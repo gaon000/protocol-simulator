@@ -23,7 +23,7 @@ export function WireInspector({ data }: { data: JsonValue }) {
         )}
         <pre>{text.replaceAll('\r', '\\r').replaceAll('\n', '\\n\n')}</pre>
         {bytes.length > 8192 && (
-          <p>처음 8192바이트만 미리 봅니다. 전체 바이트는 아래 이벤트 데이터에 있습니다.</p>
+          <p>처음 8192바이트만 미리 봅니다. 전체 바이트는 상단 내보내기의 bundle에 있습니다.</p>
         )}
       </section>
     );

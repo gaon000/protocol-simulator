@@ -1,3 +1,4 @@
+import { freezeOwned as freeze } from '../domain/immutable-data.ts';
 import {
   createJsonDatagramCodec,
   createJsonLinesCodec,
@@ -72,13 +73,6 @@ type Effect =
 
 function terminal(status: EngineStatus): status is TerminalStatus {
   return !['idle', 'running', 'paused'].includes(status);
-}
-function freeze<Value>(value: Value): Readonly<Value> {
-  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
-    for (const child of Object.values(value)) freeze(child);
-    Object.freeze(value);
-  }
-  return value;
 }
 function unwrap<Value>(result: ValidationResult<Value>): Value {
   if (result.success) return result.value;

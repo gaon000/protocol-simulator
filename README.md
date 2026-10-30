@@ -19,10 +19,12 @@ corepack pnpm dev
 ## 검사
 
 ```sh
-corepack pnpm exec playwright install chromium --only-shell
+corepack pnpm exec playwright install chromium firefox
 corepack pnpm check
 ```
 
-`pnpm check`는 lint·포맷·strict 타입 검사·Node 단위/통합 테스트·문서 검사·빌드·Chromium E2E를 순서대로 수행한다. 최초 Playwright 브라우저 설치에는 네트워크가 필요하다. Linux CI에서는 해당 환경의 브라우저 OS 의존성도 준비해야 한다. E2E는 빌드된 결과를 고정 포트 4173의 전용 preview 서버에서 검사하며 기존 서버를 재사용하지 않는다.
+`pnpm check`는 lint·포맷·strict 타입 검사·Node 단위/통합 테스트·문서 검사·빌드·Chromium/Firefox E2E와 전용 Chromium 응답성 검사를 순서대로 수행한다. 최초 Playwright 브라우저 설치에는 네트워크가 필요하다. Linux CI에서는 해당 환경의 브라우저 OS 의존성도 준비해야 한다. E2E는 빌드된 결과를 고정 포트 4173의 전용 preview 서버에서 검사하며 기존 서버를 재사용하지 않는다.
+
+데스크톱 Chromium/Firefox, 390/768/1440px의 배치·키보드를 검사한다. Safari·실기기 모바일은 미검증이다. 대형 trace는 200행씩 탐색하고 이벤트 상세는 미리보기로 표시하며 전체 데이터는 bundle에 보존한다. 응답성 기준과 한계는 [P7 문서](docs/design-docs/p7-validation.md)를 따른다.
 
 세부 명령과 로컬/CI 검증 범위는 [개발 기준](docs/development.md), v1 단계별 목표는 [실행 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md)을 따른다.

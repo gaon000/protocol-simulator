@@ -146,7 +146,7 @@ export function App() {
     if (!playing || !run) return;
     const timeout = window.setTimeout(() => {
       session.apply(run.runId, (engine) => {
-        const next = engine.runBatch(4);
+        const next = engine.runBatch(run.processedEvents < 16 ? 4 : 64);
         setRun(next);
         if (engine.result()) {
           setPlaying(false);
@@ -760,6 +760,7 @@ export function App() {
                       onPosition={(position) => {
                         setHistoryPosition(position);
                         setHistoryPlaying(false);
+                        setSelected(historical?.view.events[position - 1]?.eventId);
                       }}
                       onPlay={() => {
                         if (historical && historyPosition >= historical.view.events.length + 1)

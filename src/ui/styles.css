@@ -290,6 +290,7 @@ button.danger {
 }
 select:focus-visible,
 textarea:focus-visible,
+summary:focus-visible,
 [tabindex="-1"]:focus-visible {
   outline: 3px solid #3975d1;
   outline-offset: 3px;

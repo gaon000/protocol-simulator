@@ -192,6 +192,24 @@ test('authors and runs Ping/Pong from a blank experiment using message, state, r
   await expect(page.getByRole('button', { name: /send ping/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /send pong/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /deliver pong/ })).toBeVisible();
+  await openView(page, '통신 환경');
+  await field(page, '/environment/directions/BtoA/delayMs').fill('20');
+  await runAll(page);
+  await page.getByRole('button', { name: /send pong/ }).click();
+  await page.getByRole('button', { name: /^원인 이벤트/ }).click();
+  await expect(page.getByRole('region', { name: '이벤트 상세' })).toContainText('parsed');
+  await page.getByRole('button', { name: '지금 저장', exact: true }).click();
+  await expect(
+    page.getByRole('region', { name: '로컬 저장과 파일' }).getByRole('status'),
+  ).toHaveText('브라우저에 저장됨');
+  await page.reload();
+  await openView(page, '통신 환경');
+  await expect(field(page, '/environment/directions/BtoA/delayMs')).toHaveValue('20');
+  await openView(page, '실행');
+  await page.getByRole('combobox', { name: '과거 실행 선택' }).selectOption({ index: 1 });
+  await expect(page.getByRole('region', { name: '기대 조건 결과' })).toContainText(
+    'expect_1 · 통과',
+  );
 });
 
 test('keeps editing and run controls usable on a narrow viewport with keyboard input', async ({

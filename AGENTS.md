@@ -1,6 +1,6 @@
 # 작업 안내: protocol-simulator
 
-응용·전송 계층의 프로토콜을 직접 정의하거나 기존 예제를 살펴보고, 하위 통신 환경을 설정해 가상 참여자 사이에서 검증하는 도구다. P6까지 실제 편집·실행·환경 장애·재전송, 제한된 HTTP/1.1·TCP 연결 예제와 로컬 저장·과거 실행 재생을 구현했다. 예제는 원본 출처·버전을 가진 사용자 사본으로 편집하며 IndexedDB에 초안·snapshot·기록을 보존한다. 현재 구현과 제안 구조를 구분하고 구현 진척에 맞춰 문서를 갱신한다.
+응용·전송 계층의 프로토콜을 직접 정의하거나 기존 예제를 살펴보고, 하위 통신 환경을 설정해 가상 참여자 사이에서 검증하는 도구다. P6까지 실제 편집·실행·환경 장애·재전송, 제한된 HTTP/1.1·TCP 연결 예제와 로컬 저장·과거 실행 재생을 구현했다. 예제는 원본 출처·버전을 가진 사용자 사본으로 편집하며 IndexedDB에 초안·snapshot·기록을 보존한다. 최종 검증은 [P7](docs/design-docs/p7-validation.md)의 브라우저·viewport·응답성 기준을 따른다. 현재 구현과 제안 구조를 구분하고 구현 진척에 맞춰 문서를 갱신한다.
 
 초기 대상 사용자: 프로토콜의 구조·흐름을 이해하거나 자기 프로토콜을 설계·검증하려는 개발자와 학습자.
 
@@ -19,6 +19,7 @@
 - [P4 환경·재전송](docs/design-docs/p4-environments.md): 난수·손실/중복, 스트림 합쳐 읽기/종료, 유한 재시도와 중복 제거.
 - [P5 표준 예제](docs/design-docs/p5-standard-examples.md): HTTP 바이트 프레이밍·지원 경계, TCP 연결 수립·seq/ack와 버전 있는 원본/사본.
 - [P6 저장·재생](docs/design-docs/p6-persistence-replay.md): 원자적 IndexedDB 저장·충돌/실패 복구, bundle 검증과 snapshot 재실행.
+- [P7 검증·지원](docs/design-docs/p7-validation.md): 지원 브라우저·키보드·viewport·대형 fixture 응답성과 CI 경계.
 - [v1 구현 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md): P0~P7 단계와 실제 진행·검증 기록. 현재 In Progress.
 
 전체 문서를 매번 읽기보다 진입 문서에서 작업 관련 문서로 이동한다. 수정할 경로에 별도 작업 규칙이 있는지도 확인한다.

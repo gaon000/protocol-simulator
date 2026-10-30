@@ -1,3 +1,4 @@
+import { freezeOwned as freeze } from '../domain/immutable-data.ts';
 import { parseWorkspaceEnvelope } from '../domain/workspace-validation.ts';
 import { WORKSPACE_POLICY, type WorkspaceData } from '../domain/workspace-model.ts';
 import { StorageFailure, type StoragePort } from '../persistence/indexed-db.ts';
@@ -10,13 +11,6 @@ export type SaveState = {
   readonly error: string;
   readonly serial: number;
 };
-function freeze<T>(value: T): T {
-  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
-    for (const child of Object.values(value)) freeze(child);
-    Object.freeze(value);
-  }
-  return value;
-}
 
 /** Coordinate immutable memory state, debounced clients and serialized revision-checked saves. */
 export function createWorkspaceController(port: StoragePort, initial: WorkspaceData) {

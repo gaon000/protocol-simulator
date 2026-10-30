@@ -10,6 +10,7 @@ import {
   type SavedRun,
   type WorkspaceData,
 } from '../domain/workspace-model.ts';
+import { isOwnedImmutable } from '../domain/immutable-data.ts';
 
 /** Allocate a workspace identity independently of declaration IDs inside experiments. */
 export function workspaceId(prefix: string): string {
@@ -30,14 +31,20 @@ export function createWorkspace(configuration: ExperimentDefinition): WorkspaceD
   const draft = createDraftRecord(configuration);
   return { schemaVersion: 1, activeDraftId: draft.id, drafts: [draft], runs: [] };
 }
-/** Preserve a checkpoint as owned data; live views and old records never share mutable objects. */
+/** Share native immutable views, copying unowned inputs so records never share mutable objects. */
 export function captureRun(
   view: EngineView,
   experimentId: string,
   draftVersion: number,
   id = workspaceId('saved_run'),
 ): SavedRun {
-  return { id, experimentId, createdAt: Date.now(), draftVersion, view: structuredClone(view) };
+  return {
+    id,
+    experimentId,
+    createdAt: Date.now(),
+    draftVersion,
+    view: isOwnedImmutable(view) ? view : structuredClone(view),
+  };
 }
 /** Merge staged records into new identities on collision, preserving every historical snapshot. */
 export function mergeWorkspaces(

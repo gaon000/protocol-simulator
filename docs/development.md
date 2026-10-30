@@ -13,7 +13,7 @@
 | Vite / React plugin | 8.3.5 / 6.1.2. 개발 서버·빌드 |
 | Biome | 2.6.4. lint·포맷, JS/TS 작은따옴표·2칸 들여쓰기 |
 | Node test runner | 코어·문서 검사기의 단위/통합 테스트 |
-| Playwright | 1.64.1. 빌드된 화면의 실제 Chromium E2E |
+| Playwright | 1.64.1. 빌드된 화면의 실제 Chromium/Firefox E2E와 별도 Chromium 응답성 검사 |
 
 현재 UI는 메시지·상태·규칙·시나리오 폼, 실행 제어·실제 기록·진단 이동을 제공하며 [P3 계약](design-docs/p3-workspace.md)을 따른다. P1 코어에 정의·참조·서비스 검사와 프레이밍 코덱을 추가했으며 [P1 계약](design-docs/p1-models-codecs.md)을 따른다. P2 실행 계약은 [P2 문서](design-docs/p2-runtime.md), 현재 기본 환경·재전송은 [P4 계약](design-docs/p4-environments.md)을 따른다. 현재 표준 예제·코덱·출처/사본은 [P5 계약](design-docs/p5-standard-examples.md)을 따른다. 현재 IndexedDB 저장·파일·과거 실행은 [P6 계약](design-docs/p6-persistence-replay.md)을 따른다. P0 도구·의존성은 변경하지 않았다.
 
@@ -32,7 +32,7 @@ corepack pnpm dev
 최초 브라우저 테스트 전에는 다음을 실행한다. Linux CI에서는 `--with-deps` 등으로 해당 환경의 브라우저 OS 의존성도 준비해야 한다.
 
 ```sh
-corepack pnpm exec playwright install chromium --only-shell
+corepack pnpm exec playwright install chromium firefox
 ```
 
 ## 명령
@@ -49,8 +49,9 @@ Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim�
 | 단위·통합 테스트 | `pnpm test` |
 | 문서 검사 | `pnpm check:docs` |
 | 빌드 | `pnpm build` — 타입 검사 후 Vite 빌드 |
-| 브라우저 E2E | `pnpm test:e2e` — 빌드 후 Chromium 테스트 |
-| 전체 검사 | `pnpm check` — lint·포맷·타입·Node 테스트·문서·빌드·E2E |
+| 브라우저 E2E | `pnpm test:e2e` — 빌드 후 Chromium/Firefox 테스트 |
+| 응답성 검사 | `pnpm test:performance` — 빌드 후 1-worker Chromium의 실제 10k/1 MiB fixture |
+| 전체 검사 | `pnpm check` — lint·포맷·타입·Node 테스트·문서·빌드·E2E·응답성 |
 | 추적된 변경 공백 검사 | `git diff --check` — 새 파일은 별도 검사 필요 |
 
 `pnpm test`는 `tests/unit/*.test.ts`와 `tests/integration/*.test.ts`를 Node의 TypeScript type stripping으로 실행한다. 이 실행은 타입 검사를 대신하지 않는다. `tests/types/strictness.ts`의 음성 fixture는 strict 옵션이 완화되면 `@ts-expect-error` 불일치로 타입 검사에 실패하게 한다.
@@ -69,12 +70,14 @@ Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim�
 
 코어는 Node 내장 runner로 외부 연동 없이 실행한다. seed·가상 시간의 계약을 검사하며 wall-clock sleep을 사용하지 않는다. P0 reference fixture의 산식과 P4 실제 adapter의 결과를 각각 검사한다. 손실·중복·재전송·전체 관찰 기간의 전달 횟수/내용도 검증한다.
 
-Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium의 실제 폼 작성·필드/조건/장애 변경·ACK 손실/유한 재시도·seed 재현·청크 원인·진단 초점·제어/상태 격리·키보드·390px 화면과 아홉 예제의 코어/화면 비교·HTTP 바이트/CL·TCP seq/ack·출처/사본이다. 실제 native IndexedDB의 새로고침 복원·invalid draft·bundle 왕복/거부·탭 충돌·quota/transaction abort·복구·snapshot 재실행도 검사한다. quota/abort는 테스트에서 API를 감싸 주입하며 실제 저장장치 고장 검증은 아니다. 통신은 가상 엔진이며 실제 네트워크 E2E는 없다.
+Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium 156.0.8078.4/Firefox 157.0의 실제 폼 작성·필드/조건/장애 변경·ACK 손실/유한 재시도·seed 재현·청크 원인·진단 초점·제어/상태 격리·키보드·390px 화면과 아홉 예제의 코어/화면 비교·HTTP 바이트/CL·TCP seq/ack·출처/사본이다. 실제 native IndexedDB의 새로고침 복원·invalid draft·bundle 왕복/거부·탭 충돌·quota/transaction abort·복구·snapshot 재실행도 검사한다. quota/abort는 테스트에서 API를 감싸 주입하며 실제 저장장치 고장 검증은 아니다. 통신은 가상 엔진이며 실제 네트워크 E2E는 없다.
 
 테스트 수집 실패·전부 skip·예상보다 줄어든 범위를 통과로 해석하지 않는다. fixture·타이머·mock·외부 자원은 테스트 종료 시 정리한다.
 
 ## CI와 릴리스
 
-CI workflow와 배포 절차는 아직 미구성이다. 현재 결과는 로컬 검사이며 원격 CI·배포·실제 네트워크 검증을 의미하지 않는다. 이후 CI에는 같은 Node·pnpm 버전과 Chromium 준비 후 `pnpm check`를 연결한다. 브랜치 보호와 최종 브라우저 지원은 관련 단계에서 확인한다.
+[CI workflow](../.github/workflows/check.yml)는 Ubuntu 24.04에서 같은 Node·pnpm/frozen lockfile과 Chromium/Firefox·OS 의존성을 설치하고 `pnpm check`를 실행한다. 테스트 trace/응답성 report는 artifact로 7일 보관한다. workflow 구성과 실제 원격 실행 결과는 별도이며 최종 결과는 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)에 기록한다. branch protection·배포는 설정하지 않았다.
+
+응답성은 기능 검사와 겹치지 않게 1 worker·1440×900에서 실행한다. 전체 실행·상세·저장·history 이동과 rAF/longtask를 측정하고 `test-results/performance-report.json`에 기록한다. 임곗값·지원/미검증 브라우저·표시 상한은 [P7 문서](design-docs/p7-validation.md)를 따른다. macOS 로컬·Ubuntu CI 결과를 다른 기기의 보증으로 사용하지 않는다.
 
 Git·승인 규칙은 [Workflow](workflow.md)를 따른다. React·React DOM 이외의 신규 production dependency도 추가 전에 사용자 확인을 받는다.

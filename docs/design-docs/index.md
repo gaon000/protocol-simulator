@@ -28,3 +28,4 @@
 - [P5 HTTP/1.1·TCP 연결 예제](p5-standard-examples.md) — Accepted. 제한된 HTTP 코덱·실제 오류/분할/지연, TCP seq/ack와 버전 있는 원본·출처·사본.
 
 - [P6 로컬 저장·파일·과거 실행](p6-persistence-replay.md) — Accepted. IndexedDB transaction·revision 충돌·quota 복구, invalid draft·bundle 검증과 읽기 전용 탐색/snapshot 재실행.
+- [P7 v1 검증·응답성·지원 범위](p7-validation.md) — Accepted. Chromium/Firefox·키보드/화면 크기·실제 상한 성능 기준과 CI 증거 경계.

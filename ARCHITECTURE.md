@@ -33,6 +33,7 @@
 | [src/application/workspace-controller.ts](src/application/workspace-controller.ts), [workspace-operations.ts](src/application/workspace-operations.ts), [replay-record.ts](src/application/replay-record.ts) | 저장 serial·실패/충돌·파일 merge와 읽기 전용 projection |
 | [src/persistence/indexed-db.ts](src/persistence/indexed-db.ts) | native transaction 원자성·revision CAS·브라우저 오류 경계 |
 | [src/ui/StoragePanel.tsx](src/ui/StoragePanel.tsx), [HistoryPanel.tsx](src/ui/HistoryPanel.tsx) | 저장 상태·파일과 기록 탐색/명시적 snapshot 재실행 |
+| [.github/workflows/check.yml](.github/workflows/check.yml), [playwright.performance.config.ts](playwright.performance.config.ts) | 고정 도구의 CI 검사와 독립 1-worker 응답성 측정 |
 | [scripts/](scripts/check-docs.ts) | Markdown 링크·앵커·양식 검증 |
 | [src/application/edit-experiment.ts](src/application/edit-experiment.ts), [src/ui/forms.tsx](src/ui/forms.tsx) | 초안 복사·revision·JSON Pointer와 폼·오류 초점 |
 | [src/examples/catalog.ts](src/examples/catalog.ts), [http.ts](src/examples/http.ts), [tcp-handshake.ts](src/examples/tcp-handshake.ts) | 버전 있는 아홉 원본/사본, Ping/Pong·재전송·HTTP·TCP 연결 정의 |
@@ -50,7 +51,7 @@ UI → application → domain·engine·codecs·environments 의존 방향을 사
 
 외부 서비스 연동, 인증, 네트워크 입출력은 미구성이다. v1은 실제 기기·서버 연결을 포함하지 않는다. 초안·실험 사본·실행 당시 snapshot과 결과를 IndexedDB에 저장하며 오류·다른 탭 충돌 시 메모리와 마지막 commit을 보존한다. 파일은 staging 검증 후 사본으로 합친다. [P6 저장 계약](docs/design-docs/p6-persistence-replay.md)을 따른다.
 
-설계는 바이트 스트림과 데이터그램 서비스를 구분한다. P1은 실행 정의의 환경 호환성·참조와 개별 메시지의 프레이밍·값·바이트 상한을 검사한다. 전체 엔진은 P2에서 구현했고 장애·합쳐 읽기·종료 환경은 P4에서 구현했다. 참여자 상태·타이머를 실행별로 격리하고 전송·수신·해석·상위 처리 완료와 환경 원인을 각각 기록한다. 상한은 강제하며 브라우저 응답성 측정은 P7에서 수행한다.
+설계는 바이트 스트림과 데이터그램 서비스를 구분한다. P1은 실행 정의의 환경 호환성·참조와 개별 메시지의 프레이밍·값·바이트 상한을 검사한다. 전체 엔진은 P2에서 구현했고 장애·합쳐 읽기·종료 환경은 P4에서 구현했다. 참여자 상태·타이머를 실행별로 격리하고 전송·수신·해석·상위 처리 완료와 환경 원인을 각각 기록한다. 상한을 강제하고 긴 실행은 batch 64·trace 200행 페이지·유한 JSON 미리보기로 표시한다. [P7 검증 계약](docs/design-docs/p7-validation.md)의 실제 10k/1 MiB 응답성 기준과 별도 CI를 사용한다.
 
 ## 변경 관리
 
