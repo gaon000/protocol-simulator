@@ -17,7 +17,7 @@
 
 작은 수정은 구조와 개발·작업 기준을 확인한 뒤 관련 코드를 읽는다. 큰 작업은 관련 실행 계획도 확인한다. 완료 계획은 과거 판단을 이해하는 자료로 읽고 현재 구현과 다시 대조한다.
 
-v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계](design-docs/layered-protocol-v1.md) → [P0 확정 계약](design-docs/p0-execution-contract.md) → [P0~P7 구현 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md) 순서로 읽는다. 현재 P0 개발 기반과 작업 공간 골격·기초 계약을 구현했다. 제품·설계의 Accepted는 v1 전체 구현 완료를 뜻하지 않는다. 계획은 In Progress이며 P1~P7은 미시작이다. 현재 실행 명령은 Development에서 관리한다.
+v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계](design-docs/layered-protocol-v1.md) → [P0 확정 계약](design-docs/p0-execution-contract.md) → [P1 모델·코덱](design-docs/p1-models-codecs.md) → [P0~P7 구현 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md) 순서로 읽는다. 현재 P0 기반과 P1 코어를 구현했고 화면은 P0 골격이다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. 계획은 In Progress이며 P2~P7은 미시작이다. 현재 실행 명령은 Development에서 관리한다.
 
 ## 선택 문서
 

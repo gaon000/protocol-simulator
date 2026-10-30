@@ -15,7 +15,7 @@
 | Node test runner | 코어·문서 검사기의 단위/통합 테스트 |
 | Playwright | 1.64.1. 빌드된 화면의 Chromium smoke test |
 
-현재 UI는 계층·하위 서비스 선택과 작업 공간 전환만 제공한다. 프로토콜 정의 검사·프레이밍·전체 엔진·환경·편집·저장은 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P1 이후 범위다. P0 기술 선택과 실행 계약은 [확정 문서](design-docs/p0-execution-contract.md)를 따른다.
+현재 UI는 계층·하위 서비스 선택과 작업 공간 전환만 제공한다. P1 코어에 정의·참조·서비스 검사와 프레이밍 코덱을 추가했으며 [P1 계약](design-docs/p1-models-codecs.md)을 따른다. 전체 엔진·환경·편집·저장은 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P2 이후 범위다. P0 도구·의존성은 변경하지 않았다.
 
 ## 시작하기
 

@@ -4,6 +4,8 @@
 확정일: 2026-10-30
 구현 범위: 도구·작업 공간 골격과 기초 계약 함수·fixture. 전체 정의 검사·엔진·환경 실행은 P1 이후에 구현한다.
 
+이 문서는 P0 완료 당시의 계약·검증 기록이다. 이후 구현된 정의 검사·코덱은 [P1 계약](p1-models-codecs.md)을 따른다. P0의 최소 JSON fixture는 당시 snapshot 복사 검증용으로 보존하고, 실행 준비용 전체 정의에는 P1 fixture와 유효성 검사를 사용한다.
+
 ## 도구 선택과 승인
 
 Node 24.18.0, pnpm 9.15.0, TypeScript 7.0.2를 고정한다. React 19.3.1·React DOM 19.3.1은 사용자가 이 대화에서 production dependency 추가를 승인했다. Vite 8.3.5와 React plugin은 개발·빌드 도구, Biome 2.6.4는 lint·포맷 도구다. 코어 단위·통합 테스트는 Node 내장 test runner, 화면 smoke test는 Playwright 1.64.1의 Chromium을 사용한다.

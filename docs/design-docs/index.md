@@ -21,3 +21,4 @@
 
 - [하위 서비스 계약, 결정적 엔진, 코덱·환경·저장과 실패 경계](layered-protocol-v1.md) — Accepted. v1 전체 목표 설계이며 P0 기초 계약 외에는 후속 구현 범위다.
 - [P0 실행 계약과 개발 기반](p0-execution-contract.md) — Accepted. 도구·production dependency 승인, 기초 계약 함수·fixture와 후속 구현 경계.
+- [P1 정의 모델·검사·코덱](p1-models-codecs.md) — Accepted. 전체 정의·참조·서비스 검사, 세 가지 코덱과 API 오류·바이트 계약.

@@ -3,7 +3,7 @@
 상태: In Progress
 작성일: 2026-10-30
 종료일: 미종료
-현재 단계: P0 개발 기반·기초 계약과 전체 로컬 검사 완료. 다음 단계 P1이며 P1~P7은 미시작.
+현재 단계: P0 master 반영·원격 push, P1 코어 구현·전체 로컬 검사 완료. 다음 단계 P2이며 P2~P7은 미시작.
 
 이 문서는 [ExecPlan 운영 규칙](../index.md)을 따른다. 최초 요청은 설계를 문서화하고 구현 계획을 작성하는 범위였으며 애플리케이션 구현·패키지 설치·배포는 수행하지 않았다. 문서의 커밋·push는 이후 사용자의 별도 요청 범위를 따른다. 사용자가 P0 구현을 요청하고 React·React DOM의 production dependency 추가를 승인했다. 이후 신규 production dependency도 추가 전에 사용자 확인을 받는다.
 
@@ -26,7 +26,7 @@
 - [x] 2026-10-30 최초 조사: 당시 실행 코드·manifest·테스트·CI가 없음을 확인.
 - [x] 2026-10-30: 합의된 제품 범위와 기술 설계를 문서화하고 P0~P7 구현 순서·검증 기준 작성.
 - [x] P0: 2026-10-30 개발 도구·세부 계약 확정과 최소 실행 기반. Node 테스트 16개·빌드·Chromium E2E 4개 통과.
-- [ ] P1: 정의 모델·검사와 프레이밍 코덱.
+- [x] P1: 2026-10-30 정의 모델·참조·값·환경 호환성 검사와 세 가지 코덱 구현. `pnpm check` 통과: Node 63개·문서 21개·빌드·기존 Chromium 화면 회귀 4개.
 - [ ] P2: 결정적 실행 엔진과 이상적인 전달 환경.
 - [ ] P3: Ping/Pong을 편집·실행하는 화면의 첫 수직 구현.
 - [ ] P4: 환경 장애와 사용자 정의 재전송 프로토콜.
@@ -54,14 +54,17 @@
 | 2026-10-30 | Node 24.18.0·pnpm 9.15.0·React 19.3.1·Vite 8.3.5·TypeScript 7.0.2 | P0 구현 요청과 React·React DOM 추가에 대한 사용자 승인. 버전은 registry와 실제 설치로 확인 |
 | 2026-10-30 | Node runner·Playwright Chromium·Biome·저장소 문서 검사기 | DOM 없는 코어 검증과 빌드된 화면 검증을 분리 |
 | 2026-10-30 | 전달 우선 동률 순서, mulberry32-v1, 환경 샘플링·청크 규칙·상한 고정 | [P0 확정 계약](../../design-docs/p0-execution-contract.md)과 기초 함수·참조 fixture로 검토 |
+| 2026-10-30 | P0 `9461953`을 master에 fast-forward 병합·원격 push 후 P1 feature branch 생성 | 사용자 요청. 원격 master SHA 일치 확인 |
+| 2026-10-30 | schemaVersion 1의 전체 정의와 JSON Pointer 오류, stable ID/wire name 분리 | [P1 계약](../../design-docs/p1-models-codecs.md). 추가 production dependency 없이 구현 |
+| 2026-10-30 | bounded 바이트 누적과 LF 메시지 경계, JSON datagram은 독립 검사 | UTF-8 분할·합쳐 읽기·불완전 EOF·상한을 실제 바이트로 검증 |
 
-P0에서 도구·기초 계약 결정을 기록했고 구현 요청과 의존성 승인에 따라 계획을 In Progress로 갱신했다. 실제 큐·타이머·환경 실행은 P2/P4, 전체 정의·코덱 검사는 P1에 남아 있다. 향후 주요 결정을 바꾸면 관련 문서·fixture와 engineVersion을 검토한다.
+P0와 P1의 계약·검사를 기록했다. 실제 큐·타이머·규칙 실행은 P2, 전달 환경은 P4에 남아 있다. 복잡한 조건의 실제 동시 일치·동적 값 범위·타이머 generation은 P2에서 실행 검증해야 한다. 향후 주요 결정을 바꾸면 관련 문서·fixture와 engineVersion을 검토한다.
 
 이미 승인된 일반 구현 작업에 별도 반복 확인을 요구하지 않으며 신규 production dependency 확인은 유지한다. 전체 구현과 필수 검증이 끝날 때까지 계획을 Completed로 바꾸지 않는다.
 
 ## Outcomes & Retrospective
 
-P0에서 React 작업 공간 골격, strict TypeScript·lint·포맷·문서·테스트·빌드 도구, 기초 정렬·seed·snapshot 계약을 구현했다. 단위·통합 16개와 빌드된 화면의 Chromium smoke test 4개가 통과했다. 전체 스키마·코덱·엔진·환경·편집·저장은 P1 이후 미구현이다. CI·배포는 수행하지 않았다. 계획은 In Progress이며 각 단계의 실제 검증 범위를 별도로 기록한다.
+P0의 도구·작업 공간·기초 계약을 master `9461953`에 반영했다. P1은 별도 feature branch에서 전체 모델·검사·세 가지 코덱과 검증된 snapshot 준비를 구현했다. 화면은 P0 골격이며 새 API는 아직 화면에 연결하지 않았다. 이벤트 큐·규칙 실행·타이머·환경·편집·저장은 후속 단계다. CI·배포는 수행하지 않았고 계획은 In Progress다.
 
 ## Context and Orientation
 
@@ -69,7 +72,7 @@ P0에서 React 작업 공간 골격, strict TypeScript·lint·포맷·문서·�
 
 - [제품 명세](../../product-specs/protocol-simulator-v1.md): 사용자 동작, 기능 범위, 화면, 예외·범위 밖 항목.
 - [기술 설계](../../design-docs/layered-protocol-v1.md): 데이터 소유권, 서비스 계약, 엔진·환경·코덱, 실패·복구와 검증 시나리오.
-- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/execution-contract.ts`, `scripts/`, `tests/`다. 그 밖의 제안 경로는 해당 단계에서 생성한다.
+- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/`, `src/codecs/`, `scripts/`, `tests/`다. 그 밖의 제안 경로는 해당 단계에서 생성한다.
 
 제안 구조는 `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `src/ui/`, `src/examples/`, `src/persistence/`와 `tests/unit/`, `tests/integration/`, `tests/e2e/`다. 단일 프로젝트로 시작하고 코드가 생기는 단계에만 필요한 경로를 만든다. 코어는 DOM·브라우저 저장과 독립적이어야 한다.
 
@@ -107,6 +110,8 @@ P0에서 React 작업 공간 골격, strict TypeScript·lint·포맷·문서·�
 검증: 유효/무효 모델과 서비스 불일치, 잘못된 참조·타입·범위, UTF-8를 포함한 모든 바이트 분할 위치, 여러 메시지 합쳐 읽기, 잘못된 JSON, 미완성 EOF, 크기 상한. 도구가 자동으로 구조화된 JSON을 전달하는 것만으로 스트림 검증을 대체하지 않는다.
 
 완료 조건: 고정 fixture의 encode/decode와 정의 오류 위치를 DOM 없이 재현한다.
+
+구현 결과: [P1 계약](../../design-docs/p1-models-codecs.md), [완전한 모델 fixture](../../../tests/fixtures/protocol-models.ts), 모델/코덱 단위 테스트와 snapshot 왕복 통합 테스트를 추가했다. 실제 이벤트 실행과 편집 화면 연결은 이 단계의 완료 조건에 포함하지 않는다.
 
 ### P2 — 결정적 엔진·타이머·기록
 
@@ -241,6 +246,13 @@ P0에서 아래 명령을 저장소 루트 기준으로 구성했다. 정확한 
 - 2026-10-30 P0: 자체 `pnpm check:docs`에서 20개 문서·로컬 경로·앵커·양식 검사 통과.
 - 2026-10-30 P0: `pnpm install --frozen-lockfile --offline`으로 로컬 캐시 기반 고정 설치를 재확인하고 `pnpm check` 전체 검사 통과. lint·포맷·strict 타입·Node 16개·문서 20개·빌드·Chromium 4개가 실제 실행됐다. 빈 캐시 환경의 설치·원격 CI를 검증한 것은 아니다.
 - 원격 CI·배포·실제 네트워크: 미실행. CI 설정과 외부 연결이 없다.
+
+P1 검증 기록:
+
+- 2026-10-30: P0 전체 검사 재확인 후 `9461953` 커밋을 master에 병합·push했고 원격 master SHA를 확인했다. 이어 `codex/p1-protocol-models-codecs`에서 작업했다.
+- 2026-10-30: `pnpm check` 전체 통과. lint·포맷·strict 타입, Node 단위·통합 63개(skip 없음), 문서 21개, Vite production build, 기존 P0 화면의 Chromium 회귀 4개가 실제 실행됐다. 메시지의 모든 바이트 분할 위치·UTF-8·1 MiB 기본 상한·snapshot 왕복·누락/null 변형을 포함한다.
+- P1은 `codex/p1-protocol-models-codecs`에서 검증했다. 이후 사용자가 각 단계를 완료할 때 master에 병합하는 지속 작업을 요청했으며 단계별 커밋·원격 반영은 Git 기록으로 확인한다.
+- 새 production dependency·도구 버전 변경 없음. 브라우저 E2E는 기존 P0 화면 회귀만 검사하며 편집·시뮬레이션 UI 테스트로 표현하지 않는다.
 
 ## Idempotence and Recovery
 
