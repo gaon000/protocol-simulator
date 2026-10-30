@@ -146,7 +146,7 @@ export function App() {
     if (!playing || !run) return;
     const timeout = window.setTimeout(() => {
       session.apply(run.runId, (engine) => {
-        const next = engine.runBatch(run.processedEvents < 16 ? 4 : 64);
+        const next = engine.runBatch(run.processedEvents < 16 ? 1 : 64);
         setRun(next);
         if (engine.result()) {
           setPlaying(false);
