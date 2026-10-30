@@ -36,7 +36,7 @@
 
 Node의 monotonic clock으로 Playwright 동작·확인까지 wall time을 재며 브라우저 rAF와 PerformanceObserver longtask를 함께 수집한다. 가상 시뮬레이션 timeMs를 성능 시간으로 사용하지 않는다. 결과는 console과 `test-results/performance-report.json` 및 attachment로 남긴다. 개발 머신/runner 부하·기기·브라우저 버전에 영향을 받으며 p95 frame과 최대 task를 함께 읽는다. 이 수치는 모든 사용자 기기의 보증치가 아니다.
 
-최초 baseline은 10k 실행 37,513ms, 1 MiB 상세 2,436ms·DOM 11,534,460자·최대 task 1,969ms로 실패했다. 긴 실행의 인위적 batch 대기와 거대한 pretty JSON의 DOM/layout 비용을 확인했다. batch/페이지/미리보기와 불변 공유를 개선한 뒤 같은 기준으로 재검사한다. 실제 최종 수치·명령·검증 상태는 [실행 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P7 기록이 소유한다.
+최초 baseline은 10k 실행 37,513ms, 1 MiB 상세 2,436ms·DOM 11,534,460자·최대 task 1,969ms로 실패했다. 긴 실행의 인위적 batch 대기와 거대한 pretty JSON의 DOM/layout 비용을 확인했다. batch/페이지/미리보기와 불변 공유를 개선한 뒤 같은 기준으로 재검사한다. 실제 최종 수치·명령·검증 상태는 [실행 계획](../exec-plans/completed/20261030-1641-layered-protocol-v1.md)의 P7 기록이 소유한다.
 
 ## CI와 증거
 

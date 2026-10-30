@@ -72,4 +72,4 @@ JSON Lines가 중간 프레임에서 실패하면 해당 decoder를 닫고 나�
 - [코덱 테스트](../../tests/unit/message-codecs.test.ts): 모든 바이트 분할 위치, 한 바이트 읽기, 합쳐 읽기, UTF-8와 escaped newline, caller buffer 재사용, EOF·잘못된 데이터·상한·버퍼 성장과 스키마 격리.
 - [모델/코덱 통합 테스트](../../tests/integration/protocol-codec-contract.test.ts): 검증 → 불변 snapshot → JSON 왕복 → 재검증 → byte encode/decode.
 
-전체 검사와 단계별 실제 결과는 [구현 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)에 기록한다. P1은 P0 화면을 유지하며 새 API를 아직 편집 화면에 연결하지 않는다. 이벤트 큐·규칙 실행·타이머·실제 환경은 P2 이후다. production dependency나 개발 도구 버전은 변경하지 않았다.
+전체 검사와 단계별 실제 결과는 [구현 계획](../exec-plans/completed/20261030-1641-layered-protocol-v1.md)에 기록한다. P1은 P0 화면을 유지하며 새 API를 아직 편집 화면에 연결하지 않는다. 이벤트 큐·규칙 실행·타이머·실제 환경은 P2 이후다. production dependency나 개발 도구 버전은 변경하지 않았다.

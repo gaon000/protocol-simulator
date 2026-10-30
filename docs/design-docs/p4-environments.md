@@ -65,4 +65,4 @@ initialSends와 retries를 따로 기록한다. 기본 상한은 최초 송신 1
 - EOF/실패의 불완전 접두부 검사는 정상 adapter 앞에서 raw write를 일부러 자르는 테스트 포트를 사용한다. 이는 코덱·환경 경계 검증이며 사용자용 데이터 절단 기능이나 실제 연결 장애 재현이라고 주장하지 않는다.
 - [실제 Chromium E2E](../../tests/e2e/fault-environments.test.ts): 정상/ACK 손실 비교, 최초/재시도와 1회 전달, 유한 실패, seed 재현·확률 오류 차단, 작성한 연결 규칙과 cutoff, 합쳐진 청크의 두 원인 이동.
 
-최종 명령·수집 수·master 반영은 [실행 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)에 기록한다. 새 production dependency·실제 소켓·원격 CI·배포는 추가하지 않았다.
+최종 명령·수집 수·master 반영은 [실행 계획](../exec-plans/completed/20261030-1641-layered-protocol-v1.md)에 기록한다. 새 production dependency·실제 소켓·원격 CI·배포는 추가하지 않았다.

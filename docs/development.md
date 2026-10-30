@@ -76,7 +76,7 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
-[CI workflow](../.github/workflows/check.yml)는 Ubuntu 24.04에서 같은 Node·pnpm/frozen lockfile과 Chromium/Firefox·OS 의존성을 설치하고 `pnpm check`를 실행한다. 테스트 trace/응답성 report는 artifact로 7일 보관한다. workflow 구성과 실제 원격 실행 결과는 별도이며 최종 결과는 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)에 기록한다. branch protection·배포는 설정하지 않았다.
+[CI workflow](../.github/workflows/check.yml)는 Ubuntu 24.04에서 같은 Node·pnpm/frozen lockfile과 Chromium/Firefox·OS 의존성을 설치하고 `pnpm check`를 실행한다. 테스트 trace/응답성 report는 artifact로 7일 보관한다. workflow 구성과 실제 원격 실행 결과는 별도이며 최종 결과는 [실행 계획](exec-plans/completed/20261030-1641-layered-protocol-v1.md)에 기록한다. branch protection·배포는 설정하지 않았다.
 
 응답성은 기능 검사와 겹치지 않게 1 worker·1440×900에서 실행한다. 전체 실행·상세·저장·history 이동과 rAF/longtask를 측정하고 `test-results/performance-report.json`에 기록한다. 임곗값·지원/미검증 브라우저·표시 상한은 [P7 문서](design-docs/p7-validation.md)를 따른다. macOS 로컬·Ubuntu CI 결과를 다른 기기의 보증으로 사용하지 않는다.
 

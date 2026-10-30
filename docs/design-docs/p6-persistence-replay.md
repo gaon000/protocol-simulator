@@ -48,4 +48,4 @@ P6는 실행 의미를 변경하지 않아 engineVersion은 `0.1.0-p5`를 유지
 
 ## 검증 경계
 
-실제 명령·결과는 [구현 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P6 검증 기록을 따른다. Node에서 모델·파일·동시 저장 controller·snapshot 재실행을, 실제 Chromium IndexedDB에서 reload·quota·request 성공 뒤 transaction abort·다른 탭 CAS 충돌을 검사한다. 실패 주입은 테스트에서 native API를 감싼 것으로 실제 디스크 고장/전원 장애나 OS fsync 검증은 아니다. 최종 브라우저 지원·대형 fixture 응답성·원격 CI는 P7 범위다.
+실제 명령·결과는 [구현 계획](../exec-plans/completed/20261030-1641-layered-protocol-v1.md)의 P6 검증 기록을 따른다. Node에서 모델·파일·동시 저장 controller·snapshot 재실행을, 실제 Chromium IndexedDB에서 reload·quota·request 성공 뒤 transaction abort·다른 탭 CAS 충돌을 검사한다. 실패 주입은 테스트에서 native API를 감싼 것으로 실제 디스크 고장/전원 장애나 OS fsync 검증은 아니다. 최종 브라우저 지원·대형 fixture 응답성·원격 CI는 P7 범위다.

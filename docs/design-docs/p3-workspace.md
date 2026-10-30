@@ -42,4 +42,4 @@ P3 당시 구현 범위: 메모리 초안의 폼 편집, 이상적 환경의 실
 
 [초안 통합 검사](../../tests/integration/workspace-draft.test.ts)는 세 코덱의 실제 예제, revision·snapshot 격리, 필드·조건 편집 영향, 프로필 호환성, 삭제 참조·JSON Pointer·미완성 값 이동을 검사한다. [Chromium E2E](../../tests/e2e/workspace.test.ts)는 브라우저 폼에서 빈 실험의 Ping/Pong 작성, 필드·조건 변경, 진단 초점, 관찰 결과·원인·규칙, 실행 제어·편집 중 정지·키보드·390px 흐름을 검사한다.
 
-실행 결과와 명령은 [실행 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)에 기록한다. 원격 CI·배포·실제 서버/기기 통신, 장애 환경·HTTP/TCP·영속 저장은 P3 검증에 포함하지 않는다. 신규 production dependency는 추가하지 않았다.
+실행 결과와 명령은 [실행 계획](../exec-plans/completed/20261030-1641-layered-protocol-v1.md)에 기록한다. 원격 CI·배포·실제 서버/기기 통신, 장애 환경·HTTP/TCP·영속 저장은 P3 검증에 포함하지 않는다. 신규 production dependency는 추가하지 않았다.

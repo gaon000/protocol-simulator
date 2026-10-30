@@ -4,9 +4,9 @@
 
 제품은 응용·전송 계층별로 프로토콜을 정의하고 하위 서비스 환경을 설정해 가상 참여자 A·B 사이에서 실행·관찰·검증하는 도구로 설계했다. 첫 버전은 데스크톱 웹을 기준으로 하며 한 번의 실행은 한 계층과 하위 서비스 모델을 사용한다.
 
-현재 P6까지 구현했다. 코어는 가상 시간·규칙·타이머·정상 전달·관찰 판정을 제공하고 React 화면에서 폼 편집·실행·진단·원인 규칙을 연결한다. 데이터그램 장애·스트림 합쳐 읽기/종료, Stop-and-wait와 제한된 HTTP/1.1·TCP 연결 예제·원본/사본과 IndexedDB 로컬 저장·기록 재생을 구현했다.
+현재 P0~P7 v1을 구현하고 로컬·원격 CI 검증을 완료했다. 코어는 가상 시간·규칙·타이머·정상 전달·관찰 판정을 제공하고 React 화면에서 폼 편집·실행·진단·원인 규칙을 연결한다. 데이터그램 장애·스트림 합쳐 읽기/종료, Stop-and-wait와 제한된 HTTP/1.1·TCP 연결 예제·원본/사본과 IndexedDB 로컬 저장·기록 재생을 구현했다.
 
-[제품 명세](docs/product-specs/protocol-simulator-v1.md)는 기능·화면·범위를, [기술 설계](docs/design-docs/layered-protocol-v1.md)는 목표 구조·계약·실패 경계를 소유한다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. [P0 계약](docs/design-docs/p0-execution-contract.md)과 [P1 계약](docs/design-docs/p1-models-codecs.md)이 구현한 단계의 세부 기준이다. [구현 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md)은 In Progress이며 다음 단계는 P7이다.
+[제품 명세](docs/product-specs/protocol-simulator-v1.md)는 기능·화면·범위를, [기술 설계](docs/design-docs/layered-protocol-v1.md)는 목표 구조·계약·실패 경계를 소유한다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. [P0 계약](docs/design-docs/p0-execution-contract.md)과 [P1 계약](docs/design-docs/p1-models-codecs.md)이 구현한 단계의 세부 기준이다. [구현 계획](docs/exec-plans/completed/20261030-1641-layered-protocol-v1.md)은 Completed이며 단계별 실제 증거와 검증 범위 밖 항목을 기록했다.
 
 ## 모듈 지도
 

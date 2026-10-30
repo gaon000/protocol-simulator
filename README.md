@@ -2,7 +2,7 @@
 
 응용·전송 계층의 프로토콜을 정의하고 하위 통신 환경을 설정해 가상 참여자 사이에서 검증하는 도구다. 기존 예제에서 메시지 구조와 흐름을 살펴보고 사용자 정의 사본으로 실험하는 것을 목표로 한다.
 
-현재 P6까지 구현했다. 화면에서 메시지·상태·규칙·시나리오를 편집하고 가상 참여자 A/B로 실행해 시퀀스·상태·기대 결과·원인을 확인할 수 있다. 실험 시작에서 출처·버전·지원 범위가 있는 아홉 예제의 사용자 사본 또는 빈 실험을 연다. 데이터그램 손실·중복·지연 변동과 스트림 합쳐 읽기·종료를 설정하고, ACK 손실·재전송·중복 제거를 관찰할 수 있다. HTTP GET·POST·분할/오류/지연 시나리오와 TCP 정상 연결 수립을 실제 바이트·필드·상태로 관찰한다. 초안·미완성 JSON·실행 snapshot과 결과는 이 브라우저에 자동 저장하며 파일로 가져오고 내보낼 수 있다. 과거 기록 탐색과 당시 snapshot 재실행을 구분한다. 저장 오류 때 메모리 작업을 유지하고 재시도·내보내기를 제공한다. 전체 HTTP/TCP 구현은 아니다. 전체 진행 상태는 [문서 지도](docs/index.md), 편집·실행 방법은 [P3 문서](docs/design-docs/p3-workspace.md)와 [P4 환경·재전송](docs/design-docs/p4-environments.md), 표준 지원 경계는 [P5 문서](docs/design-docs/p5-standard-examples.md), 저장·복구 경계는 [P6 문서](docs/design-docs/p6-persistence-replay.md)에서 확인한다.
+첫 버전의 P0~P7 구현과 필수 검증을 완료했다. 화면에서 메시지·상태·규칙·시나리오를 편집하고 가상 참여자 A/B로 실행해 시퀀스·상태·기대 결과·원인을 확인할 수 있다. 실험 시작에서 출처·버전·지원 범위가 있는 아홉 예제의 사용자 사본 또는 빈 실험을 연다. 데이터그램 손실·중복·지연 변동과 스트림 합쳐 읽기·종료를 설정하고, ACK 손실·재전송·중복 제거를 관찰할 수 있다. HTTP GET·POST·분할/오류/지연 시나리오와 TCP 정상 연결 수립을 실제 바이트·필드·상태로 관찰한다. 초안·미완성 JSON·실행 snapshot과 결과는 이 브라우저에 자동 저장하며 파일로 가져오고 내보낼 수 있다. 과거 기록 탐색과 당시 snapshot 재실행을 구분한다. 저장 오류 때 메모리 작업을 유지하고 재시도·내보내기를 제공한다. 전체 HTTP/TCP 구현은 아니다. 전체 진행 상태는 [문서 지도](docs/index.md), 편집·실행 방법은 [P3 문서](docs/design-docs/p3-workspace.md)와 [P4 환경·재전송](docs/design-docs/p4-environments.md), 표준 지원 경계는 [P5 문서](docs/design-docs/p5-standard-examples.md), 저장·복구 경계는 [P6 문서](docs/design-docs/p6-persistence-replay.md)에서 확인한다.
 
 ## 로컬 개발
 
@@ -27,4 +27,4 @@ corepack pnpm check
 
 데스크톱 Chromium/Firefox, 390/768/1440px의 배치·키보드를 검사한다. Safari·실기기 모바일은 미검증이다. 대형 trace는 200행씩 탐색하고 이벤트 상세는 미리보기로 표시하며 전체 데이터는 bundle에 보존한다. 응답성 기준과 한계는 [P7 문서](docs/design-docs/p7-validation.md)를 따른다.
 
-세부 명령과 로컬/CI 검증 범위는 [개발 기준](docs/development.md), v1 단계별 목표는 [실행 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md)을 따른다.
+세부 명령과 로컬/CI 검증 범위는 [개발 기준](docs/development.md), v1 단계별 목표는 [실행 계획](docs/exec-plans/completed/20261030-1641-layered-protocol-v1.md)을 따른다.

@@ -1,9 +1,9 @@
 # 계층별 프로토콜 시뮬레이터 v1 구현 계획
 
-상태: In Progress
+상태: Completed
 작성일: 2026-10-30
-종료일: 미종료
-현재 단계: P7 로컬 전체 검사·지원 브라우저·응답성 검증 완료. feature branch 원격 CI 결과 확인과 최종 문서 종료 감사 중이다.
+종료일: 2026-10-30
+현재 단계: P0~P7 구현·필수 검사·수용 감사 완료. 구현 commit 9f7196a의 원격 CI 통과 후 종료 문서를 정리했다. 최종 master 전달 상태는 Git 기록으로 확인한다.
 
 이 문서는 [ExecPlan 운영 규칙](../index.md)을 따른다. 최초 요청은 설계를 문서화하고 구현 계획을 작성하는 범위였으며 애플리케이션 구현·패키지 설치·배포는 수행하지 않았다. 문서의 커밋·push는 이후 사용자의 별도 요청 범위를 따른다. 사용자가 P0 구현을 요청하고 React·React DOM의 production dependency 추가를 승인했다. 이후 신규 production dependency도 추가 전에 사용자 확인을 받는다.
 
@@ -32,7 +32,7 @@
 - [x] P4: 2026-10-30 장애 환경·합쳐 읽기/종료·순서 번호/ACK/유한 재시도와 UI 구현. 전체 로컬 검사: Node 128개·문서 24개·빌드·Chromium E2E 15개 통과.
 - [x] P5: 2026-10-30 HTTP 코덱·여섯 HTTP 시나리오·TCP 정상 연결·원본/사본과 출처/지원 경계. 전체 로컬 검사: Node 193개·문서 25개·빌드·Chromium E2E 28개 통과.
 - [x] P6: 2026-10-30 native IndexedDB·invalid draft·bundle 검증/사본 merge·과거 기록/명시적 snapshot 재실행. 전체 로컬 검사: Node 212개·문서 26개·빌드·Chromium E2E 36개 통과.
-- [ ] P7: 전체 사용자 흐름·상한·접근성·최종 검증.
+- [x] P7: 2026-10-30 Chromium/Firefox·390/768/1440px·키보드·실제 10k/1 MiB 응답성·CI 구성과 최종 수용 감사 완료. 로컬/원격 전체 검사 Node 215개·문서 27개·기능 E2E 78개·응답성 2개 통과.
 
 ## Surprises & Discoveries
 
@@ -69,10 +69,8 @@
 | 2026-10-30 | P4 `43fadc1`의 master 반영 후 P5 feature branch 생성 | 단계별 병합·지속 구현 요청 |
 | 2026-10-30 | engineVersion `0.1.0-p5`, HTTP binding·origin 선택 필드를 schemaVersion 1에 추가 | 기존 실험 유지·새 코덱 지원을 구분. HTTP CL은 UTF-8 본문에서 생성하고 raw 오류 실험은 별도 명시 |
 | 2026-10-30 | [P5 catalog·HTTP/TCP 경계](../../design-docs/p5-standard-examples.md), 동결 원본과 사용자 사본 | 출처·버전·생략·예상 오류를 읽고 실제 코어/화면 결과와 비교 |
-
 | 2026-10-30 | P5 `8825c1b` 반영 후 P6 feature branch에서 native IndexedDB·revision CAS 선택 | 비동기 구조화 저장·원자적 전체 갱신·탭 충돌 보호, 추가 production dependency 없음 |
 | 2026-10-30 | invalid draft/raw와 frozen run snapshot의 별도 소유, 명시적 기록 탐색/재실행 | 편집·삭제·파일 충돌이 과거 결과를 바꾸지 않도록 [P6 계약](../../design-docs/p6-persistence-replay.md) 확정 |
-
 | 2026-10-30 | P6 `38b481a`를 master 병합·원격 SHA 검증 후 P7 feature branch 작업 | 단계별 병합·지속 구현 요청 |
 | 2026-10-30 | Chromium/Firefox 기능 검사와 별도 1-worker Chromium 응답성 기준 | [P7 검증 계약](../../design-docs/p7-validation.md). 390/768/1440px·키보드·native 저장과 실제 상한 fixture |
 | 2026-10-30 | 긴 실행 batch 64, trace 200행 페이지·유한 JSON 미리보기·native 불변 기록 공유 | baseline 병목을 개선하고 같은 수치 기준·결정성·session fencing을 재검증 |
@@ -83,7 +81,7 @@ P2에서 큐·규칙·타이머·관찰 판정과 session fencing을 구현했�
 
 ## Outcomes & Retrospective
 
-P0~P6는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. P5에서 HTTP 코덱·여섯 시나리오·TCP 정상 연결과 버전 있는 catalog/사본을 구현했다. P6에서 IndexedDB transaction·revision 충돌·저장 복구·bundle·읽기 전용 기록과 snapshot 재실행을 구현했다. 최종 응답성/지원 브라우저/CI 검증은 남아 있고 계획은 In Progress다. 배포는 수행하지 않았다.
+P0~P6는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. P5에서 HTTP 코덱·여섯 시나리오·TCP 정상 연결과 버전 있는 catalog/사본을 구현했다. P6에서 IndexedDB transaction·revision 충돌·저장 복구·bundle·읽기 전용 기록과 snapshot 재실행을 구현했다. P7에서 Chromium/Firefox·키보드/viewport·실제 상한 응답성과 CI를 검증하고 아래 수용 행렬을 모두 감사했다. 구현 commit `9f7196a`의 원격 전체 검사가 통과했다. 종료 문서는 코드 변경 없이 현재 상태·링크·Completed 위치를 맞춘다. Safari/실기기 모바일·전체 HTTP/TCP·배포·실제 통신은 합의된 검증 범위 밖이다.
 
 ## Context and Orientation
 
@@ -314,7 +312,7 @@ P6 검증 기록:
 - 과거 기록의 읽기 전용 상태/타이머 위치 이동, 원본 초안 삭제 뒤 재실행, 참조 중 정의 삭제 방지와 참조 해제 후 삭제, import 시 취소 checkpoint 보존, 삭제한 live 기록이 후속 편집으로 재생성되지 않음을 검사했다. replay projection의 종료 시 timer generation은 비활성 타이머도 증가시키는 엔진과 맞췄다.
 - 신규 정의 삭제 브라우저 검사에서 select의 label text exact 선택자가 option 텍스트를 함께 읽어 대기한 실패가 있었다. 실제 accessible role/name으로 선택자를 수정한 후 해당 검사와 전체 회귀가 통과했다. 원격 CI·최종 지원 브라우저/대형 기록 응답성·배포·실제 통신은 아직 검증하지 않았으며 P7이 남아 계획은 In Progress다.
 
-P7 검증 기록(최종 종료 감사 중):
+P7 검증 기록:
 
 - 2026-10-30: P6 `38b481a`를 master 병합·push했고 HEAD/master/origin/master/ls-remote 일치를 확인했다. `codex/p7-v1-validation`에서 후속 검증·응답성 보완·CI를 구현했다. 신규 production dependency 없음.
 - `pnpm check` 로컬 전체 통과: lint·포맷·strict 타입, Node 215개(skip 없음), 문서 27개, production build, Chromium/Firefox 기능 E2E 78개, 1-worker Chromium 응답성 2개. Firefox 157.0, Chromium 156.0.8078.4, macOS arm64에서 실행했다. 별도 단일 명령의 성공을 전체 검사로 대체하지 않았다.
@@ -322,7 +320,23 @@ P7 검증 기록(최종 종료 감사 중):
 - 수치 기준은 baseline 전 고정했다([P7 기준](../../design-docs/p7-validation.md)). baseline 10k 실행 37,513ms와 1 MiB 상세 2,436ms/11,534,460자·최대 task 1,969ms가 실패했다. batch 64·200행 페이지·유한 preview·WeakSet 기반 native 불변 공유로 개선했다. Node에서 batch 64/전체의 실제 10k 기록 동등성과 정확히 1 MiB 송신/1바이트 초과 차단, 얕게 freeze한 외부 view의 복사 격리를 확인했다.
 - 최종 측정창(필터 60회·보존 확인 제외)의 로컬 full check 결과(단위 ms): 10k 실행 3,480.2 / 클릭 p95 63.6 / 상세 41.0 / 실제 편집 저장 56.4 / cursor 왕복 68.6 / frame p95 16.8 / 최대 longtask 0. 1 MiB 실행 348.0 / 클릭 p95 35.3 / 상세 36.4(2,530자) / 실제 편집 저장 283.9 / cursor 63.4 / frame p95 16.8 / 최대 longtask 123. 저장된 native DB에서 trace 10,000개와 wire 1,048,576바이트가 잘리지 않았고 첫/다음/최근 페이지 이동도 검사했다. 결과는 기기별 성능 보증이 아니다.
 - 첫 원격 [CI 41046391040](https://github.com/gaon000/protocol-simulator/actions/runs/41046391040)는 Node·문서·빌드·기능 78개를 통과했지만 1 MiB frame p95가 정확히 100ms로 엄격한 100ms 미만 기준에 실패했다. 초기 batch를 4→1로 줄여 큰 송신/수신을 나누고 byte array 동결의 Object.values 중간 할당을 없앴다. 기준 완화나 동일 commit의 무조건 재시도 없이 수정 후 로컬 전체 검사를 다시 통과했다. 수정 commit의 [CI 41046924310](https://github.com/gaon000/protocol-simulator/actions/runs/41046924310)도 기능 78개는 통과했으나 짧은 1 MiB 측정 p95는 133.3ms였다. CPU 3배 지연의 phase 프로파일에서 실행·자동/수동 저장과 테스트 확인용 DB 재읽기를 구분했다. 필터를 실제 60회 조작하는 표본으로 고정하고, 보존용 DB 재읽기는 성능 창 밖으로 옮겼다. 단일 조작 표본 대신 입력 지연 p95를 검사하고 수치 상한은 그대로 유지한다. 명시적 저장 전에는 새 편집으로 미저장 상태를 만들며 원래 저장 비용을 회피하지 않는다. 변경된 측정창을 이전 값과 구분해 기록한다. CPU 3배 지연 진단도 두 fixture 모두 통과했다: 1 MiB 실행 564.8ms·입력 p95 36.5ms·실제 편집 저장 640.7ms·frame p95 16.8ms·최대 longtask 353ms. 기본 로컬 전체 검사도 새 측정창으로 통과했다.
-- `.github/workflows/check.yml`에 Ubuntu 24.04·고정 Node/pnpm/lockfile·Chromium/Firefox·동일 pnpm check·trace/report artifact를 구성했다. Actions enabled 여부를 읽어 확인했다. 현재 원격 job 결과 확인 전이므로 로컬 결과를 CI 통과로 표현하지 않는다. 최종 수용 감사 후에만 Completed/이동한다.
+- `.github/workflows/check.yml`에 Ubuntu 24.04·고정 Node/pnpm/lockfile·Chromium/Firefox·동일 pnpm check·trace/report artifact를 구성했다. Actions enabled 여부를 읽어 확인했다. 구현 commit `9f7196a`의 [CI 41048401896](https://github.com/gaon000/protocol-simulator/actions/runs/41048401896)가 실제 Ubuntu runner에서 전체 통과했다. Node 215개·문서 27개·빌드·양쪽 브라우저 E2E 78개·응답성 2개를 로그로 확인했다.
+- 원격 최종 측정창 결과(단위 ms): 10k 실행 3,501.4 / 입력 p95 88.4 / 상세 56.6 / 실제 편집 저장 100.3 / cursor 156.6 / frame p95 16.8 / 최대 task 0. 1 MiB 실행 583.9 / 입력 p95 43.7 / 상세 41.0 / 실제 편집 저장 678.3 / cursor 86.3 / frame p95 16.8 / 최대 task 266. 모든 수치 상한을 충족했다. 로컬·원격·CPU 지연 진단과 이전 측정창 수치를 서로 대체하지 않는다.
+
+### 최종 수용 감사
+
+| 수용 항목 | 실제 완료 증거 |
+| --- | --- |
+| 서비스·메시지 경계 | [코덱 계약](../../../tests/integration/protocol-codec-contract.test.ts)·[장애 환경](../../../tests/integration/fault-environments.test.ts)과 실제 UI 오류 초점 |
+| 독립 상태·타이머·결정성 | [simulation](../../../tests/integration/simulation.test.ts)·seed/동률/취소·batch 64와 전체 10k trace 동등성 |
+| ACK와 상위 완료 분리 | [장애 E2E](../../../tests/e2e/fault-environments.test.ts)의 ACK 손실·유한 재시도·상위 1회 전달 |
+| 표준 이해 | [표준 예제 코어](../../../tests/integration/standard-examples.test.ts)·[브라우저](../../../tests/e2e/standard-examples.test.ts)의 아홉 catalog·HTTP 바이트/오류·TCP seq/ack |
+| 사용자 직접 작성 | [workspace E2E](../../../tests/e2e/workspace.test.ts)의 빈 실험 작성부터 환경 편집·실행·원인·저장·reload·과거 기록까지 |
+| 재개·보존 | [저장 E2E](../../../tests/e2e/persistence-replay.test.ts)의 native DB·invalid draft·파일 왕복/거부·충돌/abort/quota·삭제 후 snapshot |
+| 관찰 종료 신뢰성 | simulation·[상한 fixture](../../../tests/integration/large-limits.test.ts)의 completed/limit/미판정 구분·정확한 1 MiB/초과 거부 |
+| 브라우저 사용성 | [키보드/배치](../../../tests/e2e/accessibility-layout.test.ts)·[응답성](../../../tests/performance/limits.test.ts)의 실제 10k/1 MiB·위 수치와 원격 CI |
+
+필수 미완료를 기술 부채로 이동하지 않았다. 계획의 P0~P7 체크와 위 수용 항목을 대조하고 종료일을 기록해 completed로 이동한다. 실제 서버/기기·전체 표준·Safari/보조기기 실사용·배포는 완료 증거에 포함하지 않는다. 마지막 문서 commit과 master push 이후 CI/SHA는 최종 전달 시 별도로 확인한다.
 
 ## Idempotence and Recovery
 

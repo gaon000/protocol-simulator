@@ -63,4 +63,4 @@ Content-Length가 실제보다 작으면 수신자는 선언한 접두부를 한
 - [표준 예제 통합 검사](../../tests/integration/standard-examples.test.ts): 모든 catalog 원본/사본의 실제 결과·진단·판정, 원본 동결·사본 격리·origin 왕복, 서비스 불일치, 처리 대기·단일 교환, binding 오류 위치, TCP의 100/300 및 편집한 ISS·잘못된 ACK/seq/플래그·손실 종료.
 - [Chromium E2E](../../tests/e2e/standard-examples.test.ts): 아홉 예제 각각의 화면과 코어 결과 비교, 출처·버전·제한, 본문 편집에 따른 실제 CL, 원본 재복사, raw 요청 수정 후 정상 파싱, HTTP 서비스 오류와 편집 위치, TCP 중간 상태·실제 필드·수동 ISS 변경.
 
-실제 명령·결과는 [실행 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)에 기록한다. production dependency 추가, 실제 서버/기기 연결·원격 CI·배포는 수행하지 않았다.
+실제 명령·결과는 [실행 계획](../exec-plans/completed/20261030-1641-layered-protocol-v1.md)에 기록한다. production dependency 추가, 실제 서버/기기 연결·원격 CI·배포는 수행하지 않았다.
