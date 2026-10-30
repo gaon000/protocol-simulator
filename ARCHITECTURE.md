@@ -4,9 +4,9 @@
 
 제품은 응용·전송 계층별로 프로토콜을 정의하고 하위 서비스 환경을 설정해 가상 참여자 A·B 사이에서 실행·관찰·검증하는 도구로 설계했다. 첫 버전은 데스크톱 웹을 기준으로 하며 한 번의 실행은 한 계층과 하위 서비스 모델을 사용한다.
 
-현재 P0/P1 기반과 P2 실행 엔진을 구현했다. 코어는 가상 시간·규칙·타이머·정상 전달·관찰 판정을 제공한다. React 화면은 P0 골격을 유지하며 편집·재생은 아직 연결하지 않았다. 장애 환경·표준 예제·저장은 후속 단계다.
+현재 P3까지 구현했다. 코어는 가상 시간·규칙·타이머·정상 전달·관찰 판정을 제공하고 React 화면에서 폼 편집·실행·진단·원인 규칙을 연결한다. 장애 환경·표준 예제·저장은 후속 단계다.
 
-[제품 명세](docs/product-specs/protocol-simulator-v1.md)는 기능·화면·범위를, [기술 설계](docs/design-docs/layered-protocol-v1.md)는 목표 구조·계약·실패 경계를 소유한다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. [P0 계약](docs/design-docs/p0-execution-contract.md)과 [P1 계약](docs/design-docs/p1-models-codecs.md)이 구현한 단계의 세부 기준이다. [구현 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md)은 In Progress이며 다음 단계는 P3다.
+[제품 명세](docs/product-specs/protocol-simulator-v1.md)는 기능·화면·범위를, [기술 설계](docs/design-docs/layered-protocol-v1.md)는 목표 구조·계약·실패 경계를 소유한다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. [P0 계약](docs/design-docs/p0-execution-contract.md)과 [P1 계약](docs/design-docs/p1-models-codecs.md)이 구현한 단계의 세부 기준이다. [구현 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md)은 In Progress이며 다음 단계는 P4다.
 
 ## 모듈 지도
 
@@ -21,7 +21,7 @@
 | [docs/design-docs/](docs/design-docs/index.md) | v1 기술 설계와 재사용 양식 |
 | [docs/exec-plans/](docs/exec-plans/index.md) | 실행 계획 양식, 상태별 목록과 기술 부채 |
 | [index.html](index.html), [src/main.tsx](src/main.tsx) | Vite·React 웹 진입점 |
-| [src/ui/App.tsx](src/ui/App.tsx) | 작업 공간 골격과 계층·하위 서비스 선택 |
+| [src/ui/App.tsx](src/ui/App.tsx) | 초안·실행 수명과 작업 공간 연결 |
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |
 | [src/codecs/message-codecs.ts](src/codecs/message-codecs.ts) | JSON Lines·JSON datagram·논리 패킷 인코딩/디코딩과 바이트 상한 |
@@ -29,13 +29,15 @@
 | [src/application/create-simulation.ts](src/application/create-simulation.ts) | 검증·snapshot·환경 조합과 실행 session fencing |
 | [src/environments/ideal-environment.ts](src/environments/ideal-environment.ts) | P2 손실 없는 기본 전달 모델과 미지원 장애 거부 |
 | [scripts/](scripts/check-docs.ts) | Markdown 링크·앵커·양식 검증 |
-| [tests/unit/](tests/unit/execution-contract.test.ts), [tests/integration/](tests/integration/run-snapshot.test.ts), [tests/e2e/](tests/e2e/workspace.test.ts) | 계약·문서 검사와 빌드된 화면 smoke test |
+| [src/application/edit-experiment.ts](src/application/edit-experiment.ts), [src/ui/forms.tsx](src/ui/forms.tsx) | 초안 복사·revision·JSON Pointer와 폼·오류 초점 |
+| [src/examples/ping-pong.ts](src/examples/ping-pong.ts) | 새 사본으로 여는 실제 Ping/Pong 정의 |
+| [tests/unit/](tests/unit/execution-contract.test.ts), [tests/integration/](tests/integration/run-snapshot.test.ts), [tests/e2e/](tests/e2e/workspace.test.ts) | 계약·문서 검사와 실제 브라우저의 편집·실행 흐름 |
 
 공개 서버 API·CLI와 영속 데이터 저장소는 미구성이다. 실제 개발 도구·명령은 [Development](docs/development.md)를 따른다.
 
 ## 의존 방향
 
-현재 UI는 공통 도메인 타입만 참조한다. P1 codecs → domain 방향을 유지하며 모델·코덱 테스트는 DOM 없이 실행한다. 목표는 UI → application → 도메인·엔진·코덱·환경·저장 경계다. 엔진은 주입된 하위 서비스 계약으로 실행한다. 제안된 `src/` 경로별 책임은 [기술 설계](docs/design-docs/layered-protocol-v1.md#제안-모듈과-의존-방향)를 따른다. domain·ui·codecs·engine·application·이상적 environments를 구현했다. examples·persistence는 아직 없다.
+UI → application → domain·engine·codecs·environments 의존 방향을 사용한다. examples는 DOM 없는 정의를 제공하며 UI와 application에서 참조한다. P1 codecs → domain 방향을 유지하며 모델·코덱 테스트는 DOM 없이 실행한다. 목표는 UI → application → 도메인·엔진·코덱·환경·저장 경계다. 엔진은 주입된 하위 서비스 계약으로 실행한다. 제안된 `src/` 경로별 책임은 [기술 설계](docs/design-docs/layered-protocol-v1.md#제안-모듈과-의존-방향)를 따른다. domain·ui·codecs·engine·application·이상적 environments를 구현했다. examples의 Ping/Pong과 편집 폼을 구현했고 persistence는 아직 없다.
 
 공유 코드는 실제 재사용이 생길 때 분리하며, 순환 의존을 피한다. 모듈 사이 데이터 변경은 소유 모듈의 명시적인 계약을 통한다.
 

@@ -15,7 +15,7 @@
 | Node test runner | 코어·문서 검사기의 단위/통합 테스트 |
 | Playwright | 1.64.1. 빌드된 화면의 Chromium smoke test |
 
-현재 UI는 계층·하위 서비스 선택과 작업 공간 전환만 제공한다. P1 코어에 정의·참조·서비스 검사와 프레이밍 코덱을 추가했으며 [P1 계약](design-docs/p1-models-codecs.md)을 따른다. P2 실행·이상적 환경은 [P2 계약](design-docs/p2-runtime.md)을 따른다. 화면 연결·장애 환경·저장은 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P3 이후 범위다. P0 도구·의존성은 변경하지 않았다.
+현재 UI는 메시지·상태·규칙·시나리오 폼, 실행 제어·실제 기록·진단 이동을 제공하며 [P3 계약](design-docs/p3-workspace.md)을 따른다. P1 코어에 정의·참조·서비스 검사와 프레이밍 코덱을 추가했으며 [P1 계약](design-docs/p1-models-codecs.md)을 따른다. P2 실행·이상적 환경은 [P2 계약](design-docs/p2-runtime.md)을 따른다. 장애 환경·표준 예제·저장은 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P4 이후 범위다. P0 도구·의존성은 변경하지 않았다.
 
 ## 시작하기
 
@@ -69,7 +69,7 @@ Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim�
 
 코어는 Node 내장 runner로 외부 연동 없이 실행한다. seed·가상 시간의 계약을 검사하며 wall-clock sleep을 사용하지 않는다. 환경 reference fixture의 산식 검증은 P4의 실제 환경 구현 검증과 구분한다.
 
-Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium의 P0 작업 공간·선택·탐색·390px 화면이다. 실제 프로토콜 편집·통신·저장 E2E는 아직 없다.
+Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium의 실제 폼 작성·필드/조건 변경·결과/원인·진단 초점·제어/상태 격리·키보드·390px 화면이다. 통신은 가상 엔진이며 저장·실제 네트워크 E2E는 아직 없다.
 
 테스트 수집 실패·전부 skip·예상보다 줄어든 범위를 통과로 해석하지 않는다. fixture·타이머·mock·외부 자원은 테스트 종료 시 정리한다.
 

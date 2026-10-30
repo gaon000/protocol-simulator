@@ -3,7 +3,7 @@
 상태: In Progress
 작성일: 2026-10-30
 종료일: 미종료
-현재 단계: P2 실행 엔진·이상적 환경 구현과 전체 로컬 검사 완료. 다음 단계 P3이며 P3~P7은 미시작.
+현재 단계: P3 폼 편집·실제 실행·기록·진단 연결과 전체 로컬 검사 완료. 다음 단계는 P4이며 P4~P7은 미시작.
 
 이 문서는 [ExecPlan 운영 규칙](../index.md)을 따른다. 최초 요청은 설계를 문서화하고 구현 계획을 작성하는 범위였으며 애플리케이션 구현·패키지 설치·배포는 수행하지 않았다. 문서의 커밋·push는 이후 사용자의 별도 요청 범위를 따른다. 사용자가 P0 구현을 요청하고 React·React DOM의 production dependency 추가를 승인했다. 이후 신규 production dependency도 추가 전에 사용자 확인을 받는다.
 
@@ -28,7 +28,7 @@
 - [x] P0: 2026-10-30 개발 도구·세부 계약 확정과 최소 실행 기반. Node 테스트 16개·빌드·Chromium E2E 4개 통과.
 - [x] P1: 2026-10-30 정의 모델·참조·값·환경 호환성 검사와 세 가지 코덱 구현. `pnpm check` 통과: Node 63개·문서 21개·빌드·기존 Chromium 화면 회귀 4개.
 - [x] P2: 2026-10-30 결정적 실행·규칙·타이머·관찰·session과 이상적 환경 구현. `pnpm check` 통과: Node 85개·문서 22개·빌드·기존 Chromium 화면 회귀 4개.
-- [ ] P3: Ping/Pong을 편집·실행하는 화면의 첫 수직 구현.
+- [x] P3: 2026-10-30 실제 폼·초안/snapshot 버전·실행 제어·기록·진단 연결. 전체 로컬 검사: Node 96개·문서 23개·빌드·Chromium E2E 10개 통과.
 - [ ] P4: 환경 장애와 사용자 정의 재전송 프로토콜.
 - [ ] P5: HTTP/1.1·TCP 연결 예제와 지원 경계.
 - [ ] P6: 로컬 저장·import/export·snapshot·기록 재생.
@@ -60,13 +60,16 @@
 | 2026-10-30 | P1 `116b9d4`를 master 병합·push 후 P2 feature branch 생성 | 지속 작업 요청. 원격 SHA 일치 확인 |
 | 2026-10-30 | engineVersion `0.1.0-p2`, 환경 포트 주입·P2 이상적 모델 | 규칙·진단·quota·시간/난수와 DOM을 분리. 장애 설정은 P4 전에 명시적으로 거부 |
 
+| 2026-10-30 | P2 `f97af98`의 master/원격 SHA 일치를 확인하고 P3 feature branch 생성 | 사용자 지속 작업·단계별 병합 요청 |
+| 2026-10-30 | [P3 화면 계약](../../design-docs/p3-workspace.md), 메모리 초안·미완성 JSON·snapshot 버전 분리 | 실제 폼 값으로 실행하며 오류·이전 기록을 숨기지 않음. 신규 production dependency 없음 |
+
 P2에서 큐·규칙·타이머·관찰 판정과 session fencing을 구현했다. 복잡한 조건의 동시 일치·동적 값·timer generation을 실제 실행으로 검사한다. 실제 장애·합쳐 읽기 환경은 P4에 남아 있다. 향후 계약 변경 시 문서·fixture와 engineVersion을 검토한다.
 
 이미 승인된 일반 구현 작업에 별도 반복 확인을 요구하지 않으며 신규 production dependency 확인은 유지한다. 전체 구현과 필수 검증이 끝날 때까지 계획을 Completed로 바꾸지 않는다.
 
 ## Outcomes & Retrospective
 
-P0·P1은 master에 반영했다. P2에서 전체/단계/묶음 실행과 관찰·판정·한도·세대별 타이머·상태 격리를 구현했다. 화면은 P0 골격이므로 편집·재생은 P3에서 연결한다. 장애 환경·표준 예제·저장은 후속 단계다. CI·배포는 수행하지 않았고 계획은 In Progress다.
+P0~P2는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. 장애 환경·표준 예제·저장은 후속 단계다. CI·배포는 수행하지 않았고 계획은 In Progress다.
 
 ## Context and Orientation
 
@@ -74,7 +77,7 @@ P0·P1은 master에 반영했다. P2에서 전체/단계/묶음 실행과 관찰
 
 - [제품 명세](../../product-specs/protocol-simulator-v1.md): 사용자 동작, 기능 범위, 화면, 예외·범위 밖 항목.
 - [기술 설계](../../design-docs/layered-protocol-v1.md): 데이터 소유권, 서비스 계약, 엔진·환경·코덱, 실패·복구와 검증 시나리오.
-- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `scripts/`, `tests/`다. 그 밖의 제안 경로는 해당 단계에서 생성한다.
+- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `src/examples/`, `scripts/`, `tests/`다. 그 밖의 제안 경로는 해당 단계에서 생성한다.
 
 제안 구조는 `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `src/ui/`, `src/examples/`, `src/persistence/`와 `tests/unit/`, `tests/integration/`, `tests/e2e/`다. 단일 프로젝트로 시작하고 코드가 생기는 단계에만 필요한 경로를 만든다. 코어는 DOM·브라우저 저장과 독립적이어야 한다.
 
@@ -210,14 +213,14 @@ P0·P1은 master에 반영했다. P2에서 전체/단계/묶음 실행과 관찰
 
 ### 구성된 검증 명령
 
-P0에서 아래 명령을 저장소 루트 기준으로 구성했다. 정확한 도구 버전·설치·격리는 [개발 기준](../../development.md)을 따른다. 현재 테스트는 P0 범위이며 이 명령의 존재가 이후 기능의 구현 완료를 뜻하지 않는다.
+P0에서 아래 명령을 저장소 루트 기준으로 구성했다. 정확한 도구 버전·설치·격리는 [개발 기준](../../development.md)을 따른다. 검증 범위는 아래 단계별 실제 기록을 따른다. 명령의 존재만으로 기능의 구현 완료를 판단하지 않는다.
 
 | 명령 | 관찰할 결과 |
 | --- | --- |
 | `pnpm install --frozen-lockfile` | 이미 합의·생성된 lockfile로 재현 가능하게 설치 |
 | `pnpm typecheck` | 새 TypeScript 파일 strict 검사 |
 | `pnpm test` | 코어 단위·통합 fixture가 실제 수집·실행되고 통과 |
-| `pnpm test:e2e` | 현재 P0 빌드 화면 smoke test. 사용자 편집·실행·저장 흐름은 이후 단계에서 추가 |
+| `pnpm test:e2e` | 현재 P3 빌드 화면의 실제 편집·실행·원인·진단 E2E. 저장 흐름은 P6 이후 추가 |
 | `pnpm check:docs` | 실제·제안 구분, 로컬 링크·앵커·양식 검사 |
 | `pnpm build` | 선택한 웹 도구의 배포용 빌드 성공 |
 | `pnpm check` | 합의된 타입·테스트·문서·빌드 필수 검사 집계 |
@@ -262,6 +265,13 @@ P2 검증 기록:
 
 - 2026-10-30: P1 `116b9d4`를 master 병합·push하고 원격 SHA를 확인했다. 이어 `codex/p2-deterministic-engine`에서 구현했다.
 - 2026-10-30: `pnpm check` 전체 통과. lint·포맷·strict 타입·Node 단위/통합 85개(skip 없음)·문서 22개·Vite production build·기존 P0 화면의 Chromium 회귀 4개를 실제 실행했다. P2 기본 환경은 장애 설정을 명시적으로 거부하며 UI 엔진 연결 검증은 P3 범위다.
+
+P3 검증 기록:
+
+- 2026-10-30: P2 `f97af98`이 master와 원격 master에 반영되었음을 확인하고 `codex/p3-workspace-integration`에서 작업했다.
+- 2026-10-30: `pnpm check` 전체 통과. lint·포맷·strict 타입, Node 단위/통합 96개(skip 없음), 문서 23개, Vite production build, Chromium E2E 10개를 실제 실행했다.
+- 실제 브라우저에서 빈 실험의 Ping/Pong 메시지·상태·규칙·입력·기대 조건 작성 후 양방향 송신·상위 전달·상태 검사를 통과했다. 필드 기본값과 응답 조건 변경, 이전 snapshot 격리, 오류의 정확한 폼 초점, 미완성 JSON 보존, 단계/정지/초기화·실행 중 편집·새 run, 키보드와 390px 화면을 검사했다.
+- 별도 로컬 Chromium에서 1440px 구성·프로토콜·실행 화면을 캡처해 배치를 확인했다. 새로고침 보존·장애 환경·표준 예제·원격 CI·배포·실제 네트워크는 검사 범위가 아니다. P4~P7이 남아 있으므로 전체 계획은 In Progress로 유지한다.
 
 ## Idempotence and Recovery
 

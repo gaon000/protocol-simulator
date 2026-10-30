@@ -56,4 +56,4 @@
 - [큐·표현식 단위 검사](../../tests/unit/event-queue.test.ts): heap/reference 정렬 비교, 안전한 정수·JSON 동등성·short-circuit.
 - [엔진 통합 검사](../../tests/integration/simulation.test.ts): 세 코덱의 실제 Ping/Pong, 전체/단계/묶음 trace 동등성, 정확한 deadline, 취소/재시작 timer generation, 복잡한 동시 조건, 동적 오류 rollback, 관찰·상한·zero-delay 반복, session fencing, snapshot/뷰 격리와 주입된 seed 재현.
 
-현재 화면은 P0 골격이다. P2 코어 검증은 DOM 없이 실행했으며 실제 화면의 재생·편집 연결은 P3에서 별도 브라우저 검증한다. 전체 로컬 검사 결과와 master 병합은 [실행 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)을 따른다.
+P2 완료 당시 화면은 P0 골격이었다. P2 코어 검증은 DOM 없이 실행했으며 이후 실제 화면의 재생·편집 연결은 [P3](p3-workspace.md)에서 별도 브라우저 검증했다. 전체 로컬 검사 결과와 master 병합은 [실행 계획](../exec-plans/active/20261030-1641-layered-protocol-v1.md)을 따른다.
