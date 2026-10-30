@@ -10,7 +10,9 @@ import type { ExperimentDefinition } from '../../src/domain/protocol-model.ts';
 async function startProbe(page: Page) {
   await page.evaluate(() => {
     const gaps: number[] = [];
-    const tasks: number[] = [];
+    const tasks: { phase: string; duration: number }[] = [];
+    performance.clearMarks();
+    performance.mark('probe-run');
     let previous = performance.now();
     let handle = 0;
     const frame = (time: number) => {
@@ -20,7 +22,16 @@ async function startProbe(page: Page) {
     };
     handle = requestAnimationFrame(frame);
     const observer = new PerformanceObserver((list) =>
-      tasks.push(...list.getEntries().map((entry) => entry.duration)),
+      tasks.push(
+        ...list.getEntries().map((entry) => ({
+          duration: entry.duration,
+          phase:
+            performance
+              .getEntriesByType('mark')
+              .filter((mark) => mark.name.startsWith('probe-') && mark.startTime <= entry.startTime)
+              .at(-1)?.name ?? 'unknown',
+        })),
+      ),
     );
     observer.observe({ type: 'longtask', buffered: false });
     Object.defineProperty(window, 'finishPerformanceProbe', {
@@ -33,7 +44,8 @@ async function startProbe(page: Page) {
           frames: gaps.length,
           frameP95Ms: gaps[Math.floor(gaps.length * 0.95)] ?? 0,
           frameMaxMs: Math.max(0, ...gaps),
-          longTaskMaxMs: Math.max(0, ...tasks),
+          longTaskMaxMs: Math.max(0, ...tasks.map((task) => task.duration)),
+          longTasks: tasks,
         };
       },
     });
@@ -48,6 +60,7 @@ async function finishProbe(page: Page) {
           frameP95Ms: number;
           frameMaxMs: number;
           longTaskMaxMs: number;
+          longTasks: { phase: string; duration: number }[];
         };
       }
     ).finishPerformanceProbe(),
@@ -69,6 +82,11 @@ for (const fixture of ['10k', '1MiB'] as const) {
     page,
     browser,
   }, info) => {
+    const cpuRate = Number(process.env.PERF_CPU_RATE ?? 1);
+    if (cpuRate !== 1) {
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuRate });
+    }
     await load(
       page,
       fixture === '10k' ? createEventLimitExperiment() : createMessageLimitExperiment(),
@@ -98,11 +116,21 @@ for (const fixture of ['10k', '1MiB'] as const) {
         'e-10000',
       );
     }
-    const controlBegan = performance.now();
-    await page.getByLabel('메시지 중심으로 보기').check();
-    await expect(page.getByLabel('메시지 중심으로 보기')).toBeChecked();
-    const controlMs = performance.now() - controlBegan;
-    await page.getByLabel('메시지 중심으로 보기').uncheck();
+    await page.evaluate(() => performance.mark('probe-control'));
+    const controlSamples: number[] = [];
+    const checkbox = page.getByLabel('메시지 중심으로 보기');
+    // Sample real UI work, not an idle delay: short traces otherwise have too few frames for p95.
+    for (let index = 0; index < 60; index++) {
+      const controlBegan = performance.now();
+      const checked = index % 2 === 0;
+      await checkbox.setChecked(checked);
+      if (checked) await expect(checkbox).toBeChecked();
+      else await expect(checkbox).not.toBeChecked();
+      controlSamples.push(performance.now() - controlBegan);
+    }
+    controlSamples.sort((a, b) => a - b);
+    const controlMs = controlSamples[Math.floor(controlSamples.length * 0.95)] ?? 0;
+    await page.evaluate(() => performance.mark('probe-detail'));
     const detailBegan = performance.now();
     if (fixture === '1MiB') await page.getByRole('button', { name: /send blob/ }).click();
     else await page.locator('[data-event-id]').first().click();
@@ -115,12 +143,34 @@ for (const fixture of ['10k', '1MiB'] as const) {
       .locator('pre')
       .last()
       .evaluate((element) => element.textContent?.length ?? 0);
+    await page.evaluate(() => performance.mark('probe-save'));
+    await page
+      .getByRole('navigation', { name: '작업 공간' })
+      .getByRole('button', { name: '실험 구성', exact: true })
+      .click();
+    await page.locator('[data-path="/label"]').fill(`${fixture} 저장 변경`);
+    await expect(
+      page.getByRole('region', { name: '로컬 저장과 파일' }).getByRole('status'),
+    ).toHaveText('미저장 변경 있음');
     const saveBegan = performance.now();
     await page.getByRole('button', { name: '지금 저장', exact: true }).click();
     await expect(
       page.getByRole('region', { name: '로컬 저장과 파일' }).getByRole('status'),
     ).toHaveText('브라우저에 저장됨');
     const saveMs = performance.now() - saveBegan;
+    await page.evaluate(() => performance.mark('probe-history'));
+    await page
+      .getByRole('navigation', { name: '작업 공간' })
+      .getByRole('button', { name: '실행', exact: true })
+      .click();
+    const selection = page.getByRole('combobox', { name: '과거 실행 선택' });
+    await selection.selectOption({ index: 1 });
+    const cursorBegan = performance.now();
+    await page.getByRole('button', { name: '기록 처음', exact: true }).click();
+    await expect(page.getByRole('region', { name: '참여자 A 상태' })).toContainText('Idle');
+    await page.getByRole('button', { name: '저장 시점', exact: true }).click();
+    const cursorMs = performance.now() - cursorBegan;
+    const probe = await finishProbe(page);
     const persisted = await page.evaluate(
       async () =>
         new Promise<{ events: number; bytes: number }>((resolve, reject) => {
@@ -145,19 +195,13 @@ for (const fixture of ['10k', '1MiB'] as const) {
     );
     if (fixture === '10k') expect(persisted.events).toBe(10_000);
     else expect(persisted.bytes).toBe(1_048_576);
-    const selection = page.getByRole('combobox', { name: '과거 실행 선택' });
-    await selection.selectOption({ index: 1 });
-    const cursorBegan = performance.now();
-    await page.getByRole('button', { name: '기록 처음', exact: true }).click();
-    await expect(page.getByRole('region', { name: '참여자 A 상태' })).toContainText('Idle');
-    await page.getByRole('button', { name: '저장 시점', exact: true }).click();
-    const cursorMs = performance.now() - cursorBegan;
-    const probe = await finishProbe(page);
     const metrics = {
       fixture,
+      cpuRate,
       browser: browser.version(),
       runMs,
       controlMs,
+      controlSamples: controlSamples.length,
       detailMs,
       detailChars,
       saveMs,

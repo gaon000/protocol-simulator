@@ -22,12 +22,12 @@
 
 ## 응답성 기준과 측정 방법
 
-아래 기준은 최초 baseline 실행 전에 테스트에 고정했다. 개선 뒤 기준을 완화하지 않았다. [성능 전용 config](../../playwright.performance.config.ts)는 1 worker·1440×900의 Chromium에서 기능 suite와 순차 실행한다. [fixture](../../tests/fixtures/large-experiments.ts)는 실제 규칙으로 trace 10,000개에 도달하는 timer 실험과 JSON Lines 프레임 정확히 1,048,576바이트의 한 방향 전송이다. 만들어 놓은 trace 배열을 UI에 끼워 넣지 않는다. 1바이트 초과 송신 차단과 batch 64/전체 실행 동등성도 Node에서 검사한다.
+아래 수치 상한은 최초 baseline 실행 전에 정했으며 완화하지 않았다. CI 프로파일링 후 짧은 trace의 표본 부족과 검사용 DB 재읽기의 혼입을 보완했다. 필터를 실제 60회 조작해 input p95와 frame 표본을 수집하며 idle 대기로 표본을 늘리지 않는다. 보존 확인용 DB 재읽기는 측정 구간 밖에서 수행한다. 명시적 저장은 새 이름 편집으로 미저장 상태를 만든 뒤 측정한다. 기존 측정값과 비교할 때 이 측정창 변경을 구분한다. [성능 전용 config](../../playwright.performance.config.ts)는 1 worker·1440×900의 Chromium에서 기능 suite와 순차 실행한다. [fixture](../../tests/fixtures/large-experiments.ts)는 실제 규칙으로 trace 10,000개에 도달하는 timer 실험과 JSON Lines 프레임 정확히 1,048,576바이트의 한 방향 전송이다. 만들어 놓은 trace 배열을 UI에 끼워 넣지 않는다. 1바이트 초과 송신 차단과 batch 64/전체 실행 동등성도 Node에서 검사한다.
 
 | 항목 | 통과 기준 |
 | --- | --- |
 | 전체 실행 완료/상한 도달 | 10,000ms 미만 |
-| 메시지 필터 클릭·확인 | 200ms 미만 |
+| 실제 메시지 필터 조작 60회의 클릭·확인 p95 | 200ms 미만 |
 | 이벤트 선택→상세 표시 | 500ms 미만, 상세 DOM 32,768자 미만 |
 | 기록 처음→저장 시점 이동 합계 | 500ms 미만 |
 | 명시적 저장→transaction 완료 표시 | 3,000ms 미만 |
