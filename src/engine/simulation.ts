@@ -8,6 +8,9 @@ import { createHttpCodec } from '../codecs/http-codec.ts';
 import type { JsonObject, JsonValue, ParticipantId } from '../domain/execution-contract.ts';
 import { validateProtocolMessage } from '../domain/model-validation.ts';
 import type {
+  EngineStatus,
+  EngineView,
+  ParticipantView,
   EventTrace,
   ExperimentSnapshot,
   ModelDiagnostic,
@@ -29,30 +32,7 @@ import { EventQueue } from './event-queue.ts';
 import { equalJson, evaluateCondition, evaluateValue, EvaluationFault } from './expressions.ts';
 
 type TerminalStatus = RunResult['status'];
-export type EngineStatus = TerminalStatus | 'idle' | 'running' | 'paused';
-export type ParticipantView = {
-  readonly stateId: string;
-  readonly variables: JsonObject;
-  readonly outcome: 'active' | 'success' | 'failure' | 'error';
-  readonly finishedAt: number | null;
-  readonly timers: readonly {
-    readonly timerId: string;
-    readonly generation: number;
-    readonly active: boolean;
-    readonly due: number;
-  }[];
-};
-export type EngineView = {
-  readonly runId: string;
-  readonly status: EngineStatus;
-  readonly timeMs: number;
-  readonly processedEvents: number;
-  readonly participants: Readonly<Record<ParticipantId, ParticipantView>>;
-  readonly events: readonly EventTrace[];
-  readonly diagnostics: readonly ModelDiagnostic[];
-  readonly expectations: RunResult['expectations'];
-  readonly snapshot: ExperimentSnapshot;
-};
+export type { EngineStatus, EngineView, ParticipantView } from '../domain/protocol-model.ts';
 type Timer = { generation: number; active: boolean; due: number };
 type ParticipantCodec = {
   encode(message: ProtocolMessage): ValidationResult<WirePayload>;

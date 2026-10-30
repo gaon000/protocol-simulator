@@ -17,7 +17,7 @@
 
 작은 수정은 구조와 개발·작업 기준을 확인한 뒤 관련 코드를 읽는다. 큰 작업은 관련 실행 계획도 확인한다. 완료 계획은 과거 판단을 이해하는 자료로 읽고 현재 구현과 다시 대조한다.
 
-v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계](design-docs/layered-protocol-v1.md) → [P0 확정 계약](design-docs/p0-execution-contract.md) → [P1 모델·코덱](design-docs/p1-models-codecs.md) → [P2 엔진](design-docs/p2-runtime.md) → [P3 편집·실행](design-docs/p3-workspace.md) → [P4 환경·재전송](design-docs/p4-environments.md) → [P5 표준 예제](design-docs/p5-standard-examples.md) → [P0~P7 구현 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md) 순서로 읽는다. 현재 P5 HTTP/1.1·TCP 연결 예제, 원본/사본과 실제 메시지·바이트·상태까지 연결했다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. 계획은 In Progress이며 P6~P7은 미시작이다. 현재 실행 명령은 Development에서 관리한다.
+v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계](design-docs/layered-protocol-v1.md) → [P0 확정 계약](design-docs/p0-execution-contract.md) → [P1 모델·코덱](design-docs/p1-models-codecs.md) → [P2 엔진](design-docs/p2-runtime.md) → [P3 편집·실행](design-docs/p3-workspace.md) → [P4 환경·재전송](design-docs/p4-environments.md) → [P5 표준 예제](design-docs/p5-standard-examples.md) → [P6 저장·재생](design-docs/p6-persistence-replay.md) → [P0~P7 구현 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md) 순서로 읽는다. 현재 P6 IndexedDB 저장·파일 왕복·과거 기록 탐색과 snapshot 재실행까지 연결했다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. 계획은 In Progress이며 P7 최종 검증이 남아 있다. 현재 실행 명령은 Development에서 관리한다.
 
 ## 선택 문서
 

@@ -224,3 +224,28 @@ export type ModelDiagnostic = {
 export type ValidationResult<Value> =
   | { readonly success: true; readonly value: Value }
   | { readonly success: false; readonly diagnostics: readonly ModelDiagnostic[] };
+
+export type EngineStatus = RunResult['status'] | 'idle' | 'running' | 'paused';
+export type ParticipantView = {
+  readonly stateId: string;
+  readonly variables: import('./execution-contract.ts').JsonObject;
+  readonly outcome: 'active' | 'success' | 'failure' | 'error';
+  readonly finishedAt: number | null;
+  readonly timers: readonly {
+    readonly timerId: string;
+    readonly generation: number;
+    readonly active: boolean;
+    readonly due: number;
+  }[];
+};
+export type EngineView = {
+  readonly runId: string;
+  readonly status: EngineStatus;
+  readonly timeMs: number;
+  readonly processedEvents: number;
+  readonly participants: Readonly<Record<ParticipantId, ParticipantView>>;
+  readonly events: readonly EventTrace[];
+  readonly diagnostics: readonly ModelDiagnostic[];
+  readonly expectations: RunResult['expectations'];
+  readonly snapshot: ExperimentSnapshot;
+};

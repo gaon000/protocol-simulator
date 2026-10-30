@@ -33,11 +33,13 @@ export function RunView({
   playing,
   selected,
   onSelect,
+  historyLabel,
 }: {
   run: EngineView | undefined;
   playing: boolean;
   selected: string | undefined;
   onSelect: (id: string) => void;
+  historyLabel?: string | undefined;
 }) {
   const [messagesOnly, setMessagesOnly] = useState(false);
   if (!run)
@@ -55,8 +57,14 @@ export function RunView({
   return (
     <>
       <p className='run-status' role='status'>
-        {playing ? '실행 중' : statusLabels[run.status]} · 가상 시간 {run.timeMs} ms · 처리 이벤트{' '}
-        {run.processedEvents}
+        {historyLabel ? (
+          `${historyLabel} · 가상 시간 ${run.timeMs} ms`
+        ) : (
+          <>
+            {playing ? '실행 중' : statusLabels[run.status]} · 가상 시간 {run.timeMs} ms · 처리
+            이벤트 {run.processedEvents}
+          </>
+        )}
       </p>
       <div className='participant-grid'>
         {(['A', 'B'] as const).map((participant) => {

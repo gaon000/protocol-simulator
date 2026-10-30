@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-10-30
-구현 상태: P2의 실제 가상 엔진·규칙·타이머·이상적 환경까지 구현했다. 화면 편집·재생 연결은 P3, 장애 환경은 P4, 저장은 P6 범위다. 실행 세부 규칙은 [P0 계약](p0-execution-contract.md), 정의·인코딩은 [P1 계약](p1-models-codecs.md), 실제 엔진은 [P2 계약](p2-runtime.md)을 따른다.
+구현 상태: P6까지 가상 엔진·실제 폼·장애 환경·표준 예제와 IndexedDB 저장·기록 탐색/snapshot 재실행을 구현했다. 최종 응답성·지원 브라우저·CI 검증은 P7 범위다. 실행 세부 규칙은 [P0 계약](p0-execution-contract.md), 정의·인코딩은 [P1 계약](p1-models-codecs.md), 실제 엔진은 [P2 계약](p2-runtime.md)을 따른다.
 
 ## 문제와 목표
 
@@ -93,7 +93,7 @@ seed와 버전이 고정된 PRNG를 사용하고 알고리즘·호출 순서 변
 
 ### 저장·가져오기
 
-정의·실험·snapshot·결과는 별도 소유 데이터다. 저장 기술은 P6에서 브라우저 용량과 원자적 갱신 요구를 검토해 정한다. 파일 bundle은 schemaVersion과 필요한 정의 내용을 포함하며, 원본 예제·참조 정보도 보존한다.
+정의·실험·snapshot·결과는 별도 소유 데이터다. P6에서 native IndexedDB를 선택했으며 transaction/revision·실패 복구와 파일 검증은 [P6 계약](p6-persistence-replay.md)을 따른다. 파일 bundle은 schemaVersion과 필요한 정의 내용을 포함하며, 원본 예제·참조 정보도 보존한다.
 
 가져오기는 임시 메모리에서 전체 구조·타입·용량·참조·버전을 검증한 뒤 적용한다. ID 충돌 시 기본은 새 사본 생성이며 기존 실험을 조용히 덮어쓰지 않는다. 참조 중인 정의 삭제는 막거나 실험을 명시적으로 정리하도록 안내하고 과거 실행 snapshot은 유지한다. 잘못된 초안은 저장 가능하지만 실행 가능한 유효 상태와 구분한다.
 
@@ -138,7 +138,7 @@ UI → application → domain/engine/codecs/environments/persistence 방향을 �
 
 P0에서 개발 코드·검사 도구·사용자가 승인한 React·React DOM을 추가했다. CI·저장 데이터는 생성하지 않았다. 외부 API·실제 소켓·서버·권한·배포 변경은 해당 없다. 로컬 포맷 버전과 엔진 버전은 기초 계약부터 관리한다.
 
-UI·도구 버전과 React·React DOM의 사용자 승인은 [P0 계약](p0-execution-contract.md)에 기록했다. 새 production dependency 추가에는 계속 사용자 확인이 필요하다. 전체 지원 브라우저는 P7, 저장 구현은 P6, 최종 자원 상한·응답성 기준은 P7에서 측정 근거와 함께 확정한다. 계약 변경은 결정 로그와 관련 fixture·문서를 함께 갱신한다.
+UI·도구 버전과 React·React DOM의 사용자 승인은 [P0 계약](p0-execution-contract.md)에 기록했다. 새 production dependency 추가에는 계속 사용자 확인이 필요하다. 전체 지원 브라우저는 P7, 저장 구현은 [P6](p6-persistence-replay.md), 최종 자원 상한·응답성 기준은 P7에서 측정 근거와 함께 확정한다. 계약 변경은 결정 로그와 관련 fixture·문서를 함께 갱신한다.
 
 ## 검증 시나리오
 

@@ -635,3 +635,58 @@ pre {
 .wire-preview {
   margin: 16px 0;
 }
+.storage-panel {
+  padding: 12px 28px;
+  border-bottom: 1px solid #dce4ef;
+  background: #f8faff;
+  font-size: 12px;
+}
+.storage-panel p {
+  margin: 4px 0 8px;
+}
+.storage-actions,
+.saved-draft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.file-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.file-control input {
+  max-width: 240px;
+  font-size: 12px;
+}
+.saved-draft {
+  border: 1px solid #dce4ef;
+  border-radius: 6px;
+  margin: 10px 0;
+  padding: 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.history-panel {
+  border: 1px solid #cbd8ec;
+  padding: 14px;
+  margin: 20px 0;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.history-panel .run-toolbar {
+  position: static;
+  background: transparent;
+}
+.storage-panel [role="alert"] {
+  color: #8b3030;
+  border-left: 3px solid #b94242;
+  padding-left: 10px;
+}
+@media (max-width: 600px) {
+  .storage-panel {
+    padding: 12px 16px;
+  }
+}

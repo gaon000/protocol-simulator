@@ -53,7 +53,7 @@ Content-Length가 실제보다 작으면 수신자는 선언한 접두부를 한
 
 [예제 catalog](../../src/examples/catalog.ts)의 아홉 항목은 위 일곱 시나리오와 기존 Ping/Pong·Stop-and-wait다. 각 항목은 원본 버전·출처·지원·생략·예상 결과를 가진다. 깊게 동결한 원본을 보관하고 createExampleCopy로 새 실험 ID와 원본 참조를 가진 사용자 사본을 만든다. 원본을 편집기에 직접 전달하지 않는다. 필드·규칙 편집은 원본과 다른 사본을 바꾸지 않는다.
 
-라이브러리와 사본의 모든 작업 공간에서 출처·지원 범위를 열람할 수 있다. 현재 catalog에 없는 원본 버전이면 설명이 없음을 표시한다. origin 참조를 표준 적합성 보증으로 사용하지 않는다. 아직 영속 저장은 없고 새로고침 보존은 P6 범위다.
+라이브러리와 사본의 모든 작업 공간에서 출처·지원 범위를 열람할 수 있다. 현재 catalog에 없는 원본 버전이면 설명이 없음을 표시한다. origin 참조를 표준 적합성 보증으로 사용하지 않는다. P5 당시 영속 저장은 없었으며 현재 새로고침 보존·파일·과거 기록은 [P6 계약](p6-persistence-replay.md)을 따른다.
 
 [HTTP mapping 폼](../../src/ui/HttpMappingEditor.tsx)에서 ID 연결을 편집하고, 시나리오의 일반 본문은 textarea로, raw wire는 CRLF를 보존하는 JSON 문자열로 편집한다. [전송 상세](../../src/ui/WireInspector.tsx)는 바이트 수·CRLF·Content-Length와 본문 바이트 수를 미리 보고, TCP 등 논리 패킷은 필드 표로 표시한다. 미리보기는 8192바이트로 제한하며 전체 이벤트는 별도로 남는다.
 

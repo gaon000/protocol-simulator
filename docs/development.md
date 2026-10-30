@@ -15,7 +15,7 @@
 | Node test runner | 코어·문서 검사기의 단위/통합 테스트 |
 | Playwright | 1.64.1. 빌드된 화면의 실제 Chromium E2E |
 
-현재 UI는 메시지·상태·규칙·시나리오 폼, 실행 제어·실제 기록·진단 이동을 제공하며 [P3 계약](design-docs/p3-workspace.md)을 따른다. P1 코어에 정의·참조·서비스 검사와 프레이밍 코덱을 추가했으며 [P1 계약](design-docs/p1-models-codecs.md)을 따른다. P2 실행 계약은 [P2 문서](design-docs/p2-runtime.md), 현재 기본 환경·재전송은 [P4 계약](design-docs/p4-environments.md)을 따른다. 현재 표준 예제·코덱·출처/사본은 [P5 계약](design-docs/p5-standard-examples.md)을 따른다. 영속 저장은 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P6 범위다. P0 도구·의존성은 변경하지 않았다.
+현재 UI는 메시지·상태·규칙·시나리오 폼, 실행 제어·실제 기록·진단 이동을 제공하며 [P3 계약](design-docs/p3-workspace.md)을 따른다. P1 코어에 정의·참조·서비스 검사와 프레이밍 코덱을 추가했으며 [P1 계약](design-docs/p1-models-codecs.md)을 따른다. P2 실행 계약은 [P2 문서](design-docs/p2-runtime.md), 현재 기본 환경·재전송은 [P4 계약](design-docs/p4-environments.md)을 따른다. 현재 표준 예제·코덱·출처/사본은 [P5 계약](design-docs/p5-standard-examples.md)을 따른다. 현재 IndexedDB 저장·파일·과거 실행은 [P6 계약](design-docs/p6-persistence-replay.md)을 따른다. P0 도구·의존성은 변경하지 않았다.
 
 ## 시작하기
 
@@ -69,7 +69,7 @@ Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim�
 
 코어는 Node 내장 runner로 외부 연동 없이 실행한다. seed·가상 시간의 계약을 검사하며 wall-clock sleep을 사용하지 않는다. P0 reference fixture의 산식과 P4 실제 adapter의 결과를 각각 검사한다. 손실·중복·재전송·전체 관찰 기간의 전달 횟수/내용도 검증한다.
 
-Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium의 실제 폼 작성·필드/조건/장애 변경·ACK 손실/유한 재시도·seed 재현·청크 원인·진단 초점·제어/상태 격리·키보드·390px 화면과 아홉 예제의 코어/화면 비교·HTTP 바이트/CL·TCP seq/ack·출처/사본이다. 통신은 가상 엔진이며 저장·실제 네트워크 E2E는 아직 없다.
+Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium의 실제 폼 작성·필드/조건/장애 변경·ACK 손실/유한 재시도·seed 재현·청크 원인·진단 초점·제어/상태 격리·키보드·390px 화면과 아홉 예제의 코어/화면 비교·HTTP 바이트/CL·TCP seq/ack·출처/사본이다. 실제 native IndexedDB의 새로고침 복원·invalid draft·bundle 왕복/거부·탭 충돌·quota/transaction abort·복구·snapshot 재실행도 검사한다. quota/abort는 테스트에서 API를 감싸 주입하며 실제 저장장치 고장 검증은 아니다. 통신은 가상 엔진이며 실제 네트워크 E2E는 없다.
 
 테스트 수집 실패·전부 skip·예상보다 줄어든 범위를 통과로 해석하지 않는다. fixture·타이머·mock·외부 자원은 테스트 종료 시 정리한다.
 

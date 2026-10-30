@@ -208,7 +208,7 @@ test('keeps editing and run controls usable on a narrow viewport with keyboard i
     true,
   );
   await expect(page.getByText('Keyboard experiment', { exact: true })).toBeVisible();
-  await expect(page.getByText(/새로고침 보존 미지원/)).toBeVisible();
+  await expect(page.getByText(/이 브라우저에 자동 저장/)).toBeVisible();
 });
 
 test('editing a running draft pauses the captured run and the next step starts a fresh generation', async ({

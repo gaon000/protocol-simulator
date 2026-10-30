@@ -19,8 +19,13 @@ const has = (value: object, key: string) => Object.hasOwn(value, key);
 const pointer = (path: string, key: string | number) =>
   `${path}/${String(key).replaceAll('~', '~0').replaceAll('/', '~1')}`;
 
-class Reader {
+/** Share primitive JSON-shape checks across model and workspace validation. */
+export class Reader {
   readonly diagnostics: ModelDiagnostic[] = [];
+  readonly draft: boolean;
+  constructor(draft = false) {
+    this.draft = draft;
+  }
   issue(path: string, code: string, message: string): void {
     this.diagnostics.push({ path: path || '/', code, message });
   }
@@ -55,7 +60,8 @@ class Reader {
       this.issue(path, 'array', 'Expected an array');
       return;
     }
-    if (value.length < minimum) this.issue(path, 'empty', `At least ${minimum} item(s) required`);
+    if (!this.draft && value.length < minimum)
+      this.issue(path, 'empty', `At least ${minimum} item(s) required`);
     value.forEach((item, index) => {
       inspect(item, pointer(path, index));
     });
@@ -63,8 +69,7 @@ class Reader {
   text(value: unknown, path: string, identifier = false): void {
     if (
       typeof value !== 'string' ||
-      !value.trim() ||
-      (identifier && !/^[A-Za-z_][A-Za-z0-9_-]*$/.test(value))
+      (!this.draft && (!value.trim() || (identifier && !/^[A-Za-z_][A-Za-z0-9_-]*$/.test(value))))
     ) {
       this.issue(
         path,
@@ -83,9 +88,8 @@ class Reader {
     if (
       typeof value !== 'number' ||
       !Number.isFinite(value) ||
-      (integer && !Number.isSafeInteger(value)) ||
-      value < minimum ||
-      value > maximum
+      (!this.draft &&
+        ((integer && !Number.isSafeInteger(value)) || value < minimum || value > maximum))
     ) {
       this.issue(
         path,
@@ -105,16 +109,21 @@ class Reader {
   }
 }
 
-function inspectJson(value: unknown, reader: Reader): void {
+function inspectJson(
+  value: unknown,
+  reader: Reader,
+  limits = { maxNodes: 100_000, maxDepth: 64 },
+): void {
   const ancestors = new Set<object>();
   let count = 0;
   function visit(item: unknown, path: string, depth: number): void {
     count++;
-    if (count > 100_000) {
-      if (count === 100_001) reader.issue(path, 'json-limit', 'JSON node limit exceeded');
+    if (count > limits.maxNodes) {
+      if (count === limits.maxNodes + 1)
+        reader.issue(path, 'json-limit', 'JSON node limit exceeded');
       return;
     }
-    if (depth > 64) {
+    if (depth > limits.maxDepth) {
       reader.issue(path, 'json-depth', 'JSON depth limit exceeded');
       return;
     }
@@ -148,7 +157,7 @@ function inspectJson(value: unknown, reader: Reader): void {
             'json-property',
             'Array properties must be indexed items',
           );
-      for (let index = 0; index < item.length && count <= 100_000; index++) {
+      for (let index = 0; index < item.length && count <= limits.maxNodes; index++) {
         const descriptor = Object.getOwnPropertyDescriptor(item, index);
         if (!descriptor || !('value' in descriptor))
           reader.issue(
@@ -165,7 +174,7 @@ function inspectJson(value: unknown, reader: Reader): void {
         else if (!descriptor.enumerable)
           reader.issue(pointer(path, key), 'json-property', 'JSON properties must be enumerable');
         else visit(descriptor.value, pointer(path, key), depth + 1);
-        if (count > 100_000) break;
+        if (count > limits.maxNodes) break;
       }
     }
     ancestors.delete(item);
@@ -174,9 +183,12 @@ function inspectJson(value: unknown, reader: Reader): void {
 }
 
 /** Reject non-JSON graphs before inspecting external logical packets or definitions. */
-export function parseJsonData(value: unknown): ValidationResult<JsonValue> {
+export function parseJsonData(
+  value: unknown,
+  limits = { maxNodes: 100_000, maxDepth: 64 },
+): ValidationResult<JsonValue> {
   const reader = new Reader();
-  inspectJson(value, reader);
+  inspectJson(value, reader, limits);
   return reader.result(value as JsonValue);
 }
 
@@ -884,11 +896,9 @@ function inspectScenario(value: unknown, path: string, r: Reader): void {
   );
 }
 
-/** Validate a self-contained experiment and all protocol, environment and scenario references. */
-export function parseExperiment(value: unknown): ValidationResult<ExperimentDefinition> {
-  const r = new Reader();
+function inspectExperimentShape(value: unknown, r: Reader): ExperimentDefinition | undefined {
   inspectJson(value, r);
-  if (r.diagnostics.length) return { success: false, diagnostics: r.diagnostics };
+  if (r.diagnostics.length) return undefined;
   const node = r.object(value, '', [
     'schemaVersion',
     'id',
@@ -900,7 +910,7 @@ export function parseExperiment(value: unknown): ValidationResult<ExperimentDefi
     'scenario',
     'origin',
   ]);
-  if (!node) return { success: false, diagnostics: r.diagnostics };
+  if (!node) return undefined;
   r.choice(node.schemaVersion, '/schemaVersion', [1]);
   r.text(node.id, '/id', true);
   r.text(node.label, '/label');
@@ -925,8 +935,29 @@ export function parseExperiment(value: unknown): ValidationResult<ExperimentDefi
   r.array(node.definitions, '/definitions', (item, path) => inspectProtocol(item, path, r), 1);
   inspectEnvironment(node.environment, '/environment', r);
   inspectScenario(node.scenario, '/scenario', r);
-  if (r.diagnostics.length) return { success: false, diagnostics: r.diagnostics };
-  const experiment = value as ExperimentDefinition;
+  if (r.diagnostics.length) return undefined;
+  return value as ExperimentDefinition;
+}
+
+/** Validate an editable JSON shape while preserving invalid IDs, ranges and references for repair. */
+export function parseExperimentDraft(value: unknown): ValidationResult<ExperimentDefinition> {
+  const r = new Reader(true);
+  const experiment = inspectExperimentShape(value, r);
+  if (!experiment) return { success: false, diagnostics: r.diagnostics };
+  if (!experiment.definitions.length)
+    r.issue(
+      '/definitions',
+      'draft-shape',
+      'A draft needs at least one editable protocol definition',
+    );
+  return r.result(experiment);
+}
+
+/** Validate a self-contained experiment and all protocol, environment and scenario references. */
+export function parseExperiment(value: unknown): ValidationResult<ExperimentDefinition> {
+  const r = new Reader();
+  const experiment = inspectExperimentShape(value, r);
+  if (!experiment) return { success: false, diagnostics: r.diagnostics };
   experiment.definitions.forEach((definition, index) => {
     inspectProtocolSemantics(definition, `/definitions/${index}`, r);
   });

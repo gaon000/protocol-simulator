@@ -3,7 +3,7 @@
 상태: In Progress
 작성일: 2026-10-30
 종료일: 미종료
-현재 단계: P5 HTTP/TCP 연결·원본/사본과 전체 로컬 검사 완료. 다음은 P6이며 P6~P7은 미시작.
+현재 단계: P6 로컬 저장·파일·과거 실행과 전체 로컬 검사 완료. 다음은 P7 최종 검증이다.
 
 이 문서는 [ExecPlan 운영 규칙](../index.md)을 따른다. 최초 요청은 설계를 문서화하고 구현 계획을 작성하는 범위였으며 애플리케이션 구현·패키지 설치·배포는 수행하지 않았다. 문서의 커밋·push는 이후 사용자의 별도 요청 범위를 따른다. 사용자가 P0 구현을 요청하고 React·React DOM의 production dependency 추가를 승인했다. 이후 신규 production dependency도 추가 전에 사용자 확인을 받는다.
 
@@ -31,7 +31,7 @@
 - [x] P3: 2026-10-30 실제 폼·초안/snapshot 버전·실행 제어·기록·진단 연결. 전체 로컬 검사: Node 96개·문서 23개·빌드·Chromium E2E 10개 통과.
 - [x] P4: 2026-10-30 장애 환경·합쳐 읽기/종료·순서 번호/ACK/유한 재시도와 UI 구현. 전체 로컬 검사: Node 128개·문서 24개·빌드·Chromium E2E 15개 통과.
 - [x] P5: 2026-10-30 HTTP 코덱·여섯 HTTP 시나리오·TCP 정상 연결·원본/사본과 출처/지원 경계. 전체 로컬 검사: Node 193개·문서 25개·빌드·Chromium E2E 28개 통과.
-- [ ] P6: 로컬 저장·import/export·snapshot·기록 재생.
+- [x] P6: 2026-10-30 native IndexedDB·invalid draft·bundle 검증/사본 merge·과거 기록/명시적 snapshot 재실행. 전체 로컬 검사: Node 212개·문서 26개·빌드·Chromium E2E 36개 통과.
 - [ ] P7: 전체 사용자 흐름·상한·접근성·최종 검증.
 
 ## Surprises & Discoveries
@@ -70,13 +70,16 @@
 | 2026-10-30 | engineVersion `0.1.0-p5`, HTTP binding·origin 선택 필드를 schemaVersion 1에 추가 | 기존 실험 유지·새 코덱 지원을 구분. HTTP CL은 UTF-8 본문에서 생성하고 raw 오류 실험은 별도 명시 |
 | 2026-10-30 | [P5 catalog·HTTP/TCP 경계](../../design-docs/p5-standard-examples.md), 동결 원본과 사용자 사본 | 출처·버전·생략·예상 오류를 읽고 실제 코어/화면 결과와 비교 |
 
+| 2026-10-30 | P5 `8825c1b` 반영 후 P6 feature branch에서 native IndexedDB·revision CAS 선택 | 비동기 구조화 저장·원자적 전체 갱신·탭 충돌 보호, 추가 production dependency 없음 |
+| 2026-10-30 | invalid draft/raw와 frozen run snapshot의 별도 소유, 명시적 기록 탐색/재실행 | 편집·삭제·파일 충돌이 과거 결과를 바꾸지 않도록 [P6 계약](../../design-docs/p6-persistence-replay.md) 확정 |
+
 P2에서 큐·규칙·타이머·관찰 판정과 session fencing을 구현했다. 복잡한 조건의 동시 일치·동적 값·timer generation을 실제 실행으로 검사한다. 실제 장애·합쳐 읽기 환경은 [P4 계약](../../design-docs/p4-environments.md)에서 구현했다. 향후 계약 변경 시 문서·fixture와 engineVersion을 검토한다.
 
 이미 승인된 일반 구현 작업에 별도 반복 확인을 요구하지 않으며 신규 production dependency 확인은 유지한다. 전체 구현과 필수 검증이 끝날 때까지 계획을 Completed로 바꾸지 않는다.
 
 ## Outcomes & Retrospective
 
-P0~P4는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. P5에서 HTTP 코덱·여섯 시나리오·TCP 정상 연결과 버전 있는 catalog/사본을 구현했다. 저장·최종 응답성/브라우저/CI 검증은 남아 있고 계획은 In Progress다. 배포는 수행하지 않았다.
+P0~P5는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. P5에서 HTTP 코덱·여섯 시나리오·TCP 정상 연결과 버전 있는 catalog/사본을 구현했다. P6에서 IndexedDB transaction·revision 충돌·저장 복구·bundle·읽기 전용 기록과 snapshot 재실행을 구현했다. 최종 응답성/지원 브라우저/CI 검증은 남아 있고 계획은 In Progress다. 배포는 수행하지 않았다.
 
 ## Context and Orientation
 
@@ -191,7 +194,7 @@ P0~P4는 master에 반영했다. P3에서 메시지·상태·조건·동작·입
 
 의존: P5. snapshot·runId 계약은 P2부터 유지한다.
 
-변경 위치: 향후 `src/persistence/`, `src/application/`, 저장·가져오기·내보내기·기록 재생 UI.
+변경 위치: `src/persistence/`, `src/application/`, 저장·가져오기·내보내기·기록 재생 UI.
 
 1. 지원 브라우저·저장량·원자적 갱신을 기준으로 저장 수단을 선택하고 결정 로그에 남긴다.
 2. 실험·초안·예제 사본·불변 run snapshot과 결과를 보존하고 저장 실패 시 미저장 표시와 메모리 초안을 유지한다.
@@ -227,7 +230,7 @@ P0에서 아래 명령을 저장소 루트 기준으로 구성했다. 정확한 
 | `pnpm install --frozen-lockfile` | 이미 합의·생성된 lockfile로 재현 가능하게 설치 |
 | `pnpm typecheck` | 새 TypeScript 파일 strict 검사 |
 | `pnpm test` | 코어 단위·통합 fixture가 실제 수집·실행되고 통과 |
-| `pnpm test:e2e` | 현재 P3 빌드 화면의 실제 편집·실행·원인·진단 E2E. 저장 흐름은 P6 이후 추가 |
+| `pnpm test:e2e` | 현재 빌드 화면의 실제 편집·장애·예제·저장/복원·원인·진단 E2E |
 | `pnpm check:docs` | 실제·제안 구분, 로컬 링크·앵커·양식 검사 |
 | `pnpm build` | 선택한 웹 도구의 배포용 빌드 성공 |
 | `pnpm check` | 합의된 타입·테스트·문서·빌드 필수 검사 집계 |
@@ -298,6 +301,15 @@ P5 검증 기록:
 - 최초 전체 검사에서 기존 정지 E2E가 짧은 실행 완료와 버튼 클릭의 wall-clock 경쟁으로 한 번 실패했다. Playwright clock으로 재생 시각을 고정하고 정지·초기화·편집의 callback 차단을 검사하도록 수정한 뒤 전체 검사를 통과했다. 수정한 정지/초기화·실행 중 편집 두 검사를 각각 5회 반복해 총 10회 통과한 것도 확인했다. 통과할 때까지 단순 재시도한 것으로 처리하지 않았다.
 - 별도 로컬 Chromium에서 1440px HTTP 바이트/CRLF/CL·TCP 패킷 표의 화면과 390px catalog의 가로 넘침 없음을 확인했다. 실제 HTTP/TCP 서버·기기·영속 저장·원격 CI·배포 검증은 아니며 P6~P7이 남아 계획은 In Progress다.
 
+P6 검증 기록:
+
+- 2026-10-30: P5 `8825c1b`가 master/원격에 반영된 상태에서 `codex/p6-persistence-replay`로 작업했다. 저장 선택·schema/개수/용량·실패 복구·파일·재생 경계는 [P6 계약](../../design-docs/p6-persistence-replay.md)에 기록했다. 신규 production dependency나 실행 의미 변경이 없어 engineVersion은 `0.1.0-p5`를 유지한다.
+- native IndexedDB의 transaction complete 뒤 성공 처리, 같은 transaction 안의 revision CAS를 구현했다. 최대 64 MiB·100 초안/100 기록이며 초과 시 자동 삭제하지 않는다. 읽기/쓰기 실패와 다른 탭 충돌 시 메모리와 마지막 저장본을 보존하고 명시적 재시도에서 양쪽을 사본으로 합친다.
+- `pnpm check` 전체 통과: lint·포맷·strict 타입, Node 단위/통합 212개(skip 없음), 문서 26개, Vite production build, Chromium E2E 36개. 아홉 예제의 시작/단계/정지/최종 checkpoint 파일 왕복과 invalid draft·raw·지원하지 않는 버전·64 MiB/100개 한도·손상된 wire/인과/참조·snapshot 버전/한도·의미적 재실행을 검사했다.
+- 실제 Chromium IndexedDB에서 새로고침 복원·invalid draft 실행 차단/복구·다운로드 파일의 충돌 사본 import·손상/버전/64 MiB 초과 파일 거부·quota 실패/복구·put request 성공 후 transaction abort·두 탭 revision 충돌/사본 복구를 검사했다. 테스트가 API를 감싼 실패 주입이며 실제 디스크 quota 소진·OS fsync/전원 장애 검증은 아니다.
+- 과거 기록의 읽기 전용 상태/타이머 위치 이동, 원본 초안 삭제 뒤 재실행, 참조 중 정의 삭제 방지와 참조 해제 후 삭제, import 시 취소 checkpoint 보존, 삭제한 live 기록이 후속 편집으로 재생성되지 않음을 검사했다. replay projection의 종료 시 timer generation은 비활성 타이머도 증가시키는 엔진과 맞췄다.
+- 신규 정의 삭제 브라우저 검사에서 select의 label text exact 선택자가 option 텍스트를 함께 읽어 대기한 실패가 있었다. 실제 accessible role/name으로 선택자를 수정한 후 해당 검사와 전체 회귀가 통과했다. 원격 CI·최종 지원 브라우저/대형 기록 응답성·배포·실제 통신은 아직 검증하지 않았으며 P7이 남아 계획은 In Progress다.
+
 ## Idempotence and Recovery
 
 각 단계 시작 전에 브랜치·변경·실제 경로·완료 체크를 다시 확인한다. 구현된 단계의 테스트와 현재 코드를 대조해 이어가며 scaffold·정의·예제 ID·의존성·데이터를 중복 생성하지 않는다. 사용자 변경을 reset·clean·stash하지 않는다.
@@ -318,4 +330,4 @@ P5 검증 기록:
 
 프로토콜 정의, 서비스 포트, 환경 정의, 실행 snapshot, 이벤트 기록, 기대 조건, 저장 bundle이 내부 계약이다. 포맷 변경 시 버전을 올리고 호환성과 재생 범위를 기록한다. 실제 외부 API·소켓·서버와 production 데이터는 사용하지 않는다.
 
-P0에서 사용자가 승인한 React·React DOM을 production dependency로 추가했다. 빌드·타입·포맷·테스트·문서 검사 도구는 devDependency이며 package.json·lockfile에 버전을 고정했다. 로컬 저장 기술은 P6에서 결정한다. 이후 신규 production dependency도 사용자 확인 후 추가한다.
+P0에서 사용자가 승인한 React·React DOM을 production dependency로 추가했다. 빌드·타입·포맷·테스트·문서 검사 도구는 devDependency이며 package.json·lockfile에 버전을 고정했다. P6 로컬 저장은 native IndexedDB를 선택했으며 신규 production dependency는 없다. 이후 신규 production dependency도 사용자 확인 후 추가한다.

@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Form rows are stateless and controlled by JSON Pointer; structural edits clear pending values for the affected collection. */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRunSession } from '../application/create-simulation.ts';
 import {
   changeProfile,
@@ -9,7 +9,7 @@ import {
   rebasePending,
 } from '../application/edit-experiment.ts';
 import type { JsonValue } from '../domain/execution-contract.ts';
-import { parseExperiment } from '../domain/model-validation.ts';
+import { parseExperiment, parseJsonData } from '../domain/model-validation.ts';
 import type { ExperimentDefinition, ModelDiagnostic } from '../domain/protocol-model.ts';
 import type { EngineView } from '../engine/simulation.ts';
 import { EXAMPLES, createExampleCopy } from '../examples/catalog.ts';
@@ -19,6 +19,19 @@ import { Control, EditorContext, Group } from './forms.tsx';
 import { ProtocolEditor } from './ProtocolEditor.tsx';
 import { EventInspector, RunView } from './RunView.tsx';
 import { ScenarioEditor } from './ScenarioEditor.tsx';
+import { useWorkspace } from './useWorkspace.ts';
+import { HistoryPanel } from './HistoryPanel.tsx';
+import { StoragePanel } from './StoragePanel.tsx';
+import {
+  captureRun,
+  createDraftRecord,
+  definitionDeletionReason,
+  stageBundle,
+  workspaceId,
+} from '../application/workspace-operations.ts';
+import { compareRecord, projectRecord } from '../application/replay-record.ts';
+import { rawDiagnostics } from '../domain/workspace-validation.ts';
+import { WORKSPACE_POLICY, type DraftRecord, type SavedRun } from '../domain/workspace-model.ts';
 
 const views = [
   {
@@ -51,14 +64,36 @@ type ViewId = (typeof views)[number]['id'];
 
 /** Connect an editable protocol workspace to isolated, bounded simulation sessions. */
 export function App() {
-  const [draft, setDraft] = useState<ExperimentDefinition>(() => createExampleCopy('ping_pong'));
-  const [draftVersion, setDraftVersion] = useState(1);
+  const storage = useWorkspace();
+  const active =
+    storage.data.drafts.find((item) => item.id === storage.data.activeDraftId) ??
+    storage.data.drafts[0];
+  if (!active) throw new Error('Active workspace draft is missing');
+  const activeId = active.id;
+  const draft = active.configuration;
+  const draftVersion = active.version;
+  const raw = active.raw;
+  const rawErrors = useMemo(
+    () => Object.fromEntries(rawDiagnostics(raw).map((item) => [item.path, item.message])),
+    [raw],
+  );
+  const [historyId, setHistoryId] = useState<string>();
+  const [historyPosition, setHistoryPosition] = useState(0);
+  const [historyPlaying, setHistoryPlaying] = useState(false);
+  const runMeta = useRef<
+    | {
+        id: string;
+        experimentId: string;
+        draftVersion: number;
+        createdAt: number;
+      }
+    | undefined
+  >(undefined);
+  const comparison = useRef<SavedRun | undefined>(undefined);
   const [runVersion, setRunVersion] = useState(0);
   const [viewId, setViewId] = useState<ViewId>('configuration');
   const [library, setLibrary] = useState(false);
   const [protocolIndex, setProtocolIndex] = useState(0);
-  const [raw, setRaw] = useState<Record<string, string>>({});
-  const [rawErrors, setRawErrors] = useState<Record<string, string>>({});
   const [startErrors, setStartErrors] = useState<readonly ModelDiagnostic[]>([]);
   const [session] = useState(() => createRunSession());
   const [run, setRun] = useState<EngineView>();
@@ -74,8 +109,37 @@ export function App() {
   ];
   const protocol = draft.definitions[protocolIndex] ?? draft.definitions[0];
   const view = views.find((item) => item.id === viewId) ?? views[0];
-  const event = run?.events.find((item) => item.eventId === selected);
-  const changed = !!run && runVersion !== draftVersion;
+  const historical = storage.data.runs.find((item) => item.id === historyId);
+  const displayed = useMemo(
+    () => (historical ? projectRecord(historical, historyPosition) : run),
+    [historical, historyPosition, run],
+  );
+  const event = displayed?.events.find((item) => item.eventId === selected);
+  const shownVersion = historical?.draftVersion ?? runVersion;
+  const changed =
+    !!displayed &&
+    (shownVersion !== draftVersion ||
+      JSON.stringify(displayed.snapshot.configuration) !== JSON.stringify(draft));
+  const controller = storage.controller;
+  const checkpoint = useCallback(
+    (view: EngineView) => {
+      const meta = runMeta.current;
+      if (!meta) return;
+      controller.update((data) => {
+        const record = {
+          ...captureRun(view, meta.experimentId, meta.draftVersion, meta.id),
+          createdAt: meta.createdAt,
+        };
+        return {
+          ...data,
+          runs: data.runs.some((item) => item.id === meta.id)
+            ? data.runs.map((item) => (item.id === meta.id ? record : item))
+            : [...data.runs, record],
+        };
+      });
+    },
+    [controller],
+  );
 
   useEffect(() => () => session.reset(), [session]);
   useEffect(() => {
@@ -84,11 +148,27 @@ export function App() {
       session.apply(run.runId, (engine) => {
         const next = engine.runBatch(4);
         setRun(next);
-        if (engine.result()) setPlaying(false);
+        if (engine.result()) {
+          setPlaying(false);
+          checkpoint(next);
+          if (comparison.current) {
+            setNotice(compareRecord(comparison.current, next));
+            comparison.current = undefined;
+          }
+        }
       });
     }, 40);
     return () => window.clearTimeout(timeout);
-  }, [playing, run, session]);
+  }, [playing, run, session, checkpoint]);
+  useEffect(() => {
+    if (!historical || !historyPlaying) return;
+    if (historyPosition >= historical.view.events.length + 1) {
+      setHistoryPlaying(false);
+      return;
+    }
+    const timeout = window.setTimeout(() => setHistoryPosition((position) => position + 1), 120);
+    return () => window.clearTimeout(timeout);
+  }, [historical, historyPlaying, historyPosition]);
   useEffect(() => {
     if (!focusRequest) return;
     let path = focusRequest.path;
@@ -107,56 +187,178 @@ export function App() {
     }
   }, [focusRequest]);
 
+  function updateActive(change: (record: DraftRecord) => DraftRecord) {
+    storage.controller.update((data) => ({
+      ...data,
+      drafts: data.drafts.map((item) => (item.id === data.activeDraftId ? change(item) : item)),
+    }));
+  }
+  function setDraft(
+    change: ExperimentDefinition | ((current: ExperimentDefinition) => ExperimentDefinition),
+  ) {
+    updateActive((record) => ({
+      ...record,
+      configuration: typeof change === 'function' ? change(record.configuration) : change,
+      updatedAt: Date.now(),
+    }));
+  }
   function pause() {
     setPlaying(false);
     const engine = session.current();
-    if (engine) setRun(engine.pause());
+    if (engine) {
+      const next = engine.pause();
+      setRun(next);
+      checkpoint(next);
+    }
   }
   function changing() {
     pause();
-    setDraftVersion((version) => version + 1);
+    updateActive((record) => ({ ...record, version: record.version + 1, updatedAt: Date.now() }));
     setStartErrors([]);
     setNotice('');
   }
   function edit(path: string, value: JsonValue | undefined) {
     changing();
-    setDraft((current) => editExperiment(current, path, value));
-    setRaw((current) => rebasePending(current, draft, path, value));
-    setRawErrors((current) => rebasePending(current, draft, path, value));
+    updateActive((record) => ({
+      ...record,
+      configuration: editExperiment(record.configuration, path, value),
+      raw: rebasePending(record.raw, record.configuration, path, value),
+    }));
   }
   function editJson(path: string, text: string) {
     changing();
-    setRaw((current) => ({ ...current, [path]: text }));
-    try {
-      const value = JSON.parse(text) as JsonValue;
-      setDraft((current) => editExperiment(current, path, value));
-      setRawErrors((current) => {
-        const next = { ...current };
-        delete next[path];
-        return next;
-      });
-    } catch {
-      setRawErrors((current) => ({ ...current, [path]: 'JSON 값의 문법을 확인하세요.' }));
-    }
+    updateActive((record) => {
+      let configuration = record.configuration;
+      try {
+        const parsed = parseJsonData(JSON.parse(text));
+        if (parsed.success) configuration = editExperiment(configuration, path, parsed.value);
+      } catch {
+        /* Keep the last valid value while persisting unfinished text. */
+      }
+      return { ...record, configuration, raw: { ...record.raw, [path]: text } };
+    });
   }
   function reset() {
     setPlaying(false);
+    const engine = session.current();
+    if (engine && !engine.result()) checkpoint(engine.cancel());
     session.reset();
     setRun(undefined);
     setSelected(undefined);
     setRunVersion(0);
+    runMeta.current = undefined;
+    comparison.current = undefined;
+  }
+  function resetSelection() {
+    setHistoryId(undefined);
+    setHistoryPlaying(false);
+    setHistoryPosition(0);
+    setProtocolIndex(0);
+    setStartErrors([]);
+    setSelected(undefined);
   }
   function replace(next: ExperimentDefinition) {
+    if (storage.data.drafts.length >= WORKSPACE_POLICY.maxDrafts) {
+      setNotice('초안 100개 한도입니다. 먼저 불필요한 초안을 삭제하세요.');
+      return;
+    }
     reset();
-    setDraft(next);
-    setDraftVersion((version) => version + 1);
-    setProtocolIndex(0);
-    setRaw({});
-    setRawErrors({});
-    setStartErrors([]);
+    resetSelection();
+    const record = createDraftRecord(next);
+    storage.controller.update((data) => ({
+      ...data,
+      activeDraftId: record.id,
+      drafts: [...data.drafts, record],
+    }));
     setLibrary(false);
     setViewId('configuration');
     setNotice('');
+  }
+  function activate(id: string) {
+    reset();
+    resetSelection();
+    storage.controller.update((data) => ({ ...data, activeDraftId: id }));
+    setLibrary(false);
+    setViewId('configuration');
+    setNotice('');
+  }
+  function selectHistory(record: SavedRun) {
+    pause();
+    const latest =
+      storage.controller.view().data.runs.find((item) => item.id === record.id) ?? record;
+    setHistoryId(record.id);
+    setHistoryPosition(latest.view.events.length + 1);
+    setHistoryPlaying(false);
+    setSelected(undefined);
+    setLibrary(false);
+    setViewId('run');
+    setNotice('');
+  }
+  function removeDraft(id: string) {
+    if (storage.data.drafts.length <= 1) {
+      setNotice('편집할 초안을 하나 이상 유지해야 합니다.');
+      return;
+    }
+    if (id === active?.id) {
+      reset();
+      resetSelection();
+    }
+    storage.controller.update((data) => {
+      const drafts = data.drafts.filter((item) => item.id !== id);
+      return {
+        ...data,
+        drafts,
+        activeDraftId:
+          data.activeDraftId === id ? (drafts[0]?.id ?? data.activeDraftId) : data.activeDraftId,
+      };
+    });
+    setNotice('초안을 삭제했습니다. 과거 실행 기록은 유지했습니다.');
+  }
+  async function importBundle(text: string): Promise<string | undefined> {
+    const staged = stageBundle(text, storage.controller.view().data);
+    if (!staged.success) return `${staged.diagnostics[0]?.code}: ${staged.diagnostics[0]?.message}`;
+    reset();
+    resetSelection();
+    // Cancelling an unfinished live run writes its last checkpoint. Merge against that latest data.
+    const latest = stageBundle(text, storage.controller.view().data);
+    if (!latest.success) return latest.diagnostics[0]?.message ?? '가져오기 실패';
+    storage.controller.update(() => latest.value);
+    setLibrary(false);
+    setViewId('configuration');
+    setNotice('검증한 bundle을 적용했습니다. 충돌한 항목은 새 사본으로 추가했습니다.');
+    await storage.controller.save();
+    return undefined;
+  }
+  function rerun(record: SavedRun) {
+    if (storage.data.runs.length >= WORKSPACE_POLICY.maxRuns) {
+      setNotice('기록 100개 한도입니다. 먼저 불필요한 기록을 삭제하세요.');
+      return;
+    }
+    const previous = session.current();
+    if (previous && !previous.result()) checkpoint(previous.cancel());
+    const created = session.startSnapshot(record.view.snapshot);
+    if (!created.success) {
+      setNotice(created.diagnostics[0]?.message ?? 'snapshot 재실행 실패');
+      return;
+    }
+    runMeta.current = {
+      id: workspaceId('saved_run'),
+      experimentId: record.experimentId,
+      draftVersion: record.draftVersion,
+      createdAt: Date.now(),
+    };
+    comparison.current = record;
+    setHistoryId(undefined);
+    setHistoryPlaying(false);
+    setSelected(undefined);
+    const next = created.value.view();
+    setRun(next);
+    checkpoint(next);
+    setRunVersion(record.draftVersion);
+    setPlaying(true);
+    setLibrary(false);
+    setViewId('run');
+    setNotice('과거 snapshot 설정으로 새 실행을 시작했습니다. 현재 초안은 유지합니다.');
   }
   function navigate(path: string) {
     setLibrary(false);
@@ -171,7 +373,7 @@ export function App() {
     setFocusRequest((request) => ({ path, serial: (request?.serial ?? 0) + 1 }));
   }
   function navigateRule(participant: 'A' | 'B', ruleId: string | undefined) {
-    const id = run?.snapshot.configuration.protocols[participant].id;
+    const id = displayed?.snapshot.configuration.protocols[participant].id;
     const index = draft.definitions.findIndex((item) => item.id === id);
     const ruleIndex = draft.definitions[index]?.rules.findIndex((item) => item.id === ruleId);
     if (index < 0 || ruleIndex === undefined || ruleIndex < 0) {
@@ -202,19 +404,43 @@ export function App() {
     setViewId('run');
     setNotice('');
     let engine = session.current();
-    if (!engine || changed || engine.result()) {
+    if (!engine || changed || historical || engine.result()) {
+      if (storage.data.runs.length >= WORKSPACE_POLICY.maxRuns) {
+        setNotice('기록 100개 한도입니다. 먼저 불필요한 기록을 삭제하세요.');
+        return;
+      }
+      if (engine && !engine.result()) checkpoint(engine.cancel());
       const created = session.start(draft);
       if (!created.success) {
         setStartErrors(created.diagnostics);
         return;
       }
       engine = created.value;
+      runMeta.current = {
+        id: workspaceId('saved_run'),
+        experimentId: activeId,
+        draftVersion,
+        createdAt: Date.now(),
+      };
+      comparison.current = undefined;
+      setHistoryId(undefined);
+      setHistoryPlaying(false);
       setRunVersion(draftVersion);
       setSelected(undefined);
     }
-    setRun(step ? engine.step() : engine.view());
+    const next = step ? engine.step() : engine.view();
+    setRun(next);
+    checkpoint(next);
     setPlaying(!step && !engine.result());
   }
+
+  if (!storage.ready)
+    return (
+      <main>
+        <h1>Protocol Studio</h1>
+        <p role='status'>브라우저 저장소를 읽는 중입니다.</p>
+      </main>
+    );
 
   return (
     <EditorContext value={{ draft, diagnostics, raw, edit, editJson }}>
@@ -232,6 +458,16 @@ export function App() {
             실험 시작
           </button>
         </header>
+        <StoragePanel
+          state={storage}
+          onSave={() => {
+            void storage.controller.save();
+          }}
+          onRetry={() => {
+            void storage.controller.retry();
+          }}
+          onImport={importBundle}
+        />
         <div className='app-body'>
           <nav className='navigation' aria-label='작업 공간'>
             <p className='eyebrow'>작업 공간</p>
@@ -261,6 +497,42 @@ export function App() {
                 <p className='lead'>
                   버전이 있는 원본 설명을 읽고 사용자 사본을 만들거나 빈 실험을 시작하세요.
                 </p>
+                <section aria-label='내 실험'>
+                  <h2>내 실험 · {storage.data.drafts.length}개</h2>
+                  {storage.data.drafts.map((item) => (
+                    <div key={item.id} className='saved-draft'>
+                      <strong>{item.configuration.label || '이름 없는 실험'}</strong>
+                      <span>
+                        초안 v{item.version} · {item.id.slice(-8)}
+                      </span>
+                      <button type='button' onClick={() => activate(item.id)}>
+                        실험 열기 · {item.configuration.label || item.id.slice(-8)}
+                      </button>
+                      <button
+                        type='button'
+                        className='danger'
+                        disabled={storage.data.drafts.length <= 1}
+                        onClick={() => removeDraft(item.id)}
+                      >
+                        초안 삭제 · {item.configuration.label || item.id.slice(-8)}
+                      </button>
+                    </div>
+                  ))}
+                </section>
+                <section aria-label='과거 실행 목록'>
+                  <h2>과거 실행 · {storage.data.runs.length}개</h2>
+                  {[...storage.data.runs].reverse().map((item) => (
+                    <div key={item.id} className='saved-draft'>
+                      <span>
+                        {item.view.snapshot.configuration.label} · {item.view.status} ·{' '}
+                        {item.id.slice(-8)}
+                      </span>
+                      <button type='button' onClick={() => selectHistory(item)}>
+                        기록 열기 · {item.view.snapshot.configuration.label} · {item.id.slice(-8)}
+                      </button>
+                    </div>
+                  ))}
+                </section>
                 <div className='library-grid'>
                   {EXAMPLES.map((example) => (
                     <section
@@ -285,8 +557,7 @@ export function App() {
                   </section>
                 </div>
                 <p className='scope-note'>
-                  새 실험을 열면 현재 메모리 초안을 교체합니다. 새로고침 보존은 아직 지원하지
-                  않습니다.
+                  새 사본은 내 실험에 추가됩니다. 초안과 실행 기록을 이 브라우저에 자동 저장합니다.
                 </p>
                 <button type='button' onClick={() => setLibrary(false)}>
                   현재 초안으로 돌아가기
@@ -305,7 +576,11 @@ export function App() {
                     disabled={diagnostics.length > 0 || playing}
                     onClick={() => start(false)}
                   >
-                    {changed ? '새 설정으로 전체 실행' : '전체 실행'}
+                    {historical
+                      ? '현재 초안 전체 실행'
+                      : changed
+                        ? '새 설정으로 전체 실행'
+                        : '전체 실행'}
                   </button>
                   <button
                     type='button'
@@ -321,15 +596,16 @@ export function App() {
                     실행 초기화
                   </button>
                 </section>
-                {run && (
+                {displayed && (
                   <p className={changed ? 'version-note changed' : 'version-note'} role='status'>
-                    초안 v{draftVersion} · 실행 v{runVersion} ({run.runId})
+                    초안 v{draftVersion} · 실행 v{shownVersion} ({displayed.runId})
                     {changed ? ' · 초안 변경됨 — 다음 실행에 반영' : ' · 동일 설정'}
                   </p>
                 )}
                 {viewId === 'configuration' && (
                   <>
                     <Control path='/label' label='실험 이름' />
+                    <Control path='/id' label='실험 ID' />
                     <Group path='/profile' title='대상 계층'>
                       {(['application', 'transport'] as const).map((layer) => (
                         <label className='choice' key={layer}>
@@ -390,11 +666,13 @@ export function App() {
                           <span>참여자 {participant} 프로토콜</span>
                           <select
                             data-path={`/protocols/${participant}`}
-                            value={draft.protocols[participant].id}
+                            value={draft.definitions.findIndex(
+                              (definition) =>
+                                definition.id === draft.protocols[participant].id &&
+                                definition.revision === draft.protocols[participant].revision,
+                            )}
                             onChange={(event) => {
-                              const definition = draft.definitions.find(
-                                (item) => item.id === event.target.value,
-                              );
+                              const definition = draft.definitions[Number(event.target.value)];
                               if (definition)
                                 edit(`/protocols/${participant}`, {
                                   id: definition.id,
@@ -402,8 +680,11 @@ export function App() {
                                 });
                             }}
                           >
-                            {draft.definitions.map((definition) => (
-                              <option key={definition.id} value={definition.id}>
+                            <option value={-1} disabled>
+                              정의를 선택하세요
+                            </option>
+                            {draft.definitions.map((definition, index) => (
+                              <option key={index} value={index}>
                                 {definition.label} · v{definition.revision}
                               </option>
                             ))}
@@ -445,13 +726,91 @@ export function App() {
                         ))}
                       </select>
                     </label>
-                    {protocol && <ProtocolEditor index={protocolIndex} protocol={protocol} />}
+                    {protocol && (
+                      <>
+                        <button
+                          type='button'
+                          className='danger'
+                          onClick={() => {
+                            const reason = definitionDeletionReason(draft, protocolIndex);
+                            if (reason) setNotice(reason);
+                            else {
+                              edit(`/definitions/${protocolIndex}`, undefined);
+                              setProtocolIndex(0);
+                            }
+                          }}
+                        >
+                          선택한 정의 삭제
+                        </button>
+                        <ProtocolEditor index={protocolIndex} protocol={protocol} />
+                      </>
+                    )}
                   </>
                 )}
                 {viewId === 'environment' && <EnvironmentEditor />}
                 {viewId === 'scenario' && <ScenarioEditor />}
                 {viewId === 'run' && (
-                  <RunView run={run} playing={playing} selected={selected} onSelect={setSelected} />
+                  <>
+                    <HistoryPanel
+                      records={storage.data.runs}
+                      selectedId={historyId}
+                      position={historyPosition}
+                      playing={historyPlaying}
+                      onSelect={selectHistory}
+                      onPosition={(position) => {
+                        setHistoryPosition(position);
+                        setHistoryPlaying(false);
+                      }}
+                      onPlay={() => {
+                        if (historical && historyPosition >= historical.view.events.length + 1)
+                          setHistoryPosition(0);
+                        setHistoryPlaying((current) => !current);
+                      }}
+                      onRerun={rerun}
+                      onRestore={(record) =>
+                        replace({
+                          ...structuredClone(record.view.snapshot.configuration),
+                          label: `${record.view.snapshot.configuration.label} 복원 사본`,
+                        })
+                      }
+                      onDelete={(id) => {
+                        if (runMeta.current?.id === id) reset();
+                        storage.controller.update((data) => ({
+                          ...data,
+                          runs: data.runs.filter((item) => item.id !== id),
+                        }));
+                        if (historyId === id) {
+                          setHistoryId(undefined);
+                          setHistoryPlaying(false);
+                          setSelected(undefined);
+                        }
+                      }}
+                      onLive={() => {
+                        setHistoryId(undefined);
+                        setHistoryPlaying(false);
+                        setSelected(undefined);
+                      }}
+                    />
+                    <RunView
+                      run={displayed}
+                      playing={playing && !historical}
+                      selected={selected}
+                      historyLabel={
+                        historical
+                          ? `과거 기록 · ${historyPosition >= historical.view.events.length + 1 ? '저장 시점' : `이벤트 ${historyPosition}/${historical.view.events.length}`}`
+                          : undefined
+                      }
+                      onSelect={(id) => {
+                        setSelected(id);
+                        if (historical) {
+                          setHistoryPosition(
+                            historical.view.events.findIndex((event) => event.eventId === id) + 1,
+                          );
+                          setHistoryPlaying(false);
+                        }
+                      }}
+                    />
+                  </>
                 )}
               </>
             )}
@@ -478,11 +837,11 @@ export function App() {
                 </p>
               )}
             </section>
-            {!!run?.diagnostics.length && (
+            {!!displayed?.diagnostics.length && (
               <section className='diagnostics-panel' aria-label='실행 진단'>
                 <h2>실행 진단</h2>
                 <ul>
-                  {run.diagnostics.map((item, index) => (
+                  {displayed.diagnostics.map((item, index) => (
                     <li key={index}>
                       <button type='button' onClick={() => diagnosticLocation(item)}>
                         {item.code} · {item.message}
@@ -499,6 +858,12 @@ export function App() {
               event={event}
               onCause={(id) => {
                 setSelected(id);
+                if (historical) {
+                  setHistoryPosition(
+                    historical.view.events.findIndex((item) => item.eventId === id) + 1,
+                  );
+                  setHistoryPlaying(false);
+                }
                 setLibrary(false);
                 setViewId('run');
               }}
@@ -517,7 +882,7 @@ export function App() {
           </aside>
         </div>
         <footer>
-          새로고침 보존 미지원 · 초안과 실행은 메모리에만 유지됩니다 · 실제 서버·기기 연결 없음
+          이 브라우저에 자동 저장 · ‘저장됨’ 표시 후 다시 열기 가능 · 실제 서버·기기 연결 없음
         </footer>
       </div>
     </EditorContext>

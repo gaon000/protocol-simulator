@@ -31,8 +31,8 @@ export interface EventOrderKey {
 
 export interface RunSnapshot<Configuration extends JsonObject = JsonObject> {
   readonly schemaVersion: typeof EXECUTION_POLICY.schemaVersion;
-  readonly engineVersion: typeof EXECUTION_POLICY.engineVersion;
-  readonly randomAlgorithm: typeof EXECUTION_POLICY.randomAlgorithm;
+  readonly engineVersion: string;
+  readonly randomAlgorithm: string;
   readonly seed: number;
   readonly configuration: ImmutableJson<Configuration>;
   readonly limits: {

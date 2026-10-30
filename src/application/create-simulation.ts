@@ -4,6 +4,7 @@ import type { ExperimentSnapshot, ValidationResult } from '../domain/protocol-mo
 import type { EnvironmentFactory } from '../engine/environment-port.ts';
 import { SimulationEngine } from '../engine/simulation.ts';
 import { createEnvironment } from '../environments/simulated-environment.ts';
+import { parseRecordedSnapshot, snapshotCompatibility } from '../domain/workspace-validation.ts';
 
 export type SimulationOptions = {
   readonly environmentFactory?: EnvironmentFactory;
@@ -66,6 +67,7 @@ export function createSimulation(
 export type RunSession = {
   readonly current: () => SimulationEngine | undefined;
   readonly start: (input: unknown) => ValidationResult<SimulationEngine>;
+  readonly startSnapshot: (snapshot: unknown) => ValidationResult<SimulationEngine>;
   readonly reset: () => void;
   readonly apply: (runId: string, callback: (engine: SimulationEngine) => void) => boolean;
 };
@@ -73,16 +75,23 @@ export type RunSession = {
 /** Fence callbacks by generation so reset or replacement cannot mutate the new run. */
 export function createRunSession(options: Omit<SimulationOptions, 'runId'> = {}): RunSession {
   let current: SimulationEngine | undefined;
+  function replace(
+    created: ValidationResult<SimulationEngine>,
+  ): ValidationResult<SimulationEngine> {
+    if (created.success) {
+      current?.cancel();
+      current = created.value;
+    }
+    return created;
+  }
   return {
     current: () => current,
     start: (input) => {
       const created = createSimulation(input, { ...options, runId: `run-${++nextRun}` });
-      if (created.success) {
-        current?.cancel();
-        current = created.value;
-      }
-      return created;
+      return replace(created);
     },
+    startSnapshot: (snapshot) =>
+      replace(createSimulationFromSnapshot(snapshot, { ...options, runId: `run-${++nextRun}` })),
     reset: () => {
       current?.cancel();
       current = undefined;
@@ -93,4 +102,20 @@ export function createRunSession(options: Omit<SimulationOptions, 'runId'> = {})
       return true;
     },
   };
+}
+
+/** Rebuild an isolated run only when snapshot versions, seed and captured limits are compatible. */
+export function createSimulationFromSnapshot(
+  input: unknown,
+  options: Omit<SimulationOptions, 'limits'> = {},
+): ValidationResult<SimulationEngine> {
+  const parsed = parseRecordedSnapshot(input);
+  if (!parsed.success) return parsed;
+  const message = snapshotCompatibility(parsed.value);
+  if (message)
+    return {
+      success: false,
+      diagnostics: [{ path: '/snapshot/engineVersion', code: 'snapshot-version', message }],
+    };
+  return createSimulation(parsed.value.configuration, { ...options, limits: parsed.value.limits });
 }
