@@ -3,6 +3,7 @@ import { nextId } from '../application/edit-experiment.ts';
 import type { FieldDefinition, ProtocolDefinition } from '../domain/protocol-model.ts';
 import { Control, Group, JsonControl, Remove, useEditor } from './forms.tsx';
 import { RuleEditor } from './RuleEditor.tsx';
+import { HttpMappingEditor } from './HttpMappingEditor.tsx';
 
 function FieldEditor({ field, path }: { field: FieldDefinition; path: string }) {
   const { edit } = useEditor();
@@ -149,6 +150,9 @@ export function ProtocolEditor({
                 <Control path={`${messagePath}/id`} label='메시지 ID' />
                 <Control path={`${messagePath}/label`} label='메시지 이름' />
               </div>
+              {protocol.codec === 'http-1.1' && (
+                <HttpMappingEditor message={message} path={messagePath} />
+              )}
               <Group path={`${messagePath}/fields`} title='메시지 필드'>
                 {message.fields.map((field, fieldIndex) => (
                   <FieldEditor

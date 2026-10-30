@@ -12,9 +12,9 @@ import type { JsonValue } from '../domain/execution-contract.ts';
 import { parseExperiment } from '../domain/model-validation.ts';
 import type { ExperimentDefinition, ModelDiagnostic } from '../domain/protocol-model.ts';
 import type { EngineView } from '../engine/simulation.ts';
-import { createStopAndWaitExperiment } from '../examples/stop-and-wait.ts';
+import { EXAMPLES, createExampleCopy } from '../examples/catalog.ts';
+import { ExampleDetails, ExampleOrigin } from './ExampleInfo.tsx';
 import { EnvironmentEditor } from './EnvironmentEditor.tsx';
-import { createPingPongExperiment } from '../examples/ping-pong.ts';
 import { Control, EditorContext, Group } from './forms.tsx';
 import { ProtocolEditor } from './ProtocolEditor.tsx';
 import { EventInspector, RunView } from './RunView.tsx';
@@ -51,7 +51,7 @@ type ViewId = (typeof views)[number]['id'];
 
 /** Connect an editable protocol workspace to isolated, bounded simulation sessions. */
 export function App() {
-  const [draft, setDraft] = useState<ExperimentDefinition>(createPingPongExperiment);
+  const [draft, setDraft] = useState<ExperimentDefinition>(() => createExampleCopy('ping_pong'));
   const [draftVersion, setDraftVersion] = useState(1);
   const [runVersion, setRunVersion] = useState(0);
   const [viewId, setViewId] = useState<ViewId>('configuration');
@@ -258,25 +258,24 @@ export function App() {
               <section aria-label='실험 시작'>
                 <p className='eyebrow'>프로토콜 설계 · 이해 · 검증</p>
                 <h1>실험 시작</h1>
-                <p className='lead'>빈 실험을 만들거나 동작하는 Ping/Pong을 편집해 보세요.</p>
+                <p className='lead'>
+                  버전이 있는 원본 설명을 읽고 사용자 사본을 만들거나 빈 실험을 시작하세요.
+                </p>
                 <div className='library-grid'>
-                  <section className='participant-card'>
-                    <h2>Ping / Pong</h2>
-                    <p>메시지·응답 조건·타이머·기대 결과가 연결된 출발점입니다.</p>
-                    <button type='button' onClick={() => replace(createPingPongExperiment())}>
-                      Ping/Pong 새 사본
-                    </button>
-                  </section>
-                  <section className='participant-card'>
-                    <h2>Stop-and-wait</h2>
-                    <p>
-                      DATA·ACK 순서 번호, 대기 데이터, 타이머와 중복 제거를 가진 한 방향 전달
-                      실험입니다. 최초 송신과 재시도를 구분하며 기본 재시도 상한은 3회입니다.
-                    </p>
-                    <button type='button' onClick={() => replace(createStopAndWaitExperiment())}>
-                      재전송 실험 새 사본
-                    </button>
-                  </section>
+                  {EXAMPLES.map((example) => (
+                    <section
+                      key={example.id}
+                      className='participant-card'
+                      aria-label={`${example.title} 예제`}
+                    >
+                      <h2>{example.title}</h2>
+                      <p>{example.description}</p>
+                      <ExampleDetails example={example} />
+                      <button type='button' onClick={() => replace(createExampleCopy(example.id))}>
+                        {example.copyLabel}
+                      </button>
+                    </section>
+                  ))}
                   <section className='participant-card'>
                     <h2>빈 실험</h2>
                     <p>메시지와 상태, 입력 규칙부터 직접 정의합니다.</p>
@@ -298,6 +297,7 @@ export function App() {
                 <p className='eyebrow'>프로토콜 설계 · 이해 · 검증</p>
                 <h1>{view.label}</h1>
                 <p className='lead'>{view.description}</p>
+                <ExampleOrigin experiment={draft} />
                 <section className='run-toolbar' aria-label='실행 제어'>
                   <button
                     className='primary'

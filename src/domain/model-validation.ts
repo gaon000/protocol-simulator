@@ -1,4 +1,5 @@
 import { createRunSnapshot, EXECUTION_POLICY, type JsonValue } from './execution-contract.ts';
+import { httpSchemaDiagnostics } from './http-schema.ts';
 import type {
   Condition,
   ExperimentDefinition,
@@ -268,16 +269,32 @@ function inspectProtocol(value: unknown, path: string, r: Reader): void {
     'json-lines',
     'json-datagram',
     'logical-packet',
+    'http-1.1',
   ]);
   r.text(protocol.initialStateId, pointer(path, 'initialStateId'), true);
   r.array(
     protocol.messages,
     pointer(path, 'messages'),
     (value, location) => {
-      const message = r.object(value, location, ['id', 'label', 'fields']);
+      const message = r.object(value, location, ['id', 'label', 'fields', 'http']);
       if (!message) return;
       r.text(message.id, pointer(location, 'id'), true);
       r.text(message.label, pointer(location, 'label'));
+      if (has(message, 'http')) {
+        const httpPath = pointer(location, 'http');
+        const http = r.object(message.http, httpPath);
+        if (http) {
+          r.choice(http.kind, pointer(httpPath, 'kind'), ['request', 'response', 'raw']);
+          const keys =
+            http.kind === 'request'
+              ? ['methodFieldId', 'targetFieldId', 'bodyFieldId']
+              : http.kind === 'response'
+                ? ['statusFieldId', 'reasonFieldId', 'bodyFieldId']
+                : ['wireFieldId'];
+          r.object(http, httpPath, ['kind', ...keys]);
+          for (const key of keys) r.text(http[key], pointer(httpPath, key), true);
+        }
+      }
       r.array(message.fields, pointer(location, 'fields'), (value, fieldPath) => {
         const field = r.object(value, fieldPath);
         if (!field) return;
@@ -491,8 +508,9 @@ function inspectProtocolSemantics(protocol: ProtocolDefinition, path: string, r:
     protocol.initialStateId,
   );
   if (
-    (protocol.codec === 'json-lines' && protocol.lowerService !== 'stream') ||
-    (protocol.codec !== 'json-lines' && protocol.lowerService !== 'datagram') ||
+    (['json-lines', 'http-1.1'].includes(protocol.codec) && protocol.lowerService !== 'stream') ||
+    (!['json-lines', 'http-1.1'].includes(protocol.codec) &&
+      protocol.lowerService !== 'datagram') ||
     (protocol.layer === 'transport' && protocol.codec !== 'logical-packet') ||
     (protocol.layer === 'application' && protocol.codec === 'logical-packet')
   ) {
@@ -502,6 +520,7 @@ function inspectProtocolSemantics(protocol: ProtocolDefinition, path: string, r:
       'Codec, target layer and lower service are incompatible',
     );
   }
+  r.diagnostics.push(...httpSchemaDiagnostics(protocol, path));
   protocol.messages.forEach((message, index) => {
     const fieldPath = pointer(pointer(pointer(path, 'messages'), index), 'fields');
     unique(message.fields, fieldPath, r);
@@ -879,11 +898,19 @@ export function parseExperiment(value: unknown): ValidationResult<ExperimentDefi
     'definitions',
     'environment',
     'scenario',
+    'origin',
   ]);
   if (!node) return { success: false, diagnostics: r.diagnostics };
   r.choice(node.schemaVersion, '/schemaVersion', [1]);
   r.text(node.id, '/id', true);
   r.text(node.label, '/label');
+  if (has(node, 'origin')) {
+    const origin = r.object(node.origin, '/origin', ['exampleId', 'version']);
+    if (origin) {
+      r.text(origin.exampleId, '/origin/exampleId', true);
+      r.number(origin.version, '/origin/version', 1);
+    }
+  }
   r.number(node.seed, '/seed', 0, 0xffff_ffff);
   const references = r.object(node.protocols, '/protocols', ['A', 'B']);
   for (const participant of ['A', 'B']) {

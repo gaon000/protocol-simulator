@@ -8,7 +8,7 @@
 
 [createSimulation](../../src/application/create-simulation.ts)은 검증된 snapshot, 새 seed PRNG, snapshot의 상한을 [createEnvironment](../../src/environments/simulated-environment.ts)에 주입한다. 환경은 메시지·ACK·상위 전달 의미를 해석하지 않는다. P2의 [createIdealEnvironment](../../src/environments/ideal-environment.ts)는 명시적으로 주입할 수 있는 이전 이상적 adapter로 유지한다.
 
-실행 버전은 `0.1.0-p4`다. 정의 schemaVersion 1과 mulberry32-v1은 유지하고, 환경 동작·기록·스트림 처리 순서가 달라졌으므로 engineVersion을 올렸다. 이전 엔진의 trace와 동일하다고 주장하지 않는다. 설정은 여전히 불변 snapshot에 포함한다.
+P4 단계 실행 버전은 `0.1.0-p4`였으며 현재 코덱·버전은 [P5 계약](p5-standard-examples.md)을 따른다. 정의 schemaVersion 1과 mulberry32-v1은 유지하고, 환경 동작·기록·스트림 처리 순서가 달라졌으므로 engineVersion을 올렸다. 이전 엔진의 trace와 동일하다고 주장하지 않는다. 설정은 여전히 불변 snapshot에 포함한다.
 
 ## 데이터그램
 

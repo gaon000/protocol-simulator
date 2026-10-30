@@ -110,7 +110,9 @@ test('unfinished JSON remains visible across navigation and blocks execution unt
 test('step, play, pause and reset fence pending callbacks and clear participant state', async ({
   page,
 }) => {
+  await page.clock.install({ time: new Date('2026-10-30T00:00:00Z') });
   await page.goto('/');
+  await page.clock.pauseAt(new Date('2026-10-30T01:00:00Z'));
   await openView(page, '통신 환경');
   await field(page, '/environment/directions/AtoB/chunkBytes').fill('1');
   await field(page, '/environment/directions/BtoA/chunkBytes').fill('1');
@@ -119,11 +121,11 @@ test('step, play, pause and reset fence pending callbacks and clear participant 
   await page.getByRole('button', { name: '전체 실행', exact: true }).click();
   await page.getByRole('button', { name: '일시 정지', exact: true }).click();
   const paused = await page.getByText(/일시 정지 · 가상 시간/).textContent();
-  await page.waitForTimeout(130);
+  await page.clock.runFor(130);
   await expect(page.getByText(/일시 정지 · 가상 시간/)).toHaveText(paused ?? '');
   await page.getByRole('button', { name: '전체 실행', exact: true }).click();
   await page.getByRole('button', { name: '실행 초기화', exact: true }).click();
-  await page.waitForTimeout(130);
+  await page.clock.runFor(130);
   await expect(page.getByRole('heading', { name: '편집한 실험을 실행하세요' })).toBeVisible();
   await page.getByRole('button', { name: '한 단계', exact: true }).click();
   await expect(page.getByText(/처리 이벤트 1$/)).toBeVisible();
@@ -212,7 +214,9 @@ test('keeps editing and run controls usable on a narrow viewport with keyboard i
 test('editing a running draft pauses the captured run and the next step starts a fresh generation', async ({
   page,
 }) => {
+  await page.clock.install({ time: new Date('2026-10-30T00:00:00Z') });
   await page.goto('/');
+  await page.clock.pauseAt(new Date('2026-10-30T01:00:00Z'));
   await openView(page, '통신 환경');
   await field(page, '/environment/directions/AtoB/chunkBytes').fill('1');
   await page.getByRole('button', { name: '전체 실행', exact: true }).click();
@@ -220,6 +224,7 @@ test('editing a running draft pauses the captured run and the next step starts a
   await field(page, '/environment/directions/AtoB/delayMs').fill('50');
   await expect(page.getByRole('button', { name: '일시 정지', exact: true })).toBeDisabled();
   await expect(page.getByText(/초안 변경됨/)).toBeVisible();
+  await page.clock.runFor(130);
   await page.getByRole('button', { name: '한 단계', exact: true }).click();
   await expect(page.getByText(/처리 이벤트 1$/)).toBeVisible();
   await expect(page.getByText(/동일 설정/)).toBeVisible();

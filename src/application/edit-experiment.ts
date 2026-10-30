@@ -133,7 +133,7 @@ export function changeProfile(
     ...definition,
     layer,
     lowerService,
-    codec,
+    codec: definition.codec === 'http-1.1' ? ('http-1.1' as const) : codec,
     revision: definition.revision + 1,
   }));
   return {

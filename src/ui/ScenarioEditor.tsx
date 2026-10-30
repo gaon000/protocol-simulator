@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Form rows are stateless and controlled by JSON Pointer; structural edits clear pending values for the affected collection. */
 import { nextId, pointerToken } from '../application/edit-experiment.ts';
 import type { Expectation, ProtocolDefinition, ProtocolMessage } from '../domain/protocol-model.ts';
-import { Control, Group, Remove, useEditor } from './forms.tsx';
+import { Control, Group, JsonControl, Remove, useEditor } from './forms.tsx';
 
 /** Set a typed scenario message, including explicit omission so schema defaults stay observable. */
 export function MessageEditor({
@@ -61,10 +61,13 @@ export function MessageEditor({
                 }
               />
             </label>
-            {present ? (
+            {present && definition.http?.kind === 'raw' ? (
+              <JsonControl path={fieldPath} label='원시 HTTP (CRLF는 \r\n)' />
+            ) : present ? (
               <Control
                 path={fieldPath}
                 label={`${field.name} 값`}
+                multiline={field.type === 'string' && field.placement !== 'header'}
                 type={
                   field.type === 'integer'
                     ? 'number'

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { JsonObject, JsonValue } from '../domain/execution-contract.ts';
 import type { EventTrace } from '../domain/protocol-model.ts';
 import type { EngineView } from '../engine/simulation.ts';
+import { WireInspector } from './WireInspector.tsx';
 
 const statusLabels = {
   idle: '실행 대기',
@@ -203,6 +204,7 @@ export function EventInspector({
                 ))}
               </div>
             )}
+          <WireInspector data={event.data} />
           <pre>{formatData(event.data)}</pre>
         </>
       ) : (

@@ -25,3 +25,4 @@
 - [P2 결정적 실행 엔진](p2-runtime.md) — Accepted. 가상 시간·규칙·타이머·이상적 환경·관찰 판정과 실행 session 격리.
 - [P3 편집·실행 작업 공간](p3-workspace.md) — Accepted. 실제 폼·초안/snapshot·실행 제어·오류 초점·기록과 규칙 연결.
 - [P4 장애 환경과 재전송](p4-environments.md) — Accepted. seeded 손실·중복·지연 변동, 스트림 합쳐 읽기/종료와 순서 번호·ACK·유한 재시도.
+- [P5 HTTP/1.1·TCP 연결 예제](p5-standard-examples.md) — Accepted. 제한된 HTTP 코덱·실제 오류/분할/지연, TCP seq/ack와 버전 있는 원본·출처·사본.

@@ -4,6 +4,7 @@ import {
   createLogicalPacketCodec,
   type DecodeBatch,
 } from '../codecs/message-codecs.ts';
+import { createHttpCodec } from '../codecs/http-codec.ts';
 import type { JsonObject, JsonValue, ParticipantId } from '../domain/execution-contract.ts';
 import { validateProtocolMessage } from '../domain/model-validation.ts';
 import type {
@@ -119,8 +120,12 @@ function codecFor(protocol: ProtocolDefinition, snapshot: ExperimentSnapshot): P
     diagnostics: [{ path: '/', code: 'payload-type', message: 'Incompatible lower payload type' }],
     closed: true,
   });
-  if (protocol.codec === 'json-lines') {
-    const codec = unwrap(createJsonLinesCodec(protocol, limits));
+  if (protocol.codec === 'json-lines' || protocol.codec === 'http-1.1') {
+    const codec = unwrap(
+      protocol.codec === 'http-1.1'
+        ? createHttpCodec(protocol, limits)
+        : createJsonLinesCodec(protocol, limits),
+    );
     return {
       encode: (message) => {
         const encoded = codec.encode(message);

@@ -588,3 +588,50 @@ pre {
     overflow: auto;
   }
 }
+.example-details {
+  margin: 12px 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.example-details summary {
+  cursor: pointer;
+  color: #295caa;
+}
+.example-details a {
+  display: block;
+  color: #295caa;
+}
+.example-details ul {
+  padding-left: 18px;
+}
+.origin-note {
+  padding: 10px 14px;
+  border: 1px solid #dce4ef;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  background: #f8faff;
+  font-size: 12px;
+}
+.origin-note p {
+  margin-bottom: 6px;
+}
+.packet-fields {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  margin: 14px 0;
+}
+.packet-fields caption {
+  text-align: left;
+  color: #526179;
+}
+.packet-fields th,
+.packet-fields td {
+  text-align: left;
+  border-bottom: 1px solid #dce4ef;
+  padding: 6px;
+  overflow-wrap: anywhere;
+}
+.wire-preview {
+  margin: 16px 0;
+}

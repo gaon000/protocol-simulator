@@ -3,7 +3,7 @@
 상태: In Progress
 작성일: 2026-10-30
 종료일: 미종료
-현재 단계: P4 환경 장애·스트림 합쳐 읽기/종료·재전송과 전체 로컬 검사 완료. 다음은 P5이며 P5~P7은 미시작.
+현재 단계: P5 HTTP/TCP 연결·원본/사본과 전체 로컬 검사 완료. 다음은 P6이며 P6~P7은 미시작.
 
 이 문서는 [ExecPlan 운영 규칙](../index.md)을 따른다. 최초 요청은 설계를 문서화하고 구현 계획을 작성하는 범위였으며 애플리케이션 구현·패키지 설치·배포는 수행하지 않았다. 문서의 커밋·push는 이후 사용자의 별도 요청 범위를 따른다. 사용자가 P0 구현을 요청하고 React·React DOM의 production dependency 추가를 승인했다. 이후 신규 production dependency도 추가 전에 사용자 확인을 받는다.
 
@@ -30,7 +30,7 @@
 - [x] P2: 2026-10-30 결정적 실행·규칙·타이머·관찰·session과 이상적 환경 구현. `pnpm check` 통과: Node 85개·문서 22개·빌드·기존 Chromium 화면 회귀 4개.
 - [x] P3: 2026-10-30 실제 폼·초안/snapshot 버전·실행 제어·기록·진단 연결. 전체 로컬 검사: Node 96개·문서 23개·빌드·Chromium E2E 10개 통과.
 - [x] P4: 2026-10-30 장애 환경·합쳐 읽기/종료·순서 번호/ACK/유한 재시도와 UI 구현. 전체 로컬 검사: Node 128개·문서 24개·빌드·Chromium E2E 15개 통과.
-- [ ] P5: HTTP/1.1·TCP 연결 예제와 지원 경계.
+- [x] P5: 2026-10-30 HTTP 코덱·여섯 HTTP 시나리오·TCP 정상 연결·원본/사본과 출처/지원 경계. 전체 로컬 검사: Node 193개·문서 25개·빌드·Chromium E2E 28개 통과.
 - [ ] P6: 로컬 저장·import/export·snapshot·기록 재생.
 - [ ] P7: 전체 사용자 흐름·상한·접근성·최종 검증.
 
@@ -66,6 +66,9 @@
 | 2026-10-30 | P3 `2fd249a`의 master 반영 후 P4 feature branch 생성 | 단계별 master 병합·지속 구현 요청 |
 | 2026-10-30 | engineVersion `0.1.0-p4`, stream-read/readStream·dispose와 codec abort | 대기 write 합치기, 인과적 그룹 경계·바이트 상한·실패/EOF 분리. schemaVersion 1·난수 참조 계약 유지 |
 | 2026-10-30 | [P4 Stop-and-wait](../../design-docs/p4-environments.md), 최초 송신과 재시도 분리 | ACK 손실·순서 역전에서도 상위 중복 제거, 전송 소진을 유한 Failed로 관찰 |
+| 2026-10-30 | P4 `43fadc1`의 master 반영 후 P5 feature branch 생성 | 단계별 병합·지속 구현 요청 |
+| 2026-10-30 | engineVersion `0.1.0-p5`, HTTP binding·origin 선택 필드를 schemaVersion 1에 추가 | 기존 실험 유지·새 코덱 지원을 구분. HTTP CL은 UTF-8 본문에서 생성하고 raw 오류 실험은 별도 명시 |
+| 2026-10-30 | [P5 catalog·HTTP/TCP 경계](../../design-docs/p5-standard-examples.md), 동결 원본과 사용자 사본 | 출처·버전·생략·예상 오류를 읽고 실제 코어/화면 결과와 비교 |
 
 P2에서 큐·규칙·타이머·관찰 판정과 session fencing을 구현했다. 복잡한 조건의 동시 일치·동적 값·timer generation을 실제 실행으로 검사한다. 실제 장애·합쳐 읽기 환경은 [P4 계약](../../design-docs/p4-environments.md)에서 구현했다. 향후 계약 변경 시 문서·fixture와 engineVersion을 검토한다.
 
@@ -73,7 +76,7 @@ P2에서 큐·규칙·타이머·관찰 판정과 session fencing을 구현했�
 
 ## Outcomes & Retrospective
 
-P0~P3는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. 표준 예제·저장은 후속 단계다. CI·배포는 수행하지 않았고 계획은 In Progress다.
+P0~P4는 master에 반영했다. P3에서 메시지·상태·조건·동작·입력·검증 폼을 실제 엔진과 연결했다. 초안/실행 버전 차이, 오류 초점과 기록의 원인·규칙·상태 변화, 전체/단계/정지/초기화를 제공한다. P4 장애 환경·합쳐 읽기/종료와 Stop-and-wait의 실제 ACK 검사·중복 제거를 구현했다. P5에서 HTTP 코덱·여섯 시나리오·TCP 정상 연결과 버전 있는 catalog/사본을 구현했다. 저장·최종 응답성/브라우저/CI 검증은 남아 있고 계획은 In Progress다. 배포는 수행하지 않았다.
 
 ## Context and Orientation
 
@@ -285,6 +288,15 @@ P4 검증 기록:
 - 같은 snapshot·seed의 전체/단계/묶음 기록을 비교했고 20 seed에서 중복 전달과 재시도 상한 불변식을 검사했다. stream 청크 1/7/65536 bytes에서 전체 바이트 순서·내용·메시지 의미, 합쳐진 원인 ID·정상/불완전 EOF·연결 실패, 대기 바이트 상한·취소·dispose 오류 판정을 검사했다.
 - 실제 브라우저에서 정상과 ACK 손실을 같은 정의로 비교하고 재시도 소진·seed 재현·잘못된 확률의 실행 차단·연결 규칙/cutoff·합쳐진 두 송신의 원인 이동을 확인했다. 별도 1440px 캡처와 390px 환경 폼의 가로 넘침 없음도 확인했다.
 - 불완전 raw 접두부는 테스트 포트로 주입한 경계 검사다. 사용자용 데이터 절단이나 실제 연결 검증은 아니다. HTTP/TCP·저장·대형 기록 응답성·원격 CI·배포는 P4 완료 증거에 포함하지 않으며 P5~P7이 남아 있어 계획은 In Progress다.
+
+P5 검증 기록:
+
+- 2026-10-30: P4 `43fadc1`의 master 반영 후 `codex/p5-standard-protocol-examples`에서 작업했다. HTTP/RFC 9112·9110과 TCP/RFC 9293의 정상 연결 자료를 확인하고 [P5 계약](../../design-docs/p5-standard-examples.md)에 지원·생략 항목을 기록했다.
+- 2026-10-30: 최종 `pnpm check` 전체 통과. lint·포맷·strict 타입, Node 단위/통합 193개(skip 없음), 문서 25개, Vite production build, Chromium E2E 28개를 실제 실행했다.
+- HTTP의 모든 바이트 분할·한글/emoji·Content-Length·CRLF·헤더/Host/중복/길이 오류·지원 밖 형식·EOF/abort·1 MiB 정확 경계·64 KiB 헤더 상한·사용자 ID binding을 검사했다. 일반 송신은 길이를 자동 생성하고 raw 오류 예제는 실제 수신 코덱을 통과한다.
+- 아홉 catalog 원본/사본의 코어와 브라우저 최종 상태·진단·통과/미판정이 일치했다. TCP 기본 100/300 및 편집된 ISS, 잘못된 SYN-ACK/최종 ACK/seq/플래그·손실 timeout, 원본 동결·사본 격리·origin 왕복·서비스 오류를 검사했다.
+- 최초 전체 검사에서 기존 정지 E2E가 짧은 실행 완료와 버튼 클릭의 wall-clock 경쟁으로 한 번 실패했다. Playwright clock으로 재생 시각을 고정하고 정지·초기화·편집의 callback 차단을 검사하도록 수정한 뒤 전체 검사를 통과했다. 수정한 정지/초기화·실행 중 편집 두 검사를 각각 5회 반복해 총 10회 통과한 것도 확인했다. 통과할 때까지 단순 재시도한 것으로 처리하지 않았다.
+- 별도 로컬 Chromium에서 1440px HTTP 바이트/CRLF/CL·TCP 패킷 표의 화면과 390px catalog의 가로 넘침 없음을 확인했다. 실제 HTTP/TCP 서버·기기·영속 저장·원격 CI·배포 검증은 아니며 P6~P7이 남아 계획은 In Progress다.
 
 ## Idempotence and Recovery
 

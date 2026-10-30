@@ -48,10 +48,18 @@ type ControlProps = {
   options?: readonly string[];
   type?: 'text' | 'number' | 'checkbox';
   optional?: boolean;
+  multiline?: boolean;
 };
 
 /** Edit one scalar using a labelled native control and the diagnostic pointer as focus target. */
-export function Control({ path, label, options, type = 'text', optional = false }: ControlProps) {
+export function Control({
+  path,
+  label,
+  options,
+  type = 'text',
+  optional = false,
+  multiline = false,
+}: ControlProps) {
   const { draft, edit, diagnostics } = useEditor();
   const id = useId();
   const value = valueAt(draft, path);
@@ -83,6 +91,13 @@ export function Control({ path, label, options, type = 'text', optional = false 
           type='checkbox'
           checked={value === true}
           onChange={(event) => edit(path, event.target.checked)}
+        />
+      ) : multiline ? (
+        <textarea
+          {...shared}
+          rows={4}
+          value={String(value ?? '')}
+          onChange={(event) => edit(path, event.target.value)}
         />
       ) : (
         <input

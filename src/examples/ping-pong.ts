@@ -1,9 +1,9 @@
 import type { ExperimentDefinition, ProtocolDefinition } from '../domain/protocol-model.ts';
 
+type PingPongCodec = Exclude<ProtocolDefinition['codec'], 'http-1.1'>;
+
 /** Create a fresh editable Ping/Pong protocol with explicit response and timeout rules. */
-export function createPingPongProtocol(
-  codec: ProtocolDefinition['codec'] = 'json-lines',
-): ProtocolDefinition {
+export function createPingPongProtocol(codec: PingPongCodec = 'json-lines'): ProtocolDefinition {
   const fields = [
     {
       id: 'sequence',
@@ -145,7 +145,7 @@ export function createPingPongProtocol(
 
 /** Create an isolated starter experiment backed by the same model used by the runtime. */
 export function createPingPongExperiment(
-  codec: ProtocolDefinition['codec'] = 'json-lines',
+  codec: PingPongCodec = 'json-lines',
 ): ExperimentDefinition {
   return {
     schemaVersion: 1,

@@ -2,7 +2,7 @@ import type { ExperimentDefinition, ProtocolDefinition } from '../../src/domain/
 
 /** Build a complete declarative definition, without requiring the future P2 runtime. */
 export function protocolFixture(
-  codec: ProtocolDefinition['codec'] = 'json-lines',
+  codec: Exclude<ProtocolDefinition['codec'], 'http-1.1'> = 'json-lines',
 ): ProtocolDefinition {
   const fields = [
     {
@@ -145,7 +145,7 @@ export function protocolFixture(
 
 /** Include actual definitions, exact revision references, environment and test expectations. */
 export function experimentFixture(
-  codec: ProtocolDefinition['codec'] = 'json-lines',
+  codec: Exclude<ProtocolDefinition['codec'], 'http-1.1'> = 'json-lines',
 ): ExperimentDefinition {
   return {
     schemaVersion: 1,

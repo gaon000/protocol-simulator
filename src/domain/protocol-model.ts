@@ -30,10 +30,25 @@ export type FieldDefinition = FieldBase &
     | { readonly type: 'boolean'; readonly defaultValue?: boolean }
     | { readonly type: 'enum'; readonly options: readonly string[]; readonly defaultValue?: string }
   );
+export type HttpMessageMapping =
+  | {
+      readonly kind: 'request';
+      readonly methodFieldId: string;
+      readonly targetFieldId: string;
+      readonly bodyFieldId: string;
+    }
+  | {
+      readonly kind: 'response';
+      readonly statusFieldId: string;
+      readonly reasonFieldId: string;
+      readonly bodyFieldId: string;
+    }
+  | { readonly kind: 'raw'; readonly wireFieldId: string };
 export type MessageDefinition = {
   readonly id: string;
   readonly label: string;
   readonly fields: readonly FieldDefinition[];
+  readonly http?: HttpMessageMapping;
 };
 export type MessageValues = Readonly<Record<string, Scalar>>;
 export type ProtocolMessage = { readonly messageId: string; readonly values: MessageValues };
@@ -90,7 +105,7 @@ export type ProtocolDefinition = {
   readonly label: string;
   readonly layer: ProtocolLayer;
   readonly lowerService: ServiceKind;
-  readonly codec: 'json-lines' | 'json-datagram' | 'logical-packet';
+  readonly codec: 'json-lines' | 'json-datagram' | 'logical-packet' | 'http-1.1';
   readonly messages: readonly MessageDefinition[];
   readonly states: readonly {
     readonly id: string;
@@ -157,6 +172,7 @@ export type ExperimentDefinition = {
   readonly schemaVersion: 1;
   readonly id: string;
   readonly label: string;
+  readonly origin?: { readonly exampleId: string; readonly version: number };
   readonly seed: number;
   readonly protocols: Readonly<
     Record<ParticipantId, { readonly id: string; readonly revision: number }>
