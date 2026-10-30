@@ -11,7 +11,7 @@ export type ImmutableJson<Value> = Value extends readonly (infer Item)[]
 
 export const EXECUTION_POLICY = {
   schemaVersion: 1,
-  engineVersion: '0.1.0-p0',
+  engineVersion: '0.1.0-p2',
   randomAlgorithm: 'mulberry32-v1',
   maxEvents: 10_000,
   maxMessageBytes: 1_048_576,

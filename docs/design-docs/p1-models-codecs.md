@@ -4,9 +4,11 @@
 기준일: 2026-10-30
 구현 범위: DOM 없는 타입·정의 검사·snapshot 준비와 세 가지 코덱. 실제 이벤트 큐·규칙 실행은 P2, 화면 편집 연결은 P3다.
 
+이 문서는 P1 완료 당시의 API·검증 경계다. 이후 구현한 큐·규칙·타이머·결과 생성은 [P2 계약](p2-runtime.md)을 따른다. 아래에서 P2에 남겨 둔 동적 검사 역시 해당 문서와 실제 엔진 테스트를 기준으로 확인한다.
+
 ## 모델과 버전
 
-[protocol-model.ts](../../src/domain/protocol-model.ts)는 ProtocolDefinition, EnvironmentDefinition, ScenarioDefinition, ExperimentDefinition, ExperimentSnapshot, EventTrace, RunResult를 정의한다. 정의의 schemaVersion은 1이며, 새 모델의 JSON 형태는 [완전한 fixture](../../tests/fixtures/protocol-models.ts)와 [snapshot 통합 테스트](../../tests/integration/protocol-codec-contract.test.ts)에서 검증한다. EventTrace·RunResult는 이후 엔진을 위한 타입이며 현재 엔진이 결과를 생성하거나 저장 결과를 import하는 기능은 없다.
+[protocol-model.ts](../../src/domain/protocol-model.ts)는 ProtocolDefinition, EnvironmentDefinition, ScenarioDefinition, ExperimentDefinition, ExperimentSnapshot, EventTrace, RunResult를 정의한다. 정의의 schemaVersion은 1이며 JSON 형태는 [완전한 fixture](../../tests/fixtures/protocol-models.ts)와 [snapshot 통합 테스트](../../tests/integration/protocol-codec-contract.test.ts)에서 검증한다. P1 당시 EventTrace·RunResult는 타입만 제공했고 P2에서 실제 생성 경로를 추가했다. 저장 결과 import는 P6 범위다.
 
 프로토콜 revision은 1 이상의 안전한 정수다. 실험은 A·B의 정확한 ID/revision 참조와 실제 정의 전체, 하위 환경, 시나리오·기대 조건, seed를 포함한다. ID는 ASCII 영문자/밑줄로 시작하는 영문·숫자·밑줄·하이픈이며 이름·label은 Unicode를 허용한다. 메시지·상태·변수·타이머·규칙 ID는 해당 정의 목록 안에서 유일하다. 필드 ID와 wire name은 메시지 안에서 각각 유일하다. 두 참여자는 같은 계층을 실험하며 하위 서비스가 환경과 일치해야 한다.
 

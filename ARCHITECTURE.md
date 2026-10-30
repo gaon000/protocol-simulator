@@ -4,9 +4,9 @@
 
 제품은 응용·전송 계층별로 프로토콜을 정의하고 하위 서비스 환경을 설정해 가상 참여자 A·B 사이에서 실행·관찰·검증하는 도구로 설계했다. 첫 버전은 데스크톱 웹을 기준으로 하며 한 번의 실행은 한 계층과 하위 서비스 모델을 사용한다.
 
-현재는 P0 개발 기반과 P1 정의 모델·검사·코덱을 구현했다. React 작업 공간은 P0 골격을 유지하며 선택은 메모리에만 보관한다. P1 API는 DOM 없이 전체 정의·참조·서비스·값을 검사하고 검증된 snapshot과 JSON Lines/datagram·논리 패킷 코덱을 제공한다. 실행 엔진·환경 어댑터·프로토콜 편집·저장은 아직 없다.
+현재 P0/P1 기반과 P2 실행 엔진을 구현했다. 코어는 가상 시간·규칙·타이머·정상 전달·관찰 판정을 제공한다. React 화면은 P0 골격을 유지하며 편집·재생은 아직 연결하지 않았다. 장애 환경·표준 예제·저장은 후속 단계다.
 
-[제품 명세](docs/product-specs/protocol-simulator-v1.md)는 기능·화면·범위를, [기술 설계](docs/design-docs/layered-protocol-v1.md)는 목표 구조·계약·실패 경계를 소유한다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. [P0 계약](docs/design-docs/p0-execution-contract.md)과 [P1 계약](docs/design-docs/p1-models-codecs.md)이 구현한 단계의 세부 기준이다. [구현 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md)은 In Progress이며 다음 단계는 P2다.
+[제품 명세](docs/product-specs/protocol-simulator-v1.md)는 기능·화면·범위를, [기술 설계](docs/design-docs/layered-protocol-v1.md)는 목표 구조·계약·실패 경계를 소유한다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. [P0 계약](docs/design-docs/p0-execution-contract.md)과 [P1 계약](docs/design-docs/p1-models-codecs.md)이 구현한 단계의 세부 기준이다. [구현 계획](docs/exec-plans/active/20261030-1641-layered-protocol-v1.md)은 In Progress이며 다음 단계는 P3다.
 
 ## 모듈 지도
 
@@ -25,6 +25,9 @@
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |
 | [src/codecs/message-codecs.ts](src/codecs/message-codecs.ts) | JSON Lines·JSON datagram·논리 패킷 인코딩/디코딩과 바이트 상한 |
+| [src/engine/simulation.ts](src/engine/simulation.ts), [event-queue.ts](src/engine/event-queue.ts) | 가상 실행·규칙·타이머·기록·결과와 유한 이벤트 큐 |
+| [src/application/create-simulation.ts](src/application/create-simulation.ts) | 검증·snapshot·환경 조합과 실행 session fencing |
+| [src/environments/ideal-environment.ts](src/environments/ideal-environment.ts) | P2 손실 없는 기본 전달 모델과 미지원 장애 거부 |
 | [scripts/](scripts/check-docs.ts) | Markdown 링크·앵커·양식 검증 |
 | [tests/unit/](tests/unit/execution-contract.test.ts), [tests/integration/](tests/integration/run-snapshot.test.ts), [tests/e2e/](tests/e2e/workspace.test.ts) | 계약·문서 검사와 빌드된 화면 smoke test |
 
@@ -32,7 +35,7 @@
 
 ## 의존 방향
 
-현재 UI는 공통 도메인 타입만 참조한다. P1 codecs → domain 방향을 유지하며 모델·코덱 테스트는 DOM 없이 실행한다. 목표는 UI → application → 도메인·엔진·코덱·환경·저장 경계다. 엔진은 주입된 하위 서비스 계약으로 실행한다. 제안된 `src/` 경로별 책임은 [기술 설계](docs/design-docs/layered-protocol-v1.md#제안-모듈과-의존-방향)를 따른다. domain·ui·codecs 외 모듈은 아직 만들지 않았다.
+현재 UI는 공통 도메인 타입만 참조한다. P1 codecs → domain 방향을 유지하며 모델·코덱 테스트는 DOM 없이 실행한다. 목표는 UI → application → 도메인·엔진·코덱·환경·저장 경계다. 엔진은 주입된 하위 서비스 계약으로 실행한다. 제안된 `src/` 경로별 책임은 [기술 설계](docs/design-docs/layered-protocol-v1.md#제안-모듈과-의존-방향)를 따른다. domain·ui·codecs·engine·application·이상적 environments를 구현했다. examples·persistence는 아직 없다.
 
 공유 코드는 실제 재사용이 생길 때 분리하며, 순환 의존을 피한다. 모듈 사이 데이터 변경은 소유 모듈의 명시적인 계약을 통한다.
 
@@ -40,7 +43,7 @@
 
 외부 서비스 연동, 영속 데이터, 인증, 네트워크 입출력은 미구성이다. v1은 실제 기기·서버 연결을 포함하지 않는다. 목표는 로컬 초안·실험 저장과 실행 당시 snapshot 보존이며, 저장 구현은 계획 P6에서 정한다.
 
-설계는 바이트 스트림과 데이터그램 서비스를 구분한다. P1은 실행 정의의 환경 호환성·참조와 개별 메시지의 프레이밍·값·바이트 상한을 검사한다. 전체 엔진 실행은 P2, 전달 환경은 P4에서 구현한다. 목표는 참여자 상태·타이머를 실행별로 격리하고 전송·수신·해석·상위 처리 완료를 각각 기록하는 것이다. 실제 실행 상한·응답성은 후속 단계에서 검증한다.
+설계는 바이트 스트림과 데이터그램 서비스를 구분한다. P1은 실행 정의의 환경 호환성·참조와 개별 메시지의 프레이밍·값·바이트 상한을 검사한다. 전체 엔진은 P2에서 구현했고 장애·합쳐 읽기 환경은 P4에서 구현한다. 목표는 참여자 상태·타이머를 실행별로 격리하고 전송·수신·해석·상위 처리 완료를 각각 기록하는 것이다. 실제 실행 상한·응답성은 후속 단계에서 검증한다.
 
 ## 변경 관리
 

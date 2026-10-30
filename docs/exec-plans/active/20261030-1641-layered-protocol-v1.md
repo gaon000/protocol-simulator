@@ -3,7 +3,7 @@
 상태: In Progress
 작성일: 2026-10-30
 종료일: 미종료
-현재 단계: P0 master 반영·원격 push, P1 코어 구현·전체 로컬 검사 완료. 다음 단계 P2이며 P2~P7은 미시작.
+현재 단계: P2 실행 엔진·이상적 환경 구현과 전체 로컬 검사 완료. 다음 단계 P3이며 P3~P7은 미시작.
 
 이 문서는 [ExecPlan 운영 규칙](../index.md)을 따른다. 최초 요청은 설계를 문서화하고 구현 계획을 작성하는 범위였으며 애플리케이션 구현·패키지 설치·배포는 수행하지 않았다. 문서의 커밋·push는 이후 사용자의 별도 요청 범위를 따른다. 사용자가 P0 구현을 요청하고 React·React DOM의 production dependency 추가를 승인했다. 이후 신규 production dependency도 추가 전에 사용자 확인을 받는다.
 
@@ -27,7 +27,7 @@
 - [x] 2026-10-30: 합의된 제품 범위와 기술 설계를 문서화하고 P0~P7 구현 순서·검증 기준 작성.
 - [x] P0: 2026-10-30 개발 도구·세부 계약 확정과 최소 실행 기반. Node 테스트 16개·빌드·Chromium E2E 4개 통과.
 - [x] P1: 2026-10-30 정의 모델·참조·값·환경 호환성 검사와 세 가지 코덱 구현. `pnpm check` 통과: Node 63개·문서 21개·빌드·기존 Chromium 화면 회귀 4개.
-- [ ] P2: 결정적 실행 엔진과 이상적인 전달 환경.
+- [x] P2: 2026-10-30 결정적 실행·규칙·타이머·관찰·session과 이상적 환경 구현. `pnpm check` 통과: Node 85개·문서 22개·빌드·기존 Chromium 화면 회귀 4개.
 - [ ] P3: Ping/Pong을 편집·실행하는 화면의 첫 수직 구현.
 - [ ] P4: 환경 장애와 사용자 정의 재전송 프로토콜.
 - [ ] P5: HTTP/1.1·TCP 연결 예제와 지원 경계.
@@ -57,14 +57,16 @@
 | 2026-10-30 | P0 `9461953`을 master에 fast-forward 병합·원격 push 후 P1 feature branch 생성 | 사용자 요청. 원격 master SHA 일치 확인 |
 | 2026-10-30 | schemaVersion 1의 전체 정의와 JSON Pointer 오류, stable ID/wire name 분리 | [P1 계약](../../design-docs/p1-models-codecs.md). 추가 production dependency 없이 구현 |
 | 2026-10-30 | bounded 바이트 누적과 LF 메시지 경계, JSON datagram은 독립 검사 | UTF-8 분할·합쳐 읽기·불완전 EOF·상한을 실제 바이트로 검증 |
+| 2026-10-30 | P1 `116b9d4`를 master 병합·push 후 P2 feature branch 생성 | 지속 작업 요청. 원격 SHA 일치 확인 |
+| 2026-10-30 | engineVersion `0.1.0-p2`, 환경 포트 주입·P2 이상적 모델 | 규칙·진단·quota·시간/난수와 DOM을 분리. 장애 설정은 P4 전에 명시적으로 거부 |
 
-P0와 P1의 계약·검사를 기록했다. 실제 큐·타이머·규칙 실행은 P2, 전달 환경은 P4에 남아 있다. 복잡한 조건의 실제 동시 일치·동적 값 범위·타이머 generation은 P2에서 실행 검증해야 한다. 향후 주요 결정을 바꾸면 관련 문서·fixture와 engineVersion을 검토한다.
+P2에서 큐·규칙·타이머·관찰 판정과 session fencing을 구현했다. 복잡한 조건의 동시 일치·동적 값·timer generation을 실제 실행으로 검사한다. 실제 장애·합쳐 읽기 환경은 P4에 남아 있다. 향후 계약 변경 시 문서·fixture와 engineVersion을 검토한다.
 
 이미 승인된 일반 구현 작업에 별도 반복 확인을 요구하지 않으며 신규 production dependency 확인은 유지한다. 전체 구현과 필수 검증이 끝날 때까지 계획을 Completed로 바꾸지 않는다.
 
 ## Outcomes & Retrospective
 
-P0의 도구·작업 공간·기초 계약을 master `9461953`에 반영했다. P1은 별도 feature branch에서 전체 모델·검사·세 가지 코덱과 검증된 snapshot 준비를 구현했다. 화면은 P0 골격이며 새 API는 아직 화면에 연결하지 않았다. 이벤트 큐·규칙 실행·타이머·환경·편집·저장은 후속 단계다. CI·배포는 수행하지 않았고 계획은 In Progress다.
+P0·P1은 master에 반영했다. P2에서 전체/단계/묶음 실행과 관찰·판정·한도·세대별 타이머·상태 격리를 구현했다. 화면은 P0 골격이므로 편집·재생은 P3에서 연결한다. 장애 환경·표준 예제·저장은 후속 단계다. CI·배포는 수행하지 않았고 계획은 In Progress다.
 
 ## Context and Orientation
 
@@ -72,7 +74,7 @@ P0의 도구·작업 공간·기초 계약을 master `9461953`에 반영했다. 
 
 - [제품 명세](../../product-specs/protocol-simulator-v1.md): 사용자 동작, 기능 범위, 화면, 예외·범위 밖 항목.
 - [기술 설계](../../design-docs/layered-protocol-v1.md): 데이터 소유권, 서비스 계약, 엔진·환경·코덱, 실패·복구와 검증 시나리오.
-- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/`, `src/codecs/`, `scripts/`, `tests/`다. 그 밖의 제안 경로는 해당 단계에서 생성한다.
+- 현재 실제 경로는 문서, manifest·lockfile·도구 설정, `src/main.tsx`, `src/ui/`, `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `scripts/`, `tests/`다. 그 밖의 제안 경로는 해당 단계에서 생성한다.
 
 제안 구조는 `src/domain/`, `src/codecs/`, `src/engine/`, `src/environments/`, `src/application/`, `src/ui/`, `src/examples/`, `src/persistence/`와 `tests/unit/`, `tests/integration/`, `tests/e2e/`다. 단일 프로젝트로 시작하고 코드가 생기는 단계에만 필요한 경로를 만든다. 코어는 DOM·브라우저 저장과 독립적이어야 한다.
 
@@ -128,6 +130,8 @@ P0의 도구·작업 공간·기초 계약을 master `9461953`에 반영했다. 
 검증: 동일 snapshot 재실행 기록 비교, 정확히 기한에 도착하는 응답, 타이머 취소·재시작과 늦은 만료, 동일 정의 인스턴스 간 격리, 충돌/무일치 규칙, 0ms 루프·기록 상한, 정지 후 이전 run 결과 무시. 실제 시간 대기는 사용하지 않는다.
 
 완료 조건: Ping/Pong의 정상·기대된 timeout·제한 중단을 서로 다른 결과로 재현하고 전체 실행과 단계 실행의 의미적 기록이 일치한다.
+
+구현 결과: [P2 계약](../../design-docs/p2-runtime.md)의 application/engine/environment 포트를 구현했다. 실제 세 코덱의 Ping/Pong, 시간 경계·타이머·runtime collision·rollback·상한·session fencing과 재실행을 Node에서 검증했다.
 
 ### P3 — 편집부터 실행까지 첫 화면 연결
 
@@ -253,6 +257,11 @@ P1 검증 기록:
 - 2026-10-30: `pnpm check` 전체 통과. lint·포맷·strict 타입, Node 단위·통합 63개(skip 없음), 문서 21개, Vite production build, 기존 P0 화면의 Chromium 회귀 4개가 실제 실행됐다. 메시지의 모든 바이트 분할 위치·UTF-8·1 MiB 기본 상한·snapshot 왕복·누락/null 변형을 포함한다.
 - P1은 `codex/p1-protocol-models-codecs`에서 검증했다. 이후 사용자가 각 단계를 완료할 때 master에 병합하는 지속 작업을 요청했으며 단계별 커밋·원격 반영은 Git 기록으로 확인한다.
 - 새 production dependency·도구 버전 변경 없음. 브라우저 E2E는 기존 P0 화면 회귀만 검사하며 편집·시뮬레이션 UI 테스트로 표현하지 않는다.
+
+P2 검증 기록:
+
+- 2026-10-30: P1 `116b9d4`를 master 병합·push하고 원격 SHA를 확인했다. 이어 `codex/p2-deterministic-engine`에서 구현했다.
+- 2026-10-30: `pnpm check` 전체 통과. lint·포맷·strict 타입·Node 단위/통합 85개(skip 없음)·문서 22개·Vite production build·기존 P0 화면의 Chromium 회귀 4개를 실제 실행했다. P2 기본 환경은 장애 설정을 명시적으로 거부하며 UI 엔진 연결 검증은 P3 범위다.
 
 ## Idempotence and Recovery
 
