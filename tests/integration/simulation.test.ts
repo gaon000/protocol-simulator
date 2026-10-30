@@ -12,6 +12,7 @@ import type {
 } from '../../src/domain/protocol-model.ts';
 import type { EnvironmentFactory } from '../../src/engine/environment-port.ts';
 import { experimentFixture } from '../fixtures/protocol-models.ts';
+import { createIdealEnvironment } from '../../src/environments/ideal-environment.ts';
 
 function engine(input: unknown = experimentFixture(), options: SimulationOptions = {}) {
   const created = createSimulation(input, options);
@@ -351,14 +352,17 @@ test('run views and snapshots do not expose mutable engine state', () => {
   assert.equal(run.view().participants.A.variables.counter, 1);
 });
 
-test('default ideal environment rejects unsupported faults instead of silently ignoring them', () => {
+test('the explicit P2 ideal adapter still rejects faults instead of silently ignoring them', () => {
   const input = experimentFixture('json-datagram');
   const environment = input.environment;
   assert.equal(environment.kind, 'datagram');
-  const created = createSimulation({
-    ...input,
-    environment: { ...environment, targetedDrops: [{ direction: 'AtoB', transmission: 1 }] },
-  });
+  const created = createSimulation(
+    {
+      ...input,
+      environment: { ...environment, targetedDrops: [{ direction: 'AtoB', transmission: 1 }] },
+    },
+    { environmentFactory: createIdealEnvironment },
+  );
   assert.ok(!created.success);
   assert.equal(created.diagnostics[0]?.code, 'environment-not-supported');
 });

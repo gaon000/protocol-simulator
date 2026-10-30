@@ -974,8 +974,16 @@ export function parseExperiment(value: unknown): ValidationResult<ExperimentDefi
         'Deadline is outside observation period',
       );
   });
-  if (experiment.environment.kind === 'stream')
+  if (experiment.environment.kind === 'stream') {
+    const seen = new Set<string>();
     experiment.environment.connections.forEach((connection, index) => {
+      if (seen.has(connection.direction))
+        r.issue(
+          `/environment/connections/${index}/direction`,
+          'duplicate-connection',
+          'A stream direction can close or fail only once',
+        );
+      seen.add(connection.direction);
       if (connection.timeMs > experiment.scenario.observationMs)
         r.issue(
           `/environment/connections/${index}/timeMs`,
@@ -983,7 +991,7 @@ export function parseExperiment(value: unknown): ValidationResult<ExperimentDefi
           'Connection event is outside observation period',
         );
     });
-  else {
+  } else {
     const seen = new Set<string>();
     experiment.environment.targetedDrops.forEach((drop, index) => {
       const key = `${drop.direction}:${drop.transmission}`;

@@ -12,6 +12,8 @@ import type { JsonValue } from '../domain/execution-contract.ts';
 import { parseExperiment } from '../domain/model-validation.ts';
 import type { ExperimentDefinition, ModelDiagnostic } from '../domain/protocol-model.ts';
 import type { EngineView } from '../engine/simulation.ts';
+import { createStopAndWaitExperiment } from '../examples/stop-and-wait.ts';
+import { EnvironmentEditor } from './EnvironmentEditor.tsx';
 import { createPingPongExperiment } from '../examples/ping-pong.ts';
 import { Control, EditorContext, Group } from './forms.tsx';
 import { ProtocolEditor } from './ProtocolEditor.tsx';
@@ -32,7 +34,7 @@ const views = [
   {
     id: 'environment',
     label: '통신 환경',
-    description: '손실 없는 가상 환경에서 방향별 지연과 수신 청크를 설정합니다.',
+    description: '방향별 지연·손실·중복과 스트림 청크·연결 상태를 설정합니다.',
   },
   {
     id: 'scenario',
@@ -266,6 +268,16 @@ export function App() {
                     </button>
                   </section>
                   <section className='participant-card'>
+                    <h2>Stop-and-wait</h2>
+                    <p>
+                      DATA·ACK 순서 번호, 대기 데이터, 타이머와 중복 제거를 가진 한 방향 전달
+                      실험입니다. 최초 송신과 재시도를 구분하며 기본 재시도 상한은 3회입니다.
+                    </p>
+                    <button type='button' onClick={() => replace(createStopAndWaitExperiment())}>
+                      재전송 실험 새 사본
+                    </button>
+                  </section>
+                  <section className='participant-card'>
                     <h2>빈 실험</h2>
                     <p>메시지와 상태, 입력 규칙부터 직접 정의합니다.</p>
                     <button type='button' onClick={() => replace(createBlankExperiment())}>
@@ -363,7 +375,7 @@ export function App() {
                             <small>
                               {service === 'stream'
                                 ? '순서는 보장하지만 메시지 경계는 보존하지 않습니다.'
-                                : '패킷 경계를 보존합니다. 현재 환경은 손실 없이 전달합니다.'}
+                                : '패킷 경계를 보존합니다. 손실·중복·지연 변동을 설정할 수 있습니다.'}
                             </small>
                           </span>
                         </label>
@@ -436,35 +448,7 @@ export function App() {
                     {protocol && <ProtocolEditor index={protocolIndex} protocol={protocol} />}
                   </>
                 )}
-                {viewId === 'environment' && (
-                  <div data-path='/environment' tabIndex={-1}>
-                    <p className='scope-note'>
-                      현재는 이상적 환경입니다. 손실·중복·지연 변동·연결 종료는 아직 지원하지
-                      않습니다.
-                    </p>
-                    <Control path='/seed' label='난수 seed' type='number' />
-                    {(['AtoB', 'BtoA'] as const).map((direction) => (
-                      <Group
-                        key={direction}
-                        path={`/environment/directions/${direction}`}
-                        title={direction === 'AtoB' ? 'A → B' : 'B → A'}
-                      >
-                        <Control
-                          path={`/environment/directions/${direction}/delayMs`}
-                          label='전달 지연 ms'
-                          type='number'
-                        />
-                        {draft.environment.kind === 'stream' && (
-                          <Control
-                            path={`/environment/directions/${direction}/chunkBytes`}
-                            label='수신 청크 크기 bytes'
-                            type='number'
-                          />
-                        )}
-                      </Group>
-                    ))}
-                  </div>
-                )}
+                {viewId === 'environment' && <EnvironmentEditor />}
                 {viewId === 'scenario' && <ScenarioEditor />}
                 {viewId === 'run' && (
                   <RunView run={run} playing={playing} selected={selected} onSelect={setSelected} />
@@ -527,7 +511,7 @@ export function App() {
               <p>
                 {draft.environment.kind === 'stream'
                   ? '바이트 순서와 중복 없는 전달을 보장합니다. 메시지 경계는 프로토콜의 프레이밍으로 복원합니다.'
-                  : '패킷 경계를 유지합니다. 일반적으로 손실·중복·순서 역전을 허용하며 현재 이상적 모델은 고정 지연만 적용합니다.'}
+                  : '패킷 경계를 유지합니다. 설정한 손실·중복·지연 변동으로 순서 역전이 발생할 수 있으며 필요한 보장은 프로토콜이 구현합니다.'}
               </p>
             </section>
           </aside>

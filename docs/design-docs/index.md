@@ -24,3 +24,4 @@
 - [P1 정의 모델·검사·코덱](p1-models-codecs.md) — Accepted. 전체 정의·참조·서비스 검사, 세 가지 코덱과 API 오류·바이트 계약.
 - [P2 결정적 실행 엔진](p2-runtime.md) — Accepted. 가상 시간·규칙·타이머·이상적 환경·관찰 판정과 실행 session 격리.
 - [P3 편집·실행 작업 공간](p3-workspace.md) — Accepted. 실제 폼·초안/snapshot·실행 제어·오류 초점·기록과 규칙 연결.
+- [P4 장애 환경과 재전송](p4-environments.md) — Accepted. seeded 손실·중복·지연 변동, 스트림 합쳐 읽기/종료와 순서 번호·ACK·유한 재시도.

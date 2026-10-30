@@ -3,7 +3,7 @@ import { prepareExperimentSnapshot } from '../domain/model-validation.ts';
 import type { ExperimentSnapshot, ValidationResult } from '../domain/protocol-model.ts';
 import type { EnvironmentFactory } from '../engine/environment-port.ts';
 import { SimulationEngine } from '../engine/simulation.ts';
-import { createIdealEnvironment } from '../environments/ideal-environment.ts';
+import { createEnvironment } from '../environments/simulated-environment.ts';
 
 export type SimulationOptions = {
   readonly environmentFactory?: EnvironmentFactory;
@@ -39,9 +39,10 @@ export function createSimulation(
     limits: Object.freeze(limits),
   });
   try {
-    const environment = (options.environmentFactory ?? createIdealEnvironment)(
+    const environment = (options.environmentFactory ?? createEnvironment)(
       snapshot.configuration.environment,
       createSeededRandom(snapshot.seed),
+      snapshot.limits,
     );
     if (!environment.success) return environment;
     return {

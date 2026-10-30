@@ -17,7 +17,13 @@ import type {
   RunResult,
   ValidationResult,
 } from '../domain/protocol-model.ts';
-import type { EnvironmentAdapter, EnvironmentEvent, WirePayload } from './environment-port.ts';
+import {
+  EnvironmentLimit,
+  type DeliveryEvent,
+  type EnvironmentAdapter,
+  type EnvironmentEvent,
+  type WirePayload,
+} from './environment-port.ts';
 import { EventQueue } from './event-queue.ts';
 import { equalJson, evaluateCondition, evaluateValue, EvaluationFault } from './expressions.ts';
 
@@ -51,6 +57,7 @@ type ParticipantCodec = {
   encode(message: ProtocolMessage): ValidationResult<WirePayload>;
   receive(payload: WirePayload): DecodeBatch;
   finish(): DecodeBatch;
+  abort(): void;
 };
 type Participant = {
   protocol: ProtocolDefinition;
@@ -123,6 +130,7 @@ function codecFor(protocol: ProtocolDefinition, snapshot: ExperimentSnapshot): P
       },
       receive: (payload) => (payload.kind === 'bytes' ? codec.push(payload.bytes) : bad()),
       finish: codec.finish,
+      abort: codec.abort,
     };
   }
   if (protocol.codec === 'json-datagram') {
@@ -144,6 +152,7 @@ function codecFor(protocol: ProtocolDefinition, snapshot: ExperimentSnapshot): P
         };
       },
       finish: () => ({ messages: [], diagnostics: [], closed: true }),
+      abort: () => {},
     };
   }
   const codec = unwrap(createLogicalPacketCodec(protocol, limits));
@@ -164,6 +173,7 @@ function codecFor(protocol: ProtocolDefinition, snapshot: ExperimentSnapshot): P
       };
     },
     finish: () => ({ messages: [], diagnostics: [], closed: true }),
+    abort: () => {},
   };
 }
 
@@ -229,8 +239,18 @@ export class SimulationEngine {
     this.status = status;
     if (diagnostic) this.diagnostics.push(diagnostic);
     this.queue.clear();
+    try {
+      this.environment.dispose?.();
+    } catch (error) {
+      this.status = 'engine-error';
+      this.diagnostics.push({
+        path: '/environment',
+        code: 'environment-dispose',
+        message: error instanceof Error ? error.message : 'Environment cleanup failed',
+      });
+    }
     for (const actor of Object.values(this.participants)) {
-      actor.codec.finish();
+      actor.codec.abort();
       for (const timer of actor.timers.values())
         if (timer.active) {
           timer.active = false;
@@ -354,6 +374,7 @@ export class SimulationEngine {
         );
       this.execute(participant, rule, cause, message);
     } catch (error) {
+      if (error instanceof EnvironmentLimit) throw error;
       if (error instanceof EvaluationFault)
         this.fault(participant, error.code, error.message, cause, ruleId);
       else
@@ -561,6 +582,27 @@ export class SimulationEngine {
       this.fault(participant, diagnostic.code, diagnostic.message, cause);
   }
 
+  private receive(event: DeliveryEvent): void {
+    const trace = this.record(
+      'receive',
+      event.to,
+      {
+        from: event.from,
+        wire: payloadData(event.payload),
+        ...(event.sourceEventIds ? { sourceEventIds: event.sourceEventIds } : {}),
+        ...(event.copy ? { copy: event.copy } : {}),
+        ...(event.transmission !== undefined ? { transmission: event.transmission } : {}),
+      },
+      event.causeEventId,
+    );
+    if (trace && this.participants[event.to].outcome !== 'error')
+      this.consumeBatch(
+        event.to,
+        this.participants[event.to].codec.receive(event.payload),
+        trace.eventId,
+      );
+  }
+
   private advance(): void {
     const next = this.queue.peek();
     const end = this.snapshot.configuration.scenario.observationMs;
@@ -611,26 +653,23 @@ export class SimulationEngine {
           this.handle(event.participant, { kind: 'timer', timerId: event.timerId }, trace.eventId);
       }
     } else if (event.kind === 'delivery') {
-      const trace = this.record(
-        'receive',
-        event.to,
-        { from: event.from, wire: payloadData(event.payload) },
-        event.causeEventId,
-      );
-      if (trace && this.participants[event.to].outcome !== 'error')
-        this.consumeBatch(
-          event.to,
-          this.participants[event.to].codec.receive(event.payload),
-          trace.eventId,
-        );
+      this.receive(event);
+    } else if (event.kind === 'stream-read') {
+      if (!this.environment.readStream) throw new Error('Environment cannot resolve stream reads');
+      for (const delivery of this.environment.readStream(event.readId)) {
+        if (terminal(this.status)) break;
+        this.receive(delivery);
+      }
     } else if (event.kind === 'connection') {
       const trace = this.record('connection', event.participant, { state: event.state });
       if (trace) {
-        this.consumeBatch(
-          event.participant,
-          this.participants[event.participant].codec.finish(),
-          trace.eventId,
-        );
+        if (event.state === 'closed')
+          this.consumeBatch(
+            event.participant,
+            this.participants[event.participant].codec.finish(),
+            trace.eventId,
+          );
+        else this.participants[event.participant].codec.abort();
         this.handle(event.participant, { kind: 'connection', state: event.state }, trace.eventId);
       }
     } else this.record('environment', event.participant, event.detail, event.causeEventId);
@@ -640,6 +679,14 @@ export class SimulationEngine {
     try {
       this.advance();
     } catch (error) {
+      if (error instanceof EnvironmentLimit) {
+        this.halt('limit-reached', {
+          path: '/limits/maxTraceBytes',
+          code: 'environment-buffer-limit',
+          message: error.message,
+        });
+        return;
+      }
       this.halt('engine-error', {
         path: '/',
         code: 'engine-exception',

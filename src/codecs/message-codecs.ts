@@ -26,6 +26,7 @@ export type JsonLinesCodec = {
   readonly encode: (message: unknown) => ValidationResult<Uint8Array>;
   readonly push: (chunk: Uint8Array) => DecodeBatch;
   readonly finish: () => DecodeBatch;
+  readonly abort: () => void;
 };
 export type DatagramCodec = {
   readonly encode: (message: unknown) => ValidationResult<Uint8Array>;
@@ -257,6 +258,7 @@ export function createJsonLinesCodec(
       encode: (message) => encodeBytes(protocol, message, messageBytes, true),
       push,
       finish,
+      abort: () => stop([]),
     },
   };
 }

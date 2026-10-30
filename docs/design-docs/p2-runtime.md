@@ -8,7 +8,7 @@
 
 [create-simulation.ts](../../src/application/create-simulation.ts)의 `createSimulation(input, options)`가 P1 실험을 검증하고 불변 snapshot을 만든다. 환경 factory에 snapshot 환경과 새로운 seed PRNG를 주입하고 [SimulationEngine](../../src/engine/simulation.ts)을 생성한다. 실패 시 ValidationResult 진단을 반환한다. UI·저장·실제 네트워크는 참조하지 않는다.
 
-실행 버전은 `0.1.0-p2`다. P0의 정렬·난수 계약은 유지하며 새 엔진 동작의 버전을 snapshot에 기록한다. `options.limits`는 기본 상한 이하의 양의 정수만 허용하고 snapshot에 포함한다. runId는 메타데이터이며 의미적 trace와 자원 판정의 재현성에 영향을 주지 않는다.
+P2 단계 실행 버전은 `0.1.0-p2`였으며 현재 환경·엔진 버전은 [P4 계약](p4-environments.md)을 따른다. P0의 정렬·난수 계약은 유지하며 새 엔진 동작의 버전을 snapshot에 기록한다. `options.limits`는 기본 상한 이하의 양의 정수만 허용하고 snapshot에 포함한다. runId는 메타데이터이며 의미적 trace와 자원 판정의 재현성에 영향을 주지 않는다.
 
 | API | 동작 |
 | --- | --- |
@@ -35,7 +35,7 @@
 
 [EnvironmentFactory/Adapter](../../src/engine/environment-port.ts)는 `initialEvents`와 `transmit`의 Iterable로 전달·연결·환경 알림을 생성한다. 전송에는 방향·가상 시각·원본 전송 순번·원인 이벤트 ID·바이트 또는 논리 패킷이 들어간다. 환경은 메시지나 ACK의 의미를 해석하지 않는다. 엔진은 주입된 포트에만 의존하고 application이 구체적인 factory를 선택한다.
 
-현재 기본 [ideal environment](../../src/environments/ideal-environment.ts)는 방향별 고정 지연과 stream의 청크 분할을 지원한다. datagram은 손실·중복 없이 한 묶음을 전달한다. jitter·손실·중복·특정 패킷 손실·연결 종료/실패 설정을 넣으면 명시적으로 environment-not-supported를 반환한다. 아직 구현하지 않은 설정을 조용히 무시하지 않는다.
+P2 당시 기본 [ideal environment](../../src/environments/ideal-environment.ts)는 방향별 고정 지연과 stream의 청크 분할을 지원한다. datagram은 손실·중복 없이 한 묶음을 전달한다. jitter·손실·중복·특정 패킷 손실·연결 종료/실패 설정을 넣으면 명시적으로 environment-not-supported를 반환한다. P2 adapter는 지원하지 않는 설정을 조용히 무시하지 않는다. 현재 application 기본 adapter는 [P4](p4-environments.md)의 실제 환경이다.
 
 다른 factory를 주입하면 seed·전달·연결 포트를 엔진 테스트에 사용할 수 있다. 테스트 adapter는 P4의 사용자용 장애 환경 구현 완료를 의미하지 않는다. 여러 write의 합치기와 확률·연결 장애의 실제 구현은 P4에서 이 포트로 연결한다.
 

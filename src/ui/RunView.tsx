@@ -21,7 +21,9 @@ function eventLabel(event: EventTrace): string {
     return String((data.message as JsonObject).messageId ?? '');
   if (data.after && typeof data.after === 'object' && !Array.isArray(data.after))
     return String((data.after as JsonObject).stateId ?? '');
-  return String(data.operation ?? data.code ?? '');
+  return [data.operation ?? data.code ?? '', data.outcome ?? '', data.copy ?? '']
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** Show real participant state, chronological trace and final expectations from a captured run. */
@@ -45,7 +47,9 @@ export function RunView({
       </section>
     );
   const events = run.events.filter(
-    (event) => !messagesOnly || ['send', 'parsed', 'deliver', 'diagnostic'].includes(event.kind),
+    (event) =>
+      !messagesOnly ||
+      ['send', 'parsed', 'deliver', 'diagnostic', 'environment'].includes(event.kind),
   );
   return (
     <>
@@ -68,6 +72,12 @@ export function RunView({
               <p>
                 {actor.outcome} · 완료 시각 {actor.finishedAt ?? '—'}
               </p>
+              {typeof actor.variables.initialSends === 'number' &&
+                typeof actor.variables.retries === 'number' && (
+                  <p>
+                    최초 송신 {actor.variables.initialSends}회 · 재시도 {actor.variables.retries}회
+                  </p>
+                )}
               <pre>{JSON.stringify(actor.variables, null, 2)}</pre>
               <p>
                 활성 타이머:{' '}
@@ -180,6 +190,19 @@ export function EventInspector({
               규칙 {event.ruleId} 편집 위치
             </button>
           )}
+          {event.data &&
+            typeof event.data === 'object' &&
+            !Array.isArray(event.data) &&
+            Array.isArray((event.data as JsonObject).sourceEventIds) && (
+              <div className='source-links'>
+                <p>이 청크에 합쳐진 송신</p>
+                {((event.data as JsonObject).sourceEventIds as readonly string[]).map((id) => (
+                  <button key={id} type='button' onClick={() => onCause(id)}>
+                    송신 이벤트 {id}
+                  </button>
+                ))}
+              </div>
+            )}
           <pre>{formatData(event.data)}</pre>
         </>
       ) : (

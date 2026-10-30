@@ -579,3 +579,12 @@ pre {
 [data-path] {
   scroll-margin-top: 100px;
 }
+@media (min-width: 1151px) {
+  .inspector {
+    align-self: start;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow: auto;
+  }
+}

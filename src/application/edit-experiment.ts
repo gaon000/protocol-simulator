@@ -20,37 +20,49 @@ export function editExperiment(
   path: string,
   value: JsonValue | undefined,
 ): ExperimentDefinition {
-  const copy = structuredClone(draft);
   const parts = path
     .split('/')
     .slice(1)
     .map((part) => part.replace(/~1/g, '/').replace(/~0/g, '~'));
-  const key = parts.pop();
-  const parent = valueAt(copy, path.slice(0, path.lastIndexOf('/')));
-  if (key === undefined || !parent || typeof parent !== 'object') return draft;
-  if (value === undefined && Array.isArray(parent)) parent.splice(Number(key), 1);
-  else if (value === undefined) delete (parent as Record<string, unknown>)[key];
-  else
-    Object.defineProperty(parent, key, {
-      value: structuredClone(value),
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
+  const parent = valueAt(draft, path.slice(0, path.lastIndexOf('/')));
+  if (!parts.length || !parent || typeof parent !== 'object') return draft;
+  function replace(node: unknown, depth: number): unknown {
+    if (!node || typeof node !== 'object') return node;
+    const key = parts[depth];
+    if (key === undefined) return node;
+    const copy = Array.isArray(node) ? [...node] : { ...node };
+    if (depth === parts.length - 1 && value === undefined) {
+      if (Array.isArray(copy)) copy.splice(Number(key), 1);
+      else delete (copy as Record<string, unknown>)[key];
+    } else
+      Object.defineProperty(copy, key, {
+        value:
+          depth === parts.length - 1
+            ? structuredClone(value)
+            : replace((node as Record<string, unknown>)[key], depth + 1),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    return copy;
+  }
+  const copy = replace(draft, 0) as ExperimentDefinition;
   const index = /^\/definitions\/(\d+)(?:\/|$)/.exec(path)?.[1];
   if (index !== undefined && !(value === undefined && path === `/definitions/${index}`)) {
     const before = draft.definitions[Number(index)];
     const after = copy.definitions[Number(index)];
     if (before && after) {
       (after as { revision: number }).revision = before.revision + 1;
+      const protocols = { ...copy.protocols };
       for (const participant of ['A', 'B'] as const) {
         if (copy.protocols[participant].id === before.id) {
-          (copy.protocols as Record<string, { id: string; revision: number }>)[participant] = {
+          protocols[participant] = {
             id: after.id,
             revision: after.revision,
           };
         }
       }
+      (copy as { protocols: ExperimentDefinition['protocols'] }).protocols = protocols;
     }
   }
   return copy;
@@ -108,7 +120,10 @@ export function changeProfile(
       : lowerService === 'stream'
         ? 'json-lines'
         : 'json-datagram';
-  const environment = createPingPongExperiment(codec).environment;
+  const environment =
+    draft.environment.kind === lowerService
+      ? structuredClone(draft.environment)
+      : createPingPongExperiment(codec).environment;
   const directions = environment.directions;
   for (const direction of ['AtoB', 'BtoA'] as const) {
     (directions[direction] as { delayMs: number }).delayMs =
