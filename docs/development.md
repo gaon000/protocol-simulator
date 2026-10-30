@@ -2,56 +2,79 @@
 
 ## 환경과 도구
 
-현재 애플리케이션 소스, package manifest, lockfile, 런타임 고정 설정, formatter, linter, 타입 검사 설정과 CI는 미구성이다.
+현재 P0 개발 기반을 구현했다. 버전의 기준은 [.nvmrc](../.nvmrc), [package.json](../package.json), [lockfile](../pnpm-lock.yaml)이다.
 
-사용자가 지정한 개발 기준은 다음과 같다.
+| 도구 | 고정 버전·용도 |
+| --- | --- |
+| Node.js | 24.18.0. 패키지는 24.18 이상 25 미만을 요구하며 nvm으로 맞춤 |
+| pnpm | 9.15.0. Corepack의 packageManager 설정 사용 |
+| TypeScript | 7.0.2. 모든 새 TS/TSX·도구·테스트에 strict 검사 |
+| React / React DOM | 각각 19.3.1. 사용자가 production dependency 추가 승인 |
+| Vite / React plugin | 8.3.5 / 6.1.2. 개발 서버·빌드 |
+| Biome | 2.6.4. lint·포맷, JS/TS 작은따옴표·2칸 들여쓰기 |
+| Node test runner | 코어·문서 검사기의 단위/통합 테스트 |
+| Playwright | 1.64.1. 빌드된 화면의 Chromium smoke test |
 
-- 패키지 관리자는 npm보다 pnpm을 우선한다. 프로젝트별 버전은 manifest와 lockfile을 구성할 때 정한다.
-- Node.js v22 이상을 우선한다. 설치되지 않았으면 nvm을 확인한다.
-- 2026-10-30 조사 환경의 기본 Node.js는 v23.7.0이며, nvm에 v22.14.0과 v24.18.0도 존재했다. pnpm 실행 경로도 확인했다. 이는 해당 로컬 환경의 조사 결과이며 프로젝트 지원 버전이나 실행 검증을 뜻하지 않는다.
+현재 UI는 계층·하위 서비스 선택과 작업 공간 전환만 제공한다. 프로토콜 정의 검사·프레이밍·전체 엔진·환경·편집·저장은 [실행 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P1 이후 범위다. P0 기술 선택과 실행 계약은 [확정 문서](design-docs/p0-execution-contract.md)를 따른다.
 
 ## 시작하기
 
-아직 실행 가능한 애플리케이션은 없다. v1은 [제품 명세](product-specs/protocol-simulator-v1.md)와 [기술 설계](design-docs/layered-protocol-v1.md)를 기준으로 한다. 구현 요청을 받으면 [구현 계획](exec-plans/active/20261030-1641-layered-protocol-v1.md)의 P0에서 런타임·도구·UI 프레임워크와 필요한 의존성을 확정하고 개발 설정을 구성한다. 그때 실제 manifest와 스크립트에 맞춰 아래 명령 표를 갱신한다.
+저장소 루트에서 실행한다. `.nvmrc`의 버전이 없으면 `nvm install`을 먼저 수행한다.
 
-계획의 `pnpm test`, `pnpm test:e2e`, `pnpm check` 등은 향후 도입할 제안이며 현재 실행 명령이 아니다. 이번 문서화에서는 패키지 설치·실행 코드·CI를 추가하지 않았다.
+```sh
+nvm use
+corepack pnpm install --frozen-lockfile
+corepack pnpm dev
+```
 
-환경변수와 credential 설정은 미구성이다. 필요한 변수를 도입할 때 이름, 용도, 필수 여부와 비밀값 없는 예제를 제공하고 실제 credential은 안전한 별도 경로로 관리한다.
+개발 서버는 기본 `127.0.0.1:5173`을 사용한다. 빌드 결과를 보려면 `pnpm build` 후 `pnpm preview`를 실행한다. 외부 서버·기기·환경변수·credential은 필요하지 않다. nvm이 없는 환경은 동일한 Node 버전을 준비하고 packageManager에 맞는 pnpm을 사용한다.
+
+최초 브라우저 테스트 전에는 다음을 실행한다. Linux CI에서는 `--with-deps` 등으로 해당 환경의 브라우저 OS 의존성도 준비해야 한다.
+
+```sh
+corepack pnpm exec playwright install chromium --only-shell
+```
 
 ## 명령
 
-프로젝트 루트 기준이다. 존재하지 않는 명령을 실행하거나 통과한 것으로 기록하지 않는다.
+Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim이 설정되어 있으면 `pnpm`, 그렇지 않으면 `corepack pnpm`으로 실행한다.
 
-| 작업 | 실제 명령·현재 상태 |
+| 작업 | 실제 명령 |
 | --- | --- |
-| 의존성 설치 | 미구성: manifest와 lockfile 없음 |
-| 로컬 실행 | 미구성: 실행 코드와 스크립트 없음 |
-| 정적 분석 | 미구성: 도구 설정 없음 |
-| 포맷 검사 | 미구성: 도구 설정 없음 |
-| 타입 검사 | 미구성: TypeScript 설정 없음 |
-| 기본 테스트 | 미구성: 테스트 코드와 runner 없음 |
-| 통합·주요 흐름 테스트 | 미구성: 애플리케이션과 연동 계약 없음 |
-| 빌드 | 미구성: 빌드 설정 없음 |
-| 추적된 변경의 공백 검사 | `git diff --check`（새 파일은 별도 검사 필요） |
+| 고정 의존성 설치 | `pnpm install --frozen-lockfile` |
+| 개발 서버 | `pnpm dev` |
+| 정적 분석 | `pnpm lint` |
+| 포맷 검사 / 적용 | `pnpm format:check` / `pnpm format` |
+| 타입 검사 | `pnpm typecheck` |
+| 단위·통합 테스트 | `pnpm test` |
+| 문서 검사 | `pnpm check:docs` |
+| 빌드 | `pnpm build` — 타입 검사 후 Vite 빌드 |
+| 브라우저 E2E | `pnpm test:e2e` — 빌드 후 Chromium 테스트 |
+| 전체 검사 | `pnpm check` — lint·포맷·타입·Node 테스트·문서·빌드·E2E |
+| 추적된 변경 공백 검사 | `git diff --check` — 새 파일은 별도 검사 필요 |
+
+`pnpm test`는 `tests/unit/*.test.ts`와 `tests/integration/*.test.ts`를 Node의 TypeScript type stripping으로 실행한다. 이 실행은 타입 검사를 대신하지 않는다. `tests/types/strictness.ts`의 음성 fixture는 strict 옵션이 완화되면 `@ts-expect-error` 불일치로 타입 검사에 실패하게 한다.
 
 ## 코드 기준
 
-- 새 TypeScript 파일은 strict mode를 적용한다. TypeScript를 도입할 때 설정과 타입 검사 명령을 함께 구성한다.
-- JavaScript/TypeScript 문자열에는 작은따옴표를 사용한다.
-- 비동기 처리는 raw Promise 체인보다 async/await를 우선한다.
-- export하는 함수에는 JSDoc 주석을 작성한다.
-- source를 수정한 뒤에는 반드시 관련 테스트를 실행한다. 필요한 검사나 테스트가 없으면 미구성 사실을 알리고 작업 범위에 맞게 해결한다.
+- TypeScript strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes, noImplicitOverride를 사용한다.
+- JS/TS 문자열에는 작은따옴표, 비동기 처리는 async/await를 우선한다.
+- export하는 함수에는 JSDoc을 작성한다.
+- source를 수정한 뒤 관련 테스트를 반드시 실행하고 필요한 타입·정적 검사·빌드를 수행한다.
+- Node가 직접 실행하는 `.ts`는 erasable syntax를 사용하며 import 확장자를 명시한다.
+- 코어는 DOM·React·브라우저 저장에 의존하지 않는다. 실제 환경·엔진이 없는 P0 fixture를 전체 통신 검증으로 설명하지 않는다.
+- Markdown은 자동 포맷 대상에서 제외하고 [문서 검사기](../scripts/docs-validator.ts)로 경로·앵커·자리표시자·공백을 검증한다.
 
-언어별 규칙은 formatter, linter, 타입 설정으로 가능한 범위에서 검증한다. 테스트에서 만든 전역 상태, mock, 타이머와 외부 자원은 종료 시 정리한다.
+## 테스트 환경과 격리
 
-## 테스트 환경
+코어는 Node 내장 runner로 외부 연동 없이 실행한다. seed·가상 시간의 계약을 검사하며 wall-clock sleep을 사용하지 않는다. 환경 reference fixture의 산식 검증은 P4의 실제 환경 구현 검증과 구분한다.
 
-현재 테스트 환경과 fixture는 미구성이다. 테스트를 도입할 때 외부 서비스와 실제 기기·운영 데이터를 격리하고 대체 수단을 명시한다. 파괴적인 fixture나 migration 검증에는 폐기 가능한 전용 환경을 사용한다. 테스트 수집 실패나 전부 skip된 결과를 통과로 해석하지 않는다.
+Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium의 P0 작업 공간·선택·탐색·390px 화면이다. 실제 프로토콜 편집·통신·저장 E2E는 아직 없다.
 
-문서만 수정한 경우 링크·경로·앵커·자리표시자·공백과 실제 설정의 일관성을 검증한다. 실행 환경 검증과 코드 테스트는 구분한다.
+테스트 수집 실패·전부 skip·예상보다 줄어든 범위를 통과로 해석하지 않는다. fixture·타이머·mock·외부 자원은 테스트 종료 시 정리한다.
 
 ## CI와 릴리스
 
-CI workflow와 배포 절차는 미구성이다. 원격 브랜치 보호 설정은 미확인이다. 실제 workflow, 배포 대상과 권한을 구성하는 작업에서 확인한다. 문서 도입만으로 CI나 배포가 구성되지는 않는다.
+CI workflow와 배포 절차는 아직 미구성이다. 현재 결과는 로컬 검사이며 원격 CI·배포·실제 네트워크 검증을 의미하지 않는다. 이후 CI에는 같은 Node·pnpm 버전과 Chromium 준비 후 `pnpm check`를 연결한다. 브랜치 보호와 최종 브라우저 지원은 관련 단계에서 확인한다.
 
-Git 및 승인 규칙은 [Workflow](workflow.md)를 따른다. 로컬 검사, 원격 CI, 배포, 실제 외부 시스템 동작은 각각 확인하고 보고한다.
+Git·승인 규칙은 [Workflow](workflow.md)를 따른다. React·React DOM 이외의 신규 production dependency도 추가 전에 사용자 확인을 받는다.

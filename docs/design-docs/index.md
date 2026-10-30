@@ -19,4 +19,5 @@
 
 ## 목록
 
-- [하위 서비스 계약, 결정적 엔진, 코덱·환경·저장과 실패 경계](layered-protocol-v1.md) — Accepted, 미구현. 실행 세부 기본안은 구현 준비 시 검토한다.
+- [하위 서비스 계약, 결정적 엔진, 코덱·환경·저장과 실패 경계](layered-protocol-v1.md) — Accepted. v1 전체 목표 설계이며 P0 기초 계약 외에는 후속 구현 범위다.
+- [P0 실행 계약과 개발 기반](p0-execution-contract.md) — Accepted. 도구·production dependency 승인, 기초 계약 함수·fixture와 후속 구현 경계.

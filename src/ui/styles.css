@@ -1,0 +1,256 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #242b38;
+  background: #f4f6f9;
+  font-synthesis: none;
+  line-height: 1.6;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid #3975d1;
+  outline-offset: 3px;
+}
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+h1 {
+  margin-bottom: 8px;
+  font-size: 30px;
+  font-weight: 600;
+}
+h2 {
+  font-size: 19px;
+  font-weight: 600;
+}
+h3 {
+  font-size: 15px;
+}
+.workspace {
+  max-width: 1440px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+}
+.app-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 22px 28px;
+  border-bottom: 1px solid #e2e6ed;
+}
+.brand {
+  color: inherit;
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 650;
+}
+.phase {
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: #eaf0f8;
+  color: #334e75;
+  font-size: 12px;
+}
+.project-name {
+  margin-left: auto;
+  color: #667080;
+}
+.app-body {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 275px;
+  min-height: 720px;
+}
+.navigation {
+  padding: 30px 14px;
+  background: #f8f9fb;
+  border-right: 1px solid #e2e6ed;
+}
+.eyebrow {
+  color: #697385;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-bottom: 14px;
+}
+.navigation .eyebrow {
+  padding: 0 12px;
+}
+.navigation button {
+  display: block;
+  width: 100%;
+  padding: 11px 12px;
+  margin: 4px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  color: #445066;
+}
+.navigation button[aria-current] {
+  background: #e9eff9;
+  color: #214f96;
+  font-weight: 600;
+}
+.navigation-note {
+  color: #697385;
+  font-size: 12px;
+  padding: 24px 12px 0;
+}
+main {
+  min-width: 0;
+  padding: 38px;
+}
+.lead {
+  color: #657084;
+  margin-bottom: 30px;
+}
+fieldset {
+  margin: 0 0 26px;
+  padding: 0;
+  border: 0;
+}
+legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.choice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px 14px;
+  border: 1px solid #dfe4ed;
+  border-radius: 7px;
+  margin: 10px 0;
+}
+.choice:has(input:checked) {
+  border-color: #5b7daf;
+  background: #f5f8fe;
+}
+.choice:has(input:disabled) {
+  color: #727c8b;
+  background: #f7f8fa;
+}
+.choice input {
+  margin-top: 6px;
+  accent-color: #315f9f;
+}
+.choice strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.choice small {
+  display: block;
+  color: #647084;
+  font-size: 12px;
+  margin-top: 3px;
+}
+.scope-note {
+  color: #657084;
+  font-size: 12px;
+}
+.run-button {
+  padding: 10px 18px;
+  margin-top: 16px;
+  border: 1px solid #dce1ea;
+  border-radius: 6px;
+  color: #697385;
+  background: #f0f3f7;
+}
+.inspector {
+  padding: 38px 24px;
+  border-left: 1px solid #e2e6ed;
+  background: #fbfcfe;
+}
+.inspector p {
+  font-size: 13px;
+  color: #5a667b;
+  overflow-wrap: anywhere;
+}
+.inspector hr {
+  margin: 26px 0;
+  border: 0;
+  border-top: 1px solid #e2e6ed;
+}
+.upcoming {
+  padding: 26px;
+  border: 1px dashed #c6ceda;
+  border-radius: 8px;
+}
+.upcoming p {
+  color: #657084;
+}
+footer {
+  padding: 14px 28px;
+  border-top: 1px solid #e2e6ed;
+  color: #697385;
+  font-size: 12px;
+}
+
+@media (max-width: 1050px) {
+  .app-body {
+    grid-template-columns: 165px minmax(0, 1fr);
+  }
+  .inspector {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid #e2e6ed;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    padding: 18px;
+    gap: 10px;
+  }
+  .project-name {
+    margin-left: 0;
+  }
+  .app-body {
+    display: block;
+  }
+  .navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 12px;
+    border-right: 0;
+    border-bottom: 1px solid #e2e6ed;
+  }
+  .navigation .eyebrow,
+  .navigation-note {
+    display: none;
+  }
+  .navigation button {
+    width: auto;
+    margin: 0;
+  }
+  main,
+  .inspector {
+    padding: 24px 18px;
+  }
+  h1 {
+    font-size: 26px;
+  }
+}

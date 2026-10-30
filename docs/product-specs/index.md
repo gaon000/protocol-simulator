@@ -10,4 +10,4 @@
 
 ## 목록
 
-- [계층별 프로토콜 설계·이해·검증 도구 v1의 사용자 행동, 범위와 화면](protocol-simulator-v1.md) — Accepted, 미구현.
+- [계층별 프로토콜 설계·이해·검증 도구 v1의 사용자 행동, 범위와 화면](protocol-simulator-v1.md) — Accepted. P0 기반만 구현했고 전체 제품 기능은 후속 단계다.

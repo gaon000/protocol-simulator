@@ -1,0 +1,21 @@
+{
+  "experimentId": "p0-contract-fixture",
+  "protocols": {
+    "A": { "id": "ping-pong", "revision": 1, "layer": "application", "lowerService": "stream" },
+    "B": { "id": "ping-pong", "revision": 1, "layer": "application", "lowerService": "stream" }
+  },
+  "definitions": [
+    {
+      "id": "ping-pong",
+      "revision": 1,
+      "messages": [{ "id": "ping", "fields": [{ "name": "id", "type": "integer" }] }],
+      "states": ["Idle", "Waiting", "Done"],
+      "rules": []
+    }
+  ],
+  "environment": { "kind": "stream", "delayMs": 10, "chunkBytes": 8 },
+  "scenario": {
+    "observationMs": 500,
+    "inputs": [{ "timeMs": 0, "participant": "A", "message": { "id": 1 } }]
+  }
+}
