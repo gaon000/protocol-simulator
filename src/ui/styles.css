@@ -882,3 +882,158 @@ pre {
     padding: 10px;
   }
 }
+
+.communication-sequence {
+  min-width: 0;
+  padding-top: 12px;
+}
+.sequence-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.sequence-controls label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.sequence-canvas {
+  position: relative;
+  max-height: 540px;
+  overflow: auto;
+  border: 1px solid #cbd8e8;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+.sequence-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  width: 790px;
+  height: 62px;
+  background: #e9f1fb;
+  border-bottom: 1px solid #cbd8e8;
+}
+.sequence-header-time {
+  width: 90px;
+  padding: 10px 6px;
+  font-size: 12px;
+}
+.sequence-header > div {
+  position: relative;
+  width: 700px;
+}
+.sequence-header-actor {
+  position: absolute;
+  top: 6px;
+  width: 180px;
+  text-align: center;
+  left: 10px;
+}
+.sequence-header-actor.actor-B {
+  left: 510px;
+}
+.sequence-header small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.sequence-row {
+  display: flex;
+  align-items: center;
+  width: 790px;
+  height: 90px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid #e0e8f2;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  color: #243e5e;
+}
+.sequence-row:hover {
+  background: #e9f2ff;
+}
+.sequence-row[aria-pressed="true"] {
+  background: #dcecff;
+  box-shadow: inset 4px 0 #205eae;
+}
+.sequence-row:focus-visible {
+  outline: 3px solid #205eae;
+  outline-offset: -3px;
+}
+.sequence-time {
+  flex: 0 0 90px;
+  padding: 6px;
+  font-size: 12px;
+}
+.sequence-time small {
+  display: block;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.sequence-row svg {
+  flex: 0 0 700px;
+  width: 700px;
+  height: 90px;
+  font-size: 12px;
+}
+.sequence-lifeline {
+  stroke: #91a5be;
+  stroke-dasharray: 5 5;
+  fill: none;
+}
+.sequence-label {
+  fill: #fff;
+  stroke: #c6d7eb;
+}
+.sequence-note {
+  font-size: 10px;
+  fill: #536b89;
+}
+.sequence-arrow {
+  stroke: #2865a9;
+  stroke-width: 2;
+  fill: none;
+}
+.sequence-dot {
+  fill: #2865a9;
+}
+.sequence-blocked .sequence-arrow,
+.sequence-cross {
+  stroke: #b63e46;
+  stroke-width: 2;
+  fill: none;
+}
+.sequence-blocked .sequence-label {
+  stroke: #b63e46;
+}
+.sequence-detail {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #cad8e9;
+  border-radius: 8px;
+  scroll-margin-top: 100px;
+  overflow-wrap: anywhere;
+}
+.sequence-fields {
+  overflow: auto;
+  margin-top: 12px;
+}
+.sequence-fields table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.sequence-fields td,
+.sequence-fields th {
+  border: 1px solid #cbd8e8;
+  padding: 6px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  max-width: 240px;
+}

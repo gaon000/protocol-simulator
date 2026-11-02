@@ -1,9 +1,9 @@
 import { useState } from 'react';
+import { previewJson } from '../application/preview-json.ts';
 import type { JsonObject, JsonValue } from '../domain/execution-contract.ts';
 import type { EventTrace } from '../domain/protocol-model.ts';
 import type { EngineView } from '../engine/simulation.ts';
 import { WireInspector } from './WireInspector.tsx';
-import { previewJson } from '../application/preview-json.ts';
 
 const statusLabels = {
   idle: '실행 대기',
@@ -214,14 +214,16 @@ export function EventInspector({
   event,
   onCause,
   onRule,
+  label = '이벤트 상세',
 }: {
   event: EventTrace | undefined;
   onCause: (id: string) => void;
   onRule: () => void;
+  label?: string;
 }) {
   return (
-    <section aria-label='이벤트 상세'>
-      <h2>이벤트 상세</h2>
+    <section aria-label={label}>
+      <h2>{label}</h2>
       {event ? (
         <>
           <p>
@@ -243,11 +245,19 @@ export function EventInspector({
             Array.isArray((event.data as JsonObject).sourceEventIds) && (
               <div className='source-links'>
                 <p>이 청크에 합쳐진 송신</p>
-                {((event.data as JsonObject).sourceEventIds as readonly string[]).map((id) => (
-                  <button key={id} type='button' onClick={() => onCause(id)}>
-                    송신 이벤트 {id}
-                  </button>
-                ))}
+                {((event.data as JsonObject).sourceEventIds as readonly string[])
+                  .slice(0, 32)
+                  .map((id) => (
+                    <button key={id} type='button' onClick={() => onCause(id)}>
+                      송신 이벤트 {id}
+                    </button>
+                  ))}
+                {((event.data as JsonObject).sourceEventIds as readonly string[]).length > 32 && (
+                  <p>
+                    처음 32개만 표시합니다. 시퀀스 인과관계 페이지와 내보낸 bundle에서 나머지를
+                    확인하세요.
+                  </p>
+                )}
               </div>
             )}
           <WireInspector data={event.data} />

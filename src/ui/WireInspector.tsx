@@ -40,13 +40,25 @@ export function WireInspector({ data }: { data: JsonValue }) {
       <table className='packet-fields'>
         <caption>논리 패킷 필드 · 바이너리 인코딩 아님</caption>
         <tbody>
-          {Object.entries(fields).map(([name, value]) => (
-            <tr key={name}>
-              <th scope='row'>{name}</th>
-              <td>{String(value)}</td>
-            </tr>
-          ))}
+          {Object.entries(fields)
+            .slice(0, 32)
+            .map(([name, value]) => (
+              <tr key={name}>
+                <th scope='row'>{name.slice(0, 100)}</th>
+                <td>
+                  {String(value).slice(0, 240)}
+                  {String(value).length > 240 ? '…' : ''}
+                </td>
+              </tr>
+            ))}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={2}>
+              최대 32필드·값 240자 미리보기. 전체 논리 패킷은 내보낸 bundle에 있습니다.
+            </td>
+          </tr>
+        </tfoot>
       </table>
     );
   }

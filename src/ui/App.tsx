@@ -8,20 +8,8 @@ import {
   nextId,
   rebasePending,
 } from '../application/edit-experiment.ts';
-import type { JsonValue } from '../domain/execution-contract.ts';
-import { parseExperiment, parseJsonData } from '../domain/model-validation.ts';
-import type { ExperimentDefinition, ModelDiagnostic } from '../domain/protocol-model.ts';
-import type { EngineView } from '../engine/simulation.ts';
-import { EXAMPLES, createExampleCopy } from '../examples/catalog.ts';
-import { ExampleDetails, ExampleOrigin } from './ExampleInfo.tsx';
-import { EnvironmentEditor } from './EnvironmentEditor.tsx';
-import { Control, EditorContext, Group } from './forms.tsx';
-import { ProtocolEditor } from './ProtocolEditor.tsx';
-import { EventInspector, RunView } from './RunView.tsx';
-import { ScenarioEditor } from './ScenarioEditor.tsx';
-import { useWorkspace } from './useWorkspace.ts';
-import { HistoryPanel } from './HistoryPanel.tsx';
-import { StoragePanel } from './StoragePanel.tsx';
+import { compareRecord, projectRecord } from '../application/replay-record.ts';
+import { matchingDiagramDefinition } from '../application/state-diagram.ts';
 import {
   captureRun,
   createDraftRecord,
@@ -29,10 +17,24 @@ import {
   stageBundle,
   workspaceId,
 } from '../application/workspace-operations.ts';
-import { compareRecord, projectRecord } from '../application/replay-record.ts';
+import type { JsonValue } from '../domain/execution-contract.ts';
+import { parseExperiment, parseJsonData } from '../domain/model-validation.ts';
+import type { ExperimentDefinition, ModelDiagnostic } from '../domain/protocol-model.ts';
+import { type DraftRecord, type SavedRun, WORKSPACE_POLICY } from '../domain/workspace-model.ts';
 import { rawDiagnostics } from '../domain/workspace-validation.ts';
-import { WORKSPACE_POLICY, type DraftRecord, type SavedRun } from '../domain/workspace-model.ts';
+import type { EngineView } from '../engine/simulation.ts';
+import { createExampleCopy, EXAMPLES } from '../examples/catalog.ts';
+import { EnvironmentEditor } from './EnvironmentEditor.tsx';
+import { ExampleDetails, ExampleOrigin } from './ExampleInfo.tsx';
+import { Control, EditorContext, Group } from './forms.tsx';
+import { HistoryPanel } from './HistoryPanel.tsx';
+import { ProtocolEditor } from './ProtocolEditor.tsx';
 import { DraftStateDiagram, ExecutionStateDiagram } from './ProtocolStateDiagrams.tsx';
+import { EventInspector, RunView } from './RunView.tsx';
+import { ScenarioEditor } from './ScenarioEditor.tsx';
+import { SequenceDiagram } from './SequenceDiagram.tsx';
+import { StoragePanel } from './StoragePanel.tsx';
+import { useWorkspace } from './useWorkspace.ts';
 
 const views = [
   {
@@ -380,8 +382,11 @@ export function App() {
     navigate(`/definitions/${definition}/${kind === 'state' ? 'states' : 'rules'}/${index}`);
   }
   function navigateRule(participant: 'A' | 'B', ruleId: string | undefined) {
-    const id = displayed?.snapshot.configuration.protocols[participant].id;
-    const index = draft.definitions.findIndex((item) => item.id === id);
+    const ref = displayed?.snapshot.configuration.protocols[participant];
+    const source = displayed?.snapshot.configuration.definitions.find(
+      (item) => item.id === ref?.id && item.revision === ref.revision,
+    );
+    const index = source ? (matchingDiagramDefinition(draft, source) ?? -1) : -1;
     const ruleIndex = draft.definitions[index]?.rules.findIndex((item) => item.id === ruleId);
     if (index < 0 || ruleIndex === undefined || ruleIndex < 0) {
       setNotice(
@@ -390,6 +395,13 @@ export function App() {
       return;
     }
     navigate(`/definitions/${index}/rules/${ruleIndex}`);
+  }
+  function selectRunEvent(id: string) {
+    setSelected(id);
+    if (historical) {
+      setHistoryPosition(historical.view.events.findIndex((item) => item.eventId === id) + 1);
+      setHistoryPlaying(false);
+    }
   }
   function diagnosticLocation(diagnostic: ModelDiagnostic) {
     const match = /^\/participants\/([AB])(?:\/rules\/([^/]+))?/.exec(diagnostic.path);
@@ -815,6 +827,16 @@ export function App() {
                         onEdit={editDiagram}
                       />
                     )}
+                    {displayed && (
+                      <SequenceDiagram
+                        key={displayed.runId}
+                        run={displayed}
+                        eventCount={diagramEventCount}
+                        selected={selected}
+                        onSelect={selectRunEvent}
+                        onRule={(event) => navigateRule(event.participant, event.ruleId)}
+                      />
+                    )}
                     <RunView
                       run={displayed}
                       playing={playing && !historical}
@@ -824,15 +846,7 @@ export function App() {
                           ? `과거 기록 · ${historyPosition >= historical.view.events.length + 1 ? '저장 시점' : `이벤트 ${historyPosition}/${historical.view.events.length}`}`
                           : undefined
                       }
-                      onSelect={(id) => {
-                        setSelected(id);
-                        if (historical) {
-                          setHistoryPosition(
-                            historical.view.events.findIndex((event) => event.eventId === id) + 1,
-                          );
-                          setHistoryPlaying(false);
-                        }
-                      }}
+                      onSelect={selectRunEvent}
                     />
                   </>
                 )}

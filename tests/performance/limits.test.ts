@@ -1,11 +1,11 @@
 import { performance } from 'node:perf_hooks';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import { createWorkspace } from '../../src/application/workspace-operations.ts';
+import type { ExperimentDefinition } from '../../src/domain/protocol-model.ts';
 import {
   createEventLimitExperiment,
   createMessageLimitExperiment,
 } from '../fixtures/large-experiments.ts';
-import type { ExperimentDefinition } from '../../src/domain/protocol-model.ts';
 
 async function startProbe(page: Page) {
   await page.evaluate(() => {
@@ -117,6 +117,18 @@ for (const fixture of ['10k', '1MiB'] as const) {
       );
     }
     await page.locator('summary').filter({ hasText: '실행 상태도 보기' }).click();
+    await page.locator('summary').filter({ hasText: '통신 시퀀스 보기' }).click();
+    await expect(page.locator('[data-sequence-id]')).not.toHaveCount(0);
+    if (fixture === '10k') {
+      await page.getByRole('button', { name: '시퀀스 처음', exact: true }).click();
+      await expect(page.locator('[data-sequence-id]')).toHaveCount(30);
+      await expect(page.locator('[data-sequence-id]').first()).toHaveAttribute(
+        'data-sequence-id',
+        'e-1',
+      );
+      await page.getByRole('button', { name: '시퀀스 다음', exact: true }).click();
+      await page.getByRole('button', { name: '시퀀스 현재 끝', exact: true }).click();
+    }
     await expect(
       page.getByRole('region', { name: '참여자 A 실행 상태도', exact: true }),
     ).toBeVisible();
@@ -136,8 +148,9 @@ for (const fixture of ['10k', '1MiB'] as const) {
     const controlMs = controlSamples[Math.floor(controlSamples.length * 0.95)] ?? 0;
     await page.evaluate(() => performance.mark('probe-detail'));
     const detailBegan = performance.now();
-    if (fixture === '1MiB') await page.getByRole('button', { name: /send blob/ }).click();
-    else await page.locator('[data-event-id]').first().click();
+    if (fixture === '1MiB')
+      await page.getByRole('button', { name: /통신 시퀀스 .*송신 blob/ }).click();
+    else await page.locator('[data-sequence-id]').first().click();
     await expect(
       page.getByRole('region', { name: '이벤트 상세' }).locator('pre').last(),
     ).toBeVisible();
@@ -146,6 +159,9 @@ for (const fixture of ['10k', '1MiB'] as const) {
       .getByRole('region', { name: '이벤트 상세' })
       .locator('pre')
       .last()
+      .evaluate((element) => element.textContent?.length ?? 0);
+    const sequenceDetailChars = await page
+      .locator('.sequence-detail')
       .evaluate((element) => element.textContent?.length ?? 0);
     await page.evaluate(() => performance.mark('probe-save'));
     await page
@@ -168,6 +184,7 @@ for (const fixture of ['10k', '1MiB'] as const) {
       .getByRole('button', { name: '실행', exact: true })
       .click();
     await page.locator('summary').filter({ hasText: '실행 상태도 보기' }).click();
+    await page.locator('summary').filter({ hasText: '통신 시퀀스 보기' }).click();
     const selection = page.getByRole('combobox', { name: '과거 실행 선택' });
     await selection.selectOption({ index: 1 });
     const cursorBegan = performance.now();
@@ -209,6 +226,7 @@ for (const fixture of ['10k', '1MiB'] as const) {
       controlSamples: controlSamples.length,
       detailMs,
       detailChars,
+      sequenceDetailChars,
       saveMs,
       cursorMs,
       ...probe,
@@ -222,6 +240,7 @@ for (const fixture of ['10k', '1MiB'] as const) {
     expect(controlMs).toBeLessThan(200);
     expect(detailMs).toBeLessThan(500);
     expect(detailChars).toBeLessThan(32_768);
+    expect(sequenceDetailChars).toBeLessThan(32_768);
     expect(cursorMs).toBeLessThan(500);
     expect(saveMs).toBeLessThan(3000);
     expect(probe.frameP95Ms).toBeLessThan(100);

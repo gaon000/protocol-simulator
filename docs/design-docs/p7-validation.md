@@ -16,6 +16,8 @@
 
 표시하는 trace 행은 페이지당 최대 200개다. 첫/이전/다음/최근 페이지와 선택 원인의 페이지로 이동할 수 있다. 메시지 필터도 전체 기록을 대상으로 하며 제한은 DOM 행에만 적용한다. history cursor를 바꾸면 해당 이벤트 상세·페이지를 함께 선택한다.
 
+후속 통신 그림은 [V1-009](../product-specs/protocol-simulator-v1.md#v1-009-통신-시퀀스-다이어그램)의 30행·관계/필드 미리보기 제한을 따른다. 응답성 검사는 상태도·시퀀스를 열고 실제 시퀀스 행을 선택하며, 시퀀스 상세 DOM도 32,768자 미만을 검사한다. 아래 기존 수치 상한은 유지한다.
+
 [JSON 미리보기](../../src/application/preview-json.ts)는 nodes 256·깊이 8·배열/객체 앞 32항목·문자열 예산 4096자·최종 DOM 16,384자로 제한하고 생략을 안내한다. 바이트 미리보기는 기존 8192바이트다. 전체 값·바이트·이벤트는 bundle에 남는다. 크기를 줄이려고 snapshot이나 결과를 자르지 않는다.
 
 [불변 데이터 경계](../../src/domain/immutable-data.ts)는 자체 WeakSet으로 전체 동결을 확인한 native EngineView만 checkpoint와 안전하게 공유한다. 외부·mutable·얕게 Object.freeze한 객체는 captureRun에서 복사한다. 임의의 얕은 freeze를 deep immutable로 신뢰하지 않는다. 엔진 의미 변경 없이 중복 structuredClone·동결을 줄이므로 engineVersion은 `0.1.0-p5`다.
