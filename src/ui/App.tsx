@@ -32,6 +32,7 @@ import {
 import { compareRecord, projectRecord } from '../application/replay-record.ts';
 import { rawDiagnostics } from '../domain/workspace-validation.ts';
 import { WORKSPACE_POLICY, type DraftRecord, type SavedRun } from '../domain/workspace-model.ts';
+import { DraftStateDiagram, ExecutionStateDiagram } from './ProtocolStateDiagrams.tsx';
 
 const views = [
   {
@@ -115,6 +116,9 @@ export function App() {
     [historical, historyPosition, run],
   );
   const event = displayed?.events.find((item) => item.eventId === selected);
+  const diagramEventCount = historical
+    ? Math.min(historyPosition, displayed?.events.length ?? 0)
+    : (displayed?.events.length ?? 0);
   const shownVersion = historical?.draftVersion ?? runVersion;
   const changed =
     !!displayed &&
@@ -371,6 +375,9 @@ export function App() {
     else if (path.startsWith('/scenario')) setViewId('scenario');
     else setViewId('configuration');
     setFocusRequest((request) => ({ path, serial: (request?.serial ?? 0) + 1 }));
+  }
+  function editDiagram(definition: number, kind: 'state' | 'rule', index: number) {
+    navigate(`/definitions/${definition}/${kind === 'state' ? 'states' : 'rules'}/${index}`);
   }
   function navigateRule(participant: 'A' | 'B', ruleId: string | undefined) {
     const id = displayed?.snapshot.configuration.protocols[participant].id;
@@ -742,6 +749,13 @@ export function App() {
                         >
                           선택한 정의 삭제
                         </button>
+                        <DraftStateDiagram
+                          protocol={protocol}
+                          index={protocolIndex}
+                          run={displayed}
+                          eventCount={diagramEventCount}
+                          onEdit={editDiagram}
+                        />
                         <ProtocolEditor index={protocolIndex} protocol={protocol} />
                       </>
                     )}
@@ -792,6 +806,15 @@ export function App() {
                         setSelected(undefined);
                       }}
                     />
+                    {displayed && (
+                      <ExecutionStateDiagram
+                        key={displayed.runId}
+                        run={displayed}
+                        draft={draft}
+                        eventCount={diagramEventCount}
+                        onEdit={editDiagram}
+                      />
+                    )}
                     <RunView
                       run={displayed}
                       playing={playing && !historical}

@@ -74,6 +74,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 테스트 수집 실패·전부 skip·예상보다 줄어든 범위를 통과로 해석하지 않는다. fixture·타이머·mock·외부 자원은 테스트 종료 시 정리한다.
 
+상태도 검사는 catalog 정의·평행/자기/역방향 전이·없는/중복 ID·유한 페이지·history cursor·snapshot 편집 대상과 Chromium/Firefox의 실제 선택/키보드·초점·좁은 화면을 포함한다. `src/application/state-diagram.ts`는 DOM 없이 검사하고 SVG에서 원본 정의를 변경하지 않는다. 후속 범위는 [상태도 계획](exec-plans/completed/20261102-protocol-state-diagram.md)을 따른다.
+
 ## CI와 릴리스
 
 [CI workflow](../.github/workflows/check.yml)는 Ubuntu 24.04에서 같은 Node·pnpm/frozen lockfile과 Chromium/Firefox·OS 의존성을 설치하고 `pnpm check`를 실행한다. 테스트 trace/응답성 report는 artifact로 7일 보관한다. workflow 구성과 실제 원격 실행 결과는 별도이며 최종 결과는 [실행 계획](exec-plans/completed/20261030-1641-layered-protocol-v1.md)에 기록한다. branch protection·배포는 설정하지 않았다.

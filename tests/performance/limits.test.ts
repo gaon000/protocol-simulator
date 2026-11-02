@@ -116,6 +116,10 @@ for (const fixture of ['10k', '1MiB'] as const) {
         'e-10000',
       );
     }
+    await page.locator('summary').filter({ hasText: '실행 상태도 보기' }).click();
+    await expect(
+      page.getByRole('region', { name: '참여자 A 실행 상태도', exact: true }),
+    ).toBeVisible();
     await page.evaluate(() => performance.mark('probe-control'));
     const controlSamples: number[] = [];
     const checkbox = page.getByLabel('메시지 중심으로 보기');
@@ -163,6 +167,7 @@ for (const fixture of ['10k', '1MiB'] as const) {
       .getByRole('navigation', { name: '작업 공간' })
       .getByRole('button', { name: '실행', exact: true })
       .click();
+    await page.locator('summary').filter({ hasText: '실행 상태도 보기' }).click();
     const selection = page.getByRole('combobox', { name: '과거 실행 선택' });
     await selection.selectOption({ index: 1 });
     const cursorBegan = performance.now();

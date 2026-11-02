@@ -19,6 +19,8 @@
 
 v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계](design-docs/layered-protocol-v1.md) → [P0 확정 계약](design-docs/p0-execution-contract.md) → [P1 모델·코덱](design-docs/p1-models-codecs.md) → [P2 엔진](design-docs/p2-runtime.md) → [P3 편집·실행](design-docs/p3-workspace.md) → [P4 환경·재전송](design-docs/p4-environments.md) → [P5 표준 예제](design-docs/p5-standard-examples.md) → [P6 저장·재생](design-docs/p6-persistence-replay.md) → [P7 검증·지원](design-docs/p7-validation.md) → [P0~P7 구현 계획](exec-plans/completed/20261030-1641-layered-protocol-v1.md) 순서로 읽는다. P0~P7의 IndexedDB 저장·파일 왕복·과거 기록/snapshot 재실행·브라우저/응답성/CI 검증을 완료했다. Accepted는 v1 전체 구현 완료를 뜻하지 않는다. 계획은 Completed이며 완료 목록에 실제 로컬·원격 검증과 한계를 기록했다. 현재 실행 명령은 Development에서 관리한다.
 
+후속 작업: [프로토콜 상태도](exec-plans/completed/20261102-protocol-state-diagram.md). 상태/규칙 자동 그림·실행 강조·조건/동작 상세와 편집 이동의 구현·로컬 검증을 완료했다. v1의 과거 완료 기록은 유지한다.
+
 ## 선택 문서
 
 v1의 제품 규칙·화면과 하위 서비스·상태·타이머·재현성 계약을 분리할 필요가 생겨 Product Specs와 Design Docs를 도입했다. 두 영역은 index와 재사용 양식을 포함한다. 독립적인 기술 결정 문서·용어 사전·skill은 현재 필요가 없어 추가하지 않았다. 실제로 추가한 문서만 이 지도에 링크한다.

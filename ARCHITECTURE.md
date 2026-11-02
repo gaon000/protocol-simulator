@@ -21,6 +21,8 @@
 | [docs/design-docs/](docs/design-docs/index.md) | v1 기술 설계와 재사용 양식 |
 | [docs/exec-plans/](docs/exec-plans/index.md) | 실행 계획 양식, 상태별 목록과 기술 부채 |
 | [index.html](index.html), [src/main.tsx](src/main.tsx) | Vite·React 웹 진입점 |
+| [src/application/state-diagram.ts](src/application/state-diagram.ts) | 상태/규칙 페이지·그룹 전이·유한 배치, cursor 내 적용 규칙·정확한 snapshot/초안 대응 |
+| [src/ui/StateDiagram.tsx](src/ui/StateDiagram.tsx), [ProtocolStateDiagrams.tsx](src/ui/ProtocolStateDiagrams.tsx) | SVG 선택·조건/동작 상세·폼 이동, 초안 및 참여자별 실행 상태도 |
 | [src/ui/App.tsx](src/ui/App.tsx) | 초안·실행 수명과 작업 공간 연결 |
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |
