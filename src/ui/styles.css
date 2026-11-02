@@ -1037,3 +1037,31 @@ pre {
   overflow-wrap: anywhere;
   max-width: 240px;
 }
+
+.execution-state-diagram {
+  scroll-margin-top: 100px;
+}
+.diagram-link-details {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #cbd8e8;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.diagram-node.is-before > rect:first-child {
+  stroke: #8251a0;
+  stroke-width: 3px;
+}
+.diagram-node.is-after > rect:first-child {
+  stroke: #9b651c;
+  stroke-width: 3px;
+}
+.sequence-row.is-related {
+  box-shadow: inset 4px 0 #8251a0;
+}
+.sequence-row.is-related .sequence-label {
+  stroke: #8251a0;
+}
+.sequence-row.is-related[aria-pressed="true"] {
+  box-shadow: inset 4px 0 #205eae;
+}

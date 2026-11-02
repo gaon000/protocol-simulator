@@ -270,7 +270,8 @@ export function EventInspector({
   );
 }
 
-function DataPreview({ value }: { value: JsonValue }) {
+/** Render a bounded JSON preview while retaining the full original for export. */
+export function DataPreview({ value }: { value: JsonValue }) {
   const preview = previewJson(value);
   return (
     <>

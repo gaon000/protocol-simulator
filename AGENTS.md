@@ -6,6 +6,8 @@
 
 통신 시퀀스는 [완료 계획](docs/exec-plans/completed/20261102-communication-sequence-diagram.md)과 [제품 기준](docs/product-specs/protocol-simulator-v1.md#v1-009-통신-시퀀스-다이어그램)을 따른다. 예정과 실제 수신, 청크/해석/상위 전달, 타이머 만료/실패·재전송 후보를 구분하고 cursor 밖 관찰을 표시하지 않는다.
 
+상태도/시퀀스 연동은 [작업 계획](docs/exec-plans/completed/20261102-linked-execution-diagrams.md)과 [V1-010](docs/product-specs/protocol-simulator-v1.md#v1-010-상태도와-시퀀스-연동)을 따른다. 직접 trigger·참여자별 회차와 관찰된 전후 상태를 연결하고, 다중 해석/미관찰 전이를 하나로 추정하지 않는다.
+
 초기 대상 사용자: 프로토콜의 구조·흐름을 이해하거나 자기 프로토콜을 설계·검증하려는 개발자와 학습자.
 
 ## 먼저 읽을 문서

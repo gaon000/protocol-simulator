@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { DiagramInspection } from '../application/diagram-links.ts';
 import {
   buildSequenceModel,
   SEQUENCE_PAGE_SIZE,
@@ -9,15 +10,18 @@ import {
 } from '../application/sequence-diagram.ts';
 import type { EngineView, EventTrace } from '../domain/protocol-model.ts';
 import { EventInspector } from './RunView.tsx';
+import { useDiagramPanel } from './useDiagramPanel.ts';
 
 function ArrowRow({
   row,
   selected,
   onSelect,
+  related,
 }: {
   row: SequenceRow;
   selected: boolean;
   onSelect: () => void;
+  related: boolean;
 }) {
   const { event, shape } = row;
   const sender = shape === 'receive' ? (event.participant === 'A' ? 'B' : 'A') : event.participant;
@@ -27,16 +31,17 @@ function ArrowRow({
   return (
     <button
       type='button'
-      className={`sequence-row sequence-${shape}`}
+      className={`sequence-row sequence-${shape} ${related ? 'is-related' : ''}`}
       data-sequence-id={event.eventId}
       aria-pressed={selected}
-      aria-label={`통신 시퀀스 ${event.eventId}: ${row.label} · ${row.note}`}
+      aria-label={`통신 시퀀스 ${event.eventId}: ${row.label} · ${row.note}${related ? ' · 상태도 관련' : ''}`}
       onClick={onSelect}
     >
       <span className='sequence-time'>
         {event.timeMs} ms
         <small>
           {event.eventId} · #{event.sequence}
+          {related ? ' · 관련' : ''}
         </small>
       </span>
       <svg viewBox='0 0 700 90' aria-hidden='true'>
@@ -172,27 +177,59 @@ function Relations({
   );
 }
 
-function SequenceContent({ run, eventCount, selected, onSelect, onRule }: Props) {
+function SequenceContent({
+  run,
+  eventCount,
+  selected,
+  onSelect,
+  onRule,
+  inspection,
+  onState,
+  revealRequest,
+}: Props) {
   const model = useMemo(
     () => buildSequenceModel({ events: run.events }, eventCount),
     [run.events, eventCount],
   );
   const [all, setAll] = useState(false);
+  const [relatedFilter, setRelatedFilter] = useState({
+    value: revealRequest > 0,
+    request: revealRequest,
+  });
+  const relatedOnly =
+    !!inspection &&
+    (relatedFilter.request === revealRequest ? relatedFilter.value : revealRequest > 0);
   const [navigation, setNavigation] = useState<{
     page: number | 'latest';
     selected: string | undefined;
-  }>({ page: 'latest', selected });
-  const [detailOpen, setDetailOpen] = useState(false);
+    linkKey: string | undefined;
+  }>({ page: 'latest', selected, linkKey: undefined });
+  const firstRequest = useRef(revealRequest);
+  const [detailOpen, setDetailOpen] = useState(revealRequest > 0);
+  const showDetail = detailOpen || firstRequest.current !== revealRequest;
+  function navigate(page: number | 'latest', resetAnchor = false) {
+    setNavigation({
+      page,
+      selected: resetAnchor ? undefined : selected,
+      linkKey: resetAnchor ? undefined : inspection?.key,
+    });
+  }
   const canvas = useRef<HTMLDivElement>(null);
   const detail = useRef<HTMLDivElement>(null);
   const rows = useMemo(
-    () => model.rows.filter((row) => all || row.communication || row.event.eventId === selected),
-    [model, all, selected],
+    () =>
+      model.rows.filter(
+        (row) =>
+          (all || row.communication || row.event.eventId === selected) &&
+          (!relatedOnly || inspection?.relatedEventIds.has(row.event.eventId)),
+      ),
+    [model, all, selected, relatedOnly, inspection],
   );
   const count = Math.max(1, Math.ceil(rows.length / SEQUENCE_PAGE_SIZE));
   const selectedIndex = rows.findIndex((row) => row.event.eventId === selected);
   const page =
-    navigation.selected !== selected && selectedIndex >= 0
+    (navigation.selected !== selected || navigation.linkKey !== inspection?.key) &&
+    selectedIndex >= 0
       ? Math.floor(selectedIndex / SEQUENCE_PAGE_SIZE)
       : navigation.page === 'latest'
         ? count - 1
@@ -240,38 +277,53 @@ function SequenceContent({ run, eventCount, selected, onSelect, onRule }: Props)
         <label>
           <input
             type='checkbox'
+            disabled={!inspection}
+            checked={relatedOnly}
+            onChange={(event) => {
+              setRelatedFilter({ value: event.target.checked, request: revealRequest });
+              navigate('latest', true);
+            }}
+          />
+          연결된 기록만 보기
+        </label>
+        {inspection && (
+          <>
+            <span>
+              상태도 연결 · {inspection.participant} · 관련 {inspection.relatedEventIds.size}개 기록
+              / {inspection.transitions.length}회 전이
+            </span>
+            <button type='button' onClick={onState}>
+              연결된 상태도 보기
+            </button>
+          </>
+        )}
+        <label>
+          <input
+            type='checkbox'
             checked={all}
             onChange={(event) => {
               setAll(event.target.checked);
-              setNavigation({ page: 'latest', selected: undefined });
+              navigate('latest', true);
             }}
           />
           전체 이벤트 표시
         </label>
-        <button type='button' disabled={!page} onClick={() => setNavigation({ page: 0, selected })}>
+        <button type='button' disabled={!page} onClick={() => navigate(0)}>
           시퀀스 처음
         </button>
-        <button
-          type='button'
-          disabled={!page}
-          onClick={() => setNavigation({ page: page - 1, selected })}
-        >
+        <button type='button' disabled={!page} onClick={() => navigate(page - 1)}>
           시퀀스 이전
         </button>
         <span role='status'>
           {page + 1}/{count} 페이지 · {rows.length}행 · 최대 30행
         </span>
-        <button
-          type='button'
-          disabled={page >= count - 1}
-          onClick={() => setNavigation({ page: page + 1, selected })}
-        >
+        <button type='button' disabled={page >= count - 1} onClick={() => navigate(page + 1)}>
           시퀀스 다음
         </button>
-        <button type='button' onClick={() => setNavigation({ page: 'latest', selected })}>
+        <button type='button' onClick={() => navigate('latest')}>
           시퀀스 현재 끝
         </button>
-        {detailOpen && row && (
+        {showDetail && row && (
           <button
             type='button'
             onClick={() => {
@@ -304,11 +356,18 @@ function SequenceContent({ run, eventCount, selected, onSelect, onRule }: Props)
             row={item}
             selected={item.event.eventId === selected}
             onSelect={() => pick(item.event.eventId)}
+            related={inspection?.relatedEventIds.has(item.event.eventId) ?? false}
           />
         ))}
-        {!rows.length && <p>이 관찰 범위에는 기록이 없습니다.</p>}
+        {!rows.length && (
+          <p>
+            {relatedOnly
+              ? '선택한 상태도와 연결된 기록이 없습니다.'
+              : '이 관찰 범위에는 기록이 없습니다.'}
+          </p>
+        )}
       </section>
-      {detailOpen && row && (
+      {showDetail && row && (
         <div className='sequence-detail' ref={detail} tabIndex={-1}>
           <EventInspector
             event={row.event}
@@ -358,19 +417,24 @@ type Props = {
   selected: string | undefined;
   onSelect: (id: string) => void;
   onRule: (event: EventTrace) => void;
+  inspection: DiagramInspection | undefined;
+  onState: () => void;
+  revealRequest: number;
+  context: string;
 };
 
 /** Display a bounded, keyboard-operable sequence from the selected run's observed trace prefix. */
 export function SequenceDiagram(props: Props) {
-  const [expanded, setExpanded] = useState(false);
+  const panel = useDiagramPanel(props.revealRequest);
   return (
     <details
+      ref={panel.ref}
       className='execution-state-diagram'
-      open={expanded}
-      onToggle={(event) => setExpanded(event.currentTarget.open)}
+      open={panel.expanded}
+      onToggle={(event) => panel.onToggle(event.currentTarget.open)}
     >
       <summary>통신 시퀀스 보기</summary>
-      {expanded && <SequenceContent {...props} />}
+      {panel.expanded && <SequenceContent key={props.context} {...props} />}
     </details>
   );
 }

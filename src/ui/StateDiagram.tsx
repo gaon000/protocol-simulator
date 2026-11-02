@@ -1,20 +1,22 @@
 /** biome-ignore-all lint/a11y/useSemanticElements: Interactive SVG groups need button/group roles; HTML button/fieldset elements cannot be direct SVG children. */
+/** biome-ignore-all lint/a11y/noNoninteractiveTabindex: The scrollable diagram canvas needs a keyboard target for native arrow-key panning. */
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Read-only action rows have no state and are replaced with their protocol revision. */
 import {
+  type FocusEvent,
+  type KeyboardEvent,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
-  type FocusEvent,
 } from 'react';
+import type { DiagramInspection } from '../application/diagram-links.ts';
+import { previewJson } from '../application/preview-json.ts';
 import {
   buildStateDiagram,
   DIAGRAM_NODE_SIZE,
   DIAGRAM_POLICY,
 } from '../application/state-diagram.ts';
-import { previewJson } from '../application/preview-json.ts';
 import type { JsonValue, ParticipantId } from '../domain/execution-contract.ts';
 import type {
   Action,
@@ -100,12 +102,18 @@ export function StateDiagram({
   source,
   actors = EMPTY_ACTORS,
   onEdit,
+  inspection,
+  onInspect,
+  onFollow,
 }: {
   protocol: ProtocolDefinition;
   title: string;
   source: string;
   actors?: readonly DiagramActor[];
   onEdit?: ((kind: 'state' | 'rule', index: number) => void) | undefined;
+  inspection?: DiagramInspection | undefined;
+  onInspect?: ((kind: 'state' | 'rule', index: number) => void) | undefined;
+  onFollow?: (() => void) | undefined;
 }) {
   const marker = `diagram-arrow-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [statePage, setStatePage] = useState(0);
@@ -113,43 +121,76 @@ export function StateDiagram({
   const [zoom, setZoom] = useState(0.75);
   const [followFocus, setFollowFocus] = useState(0);
   const selectedGraphic = useRef<SVGGElement | null>(null);
-  const [selection, setSelection] = useState<
-    { kind: 'state'; key: string } | { kind: 'rule'; index: number }
-  >();
+  const canvas = useRef<HTMLElement | null>(null);
+  type Selection = { kind: 'state'; key: string } | { kind: 'rule'; index: number };
+  const [localSelection, setLocalSelection] = useState<{
+    key: string | undefined;
+    value: Selection | undefined;
+  }>();
+  const targetState = inspection?.target?.kind === 'state' ? inspection.target.index : undefined;
+  const selection =
+    localSelection && localSelection.key === inspection?.key
+      ? localSelection.value
+      : targetState !== undefined
+        ? { kind: 'state' as const, key: `state-${targetState}` }
+        : undefined;
+  function setSelection(value: Selection | undefined) {
+    setLocalSelection({ key: inspection?.key, value });
+  }
   const followRule = actors.find((actor) => actor.ruleIndex !== undefined)?.ruleIndex;
+  const focusRule = inspection ? inspection.ruleIndex : followRule;
   const requestedRulePage =
-    !selection && followRule !== undefined
-      ? Math.floor(followRule / DIAGRAM_POLICY.rulesPerPage)
+    !selection && focusRule !== undefined
+      ? Math.floor(focusRule / DIAGRAM_POLICY.rulesPerPage)
       : rulePage;
   const currentKey = JSON.stringify(actors.map((actor) => actor.stateId));
+  const selectedKey = JSON.stringify(
+    [inspection?.beforeStateId, inspection?.afterStateId].filter(
+      (id): id is string => id !== undefined,
+    ),
+  );
+  const requestedStatePage =
+    targetState !== undefined ? Math.floor(targetState / DIAGRAM_POLICY.statesPerPage) : statePage;
   const graph = useMemo(
     () =>
       buildStateDiagram(protocol, {
-        statePage,
+        statePage: requestedStatePage,
         rulePage: requestedRulePage,
         currentStateIds: JSON.parse(currentKey) as string[],
+        selectedStateIds: JSON.parse(selectedKey) as string[],
       }),
-    [protocol, statePage, requestedRulePage, currentKey],
+    [protocol, requestedStatePage, requestedRulePage, currentKey, selectedKey],
   );
   const selectedRuleIndex =
     selection?.kind === 'rule'
       ? selection.index
       : selection?.kind === 'state'
         ? undefined
-        : (followRule ?? graph.visibleRules[0]);
+        : inspection
+          ? inspection.ruleIndex
+          : (followRule ?? graph.visibleRules[0]);
   const rule = selectedRuleIndex === undefined ? undefined : protocol.rules[selectedRuleIndex];
   const node =
     selection?.kind === 'state'
       ? graph.nodes.find((item) => item.key === selection.key)
       : undefined;
   useEffect(() => {
-    if (graph.nodes.length && (selection || followFocus > 0))
-      selectedGraphic.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [selection, followFocus, graph]);
+    if (!graph.nodes.length || (!selection && !inspection && followFocus <= 0)) return;
+    const container = canvas.current;
+    const element = selectedGraphic.current;
+    if (!container || !element) return;
+    const outer = container.getBoundingClientRect();
+    const inner = element.getBoundingClientRect();
+    if (inner.left < outer.left || inner.right > outer.right)
+      container.scrollLeft += inner.left - outer.left - 24;
+    if (inner.top < outer.top || inner.bottom > outer.bottom)
+      container.scrollTop += inner.top - outer.top - 24;
+  }, [selection, followFocus, graph, inspection]);
   function selectRule(index: number) {
     setFollowFocus(0);
     setSelection({ kind: 'rule', index });
     setRulePage(Math.floor(index / DIAGRAM_POLICY.rulesPerPage));
+    onInspect?.('rule', index);
   }
   const size = DIAGRAM_NODE_SIZE;
   return (
@@ -168,6 +209,7 @@ export function StateDiagram({
         <span>현재 A/B: 실행 위치</span>
         <span>굵은 화살표: 최근 적용</span>
         <span>점선: 선택</span>
+        {inspection && <span>선택 전/후: 관찰된 한 회차의 상태</span>}
       </div>
       {!!actors.length && (
         <p className='diagram-runtime'>
@@ -189,6 +231,7 @@ export function StateDiagram({
               kind: 'state',
               key: `state-${(graph.statePage - 1) * DIAGRAM_POLICY.statesPerPage}`,
             });
+            onInspect?.('state', (graph.statePage - 1) * DIAGRAM_POLICY.statesPerPage);
           }}
         >
           상태 이전 페이지
@@ -205,6 +248,7 @@ export function StateDiagram({
               kind: 'state',
               key: `state-${(graph.statePage + 1) * DIAGRAM_POLICY.statesPerPage}`,
             });
+            onInspect?.('state', (graph.statePage + 1) * DIAGRAM_POLICY.statesPerPage);
           }}
         >
           상태 다음 페이지
@@ -245,6 +289,7 @@ export function StateDiagram({
               setSelection(undefined);
               setFollowFocus((value) => value + 1);
               setStatePage(0);
+              onFollow?.();
             }}
           >
             현재 실행 위치 따라가기
@@ -257,8 +302,12 @@ export function StateDiagram({
           상태·규칙은 페이지를 이동해 확인하세요.
         </p>
       )}
-      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: A scrollable canvas needs a keyboard target for native arrow-key panning. */}
-      <section className='diagram-canvas' tabIndex={0} aria-label={`${title} 그림 영역`}>
+      <section
+        ref={canvas}
+        className='diagram-canvas'
+        tabIndex={0}
+        aria-label={`${title} 그림 영역`}
+      >
         <svg
           width={graph.width * zoom}
           height={graph.height * zoom}
@@ -312,7 +361,7 @@ export function StateDiagram({
             return (
               <g
                 key={edge.key}
-                ref={selected && !followFocus ? selectedGraphic : undefined}
+                ref={selected && (!followFocus || inspection) ? selectedGraphic : undefined}
                 className={`diagram-edge ${applied.length ? 'is-applied' : ''} ${selected ? 'is-selected' : ''}`}
                 role='button'
                 tabIndex={0}
@@ -348,11 +397,16 @@ export function StateDiagram({
             const choose = () => {
               setFollowFocus(0);
               setSelection({ kind: 'state', key: item.key });
+              if (item.stateIndex !== undefined) onInspect?.('state', item.stateIndex);
             };
+            const before = inspection?.beforeStateId === item.id;
+            const after = inspection?.afterStateId === item.id;
             const badges = [
               item.initial ? '초기' : '',
               item.terminal ? '종료' : '',
               current.length ? `현재 ${current.map((actor) => actor.participant).join('·')}` : '',
+              before ? '선택 전' : '',
+              after ? '선택 후' : '',
             ]
               .filter(Boolean)
               .join(' · ');
@@ -361,13 +415,14 @@ export function StateDiagram({
                 key={item.key}
                 ref={
                   selected ||
-                  (!selection &&
+                  (!inspection &&
+                    !selection &&
                     followFocus > 0 &&
                     current.some((actor) => actor.participant === actors[0]?.participant))
                     ? selectedGraphic
                     : undefined
                 }
-                className={`diagram-node ${item.problem ? 'is-invalid' : ''} ${current.length ? 'is-current' : ''} ${selected ? 'is-selected' : ''}`}
+                className={`diagram-node ${item.problem ? 'is-invalid' : ''} ${current.length ? 'is-current' : ''} ${selected ? 'is-selected' : ''} ${before ? 'is-before' : ''} ${after ? 'is-after' : ''}`}
                 role='button'
                 tabIndex={0}
                 aria-pressed={selected}

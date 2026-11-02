@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { DiagramInspection, DiagramTarget } from '../application/diagram-links.ts';
 import {
   appliedDiagramRule,
   diagramProtocolsMatch,
@@ -10,7 +11,9 @@ import type {
   ExperimentDefinition,
   ProtocolDefinition,
 } from '../domain/protocol-model.ts';
-import { StateDiagram, type DiagramActor } from './StateDiagram.tsx';
+import { DiagramLinkDetails } from './DiagramLinkDetails.tsx';
+import { type DiagramActor, StateDiagram } from './StateDiagram.tsx';
+import { useDiagramPanel } from './useDiagramPanel.ts';
 
 type Edit = (definition: number, kind: 'state' | 'rule', index: number) => void;
 const participants = ['A', 'B'] as const;
@@ -82,14 +85,37 @@ export function ExecutionStateDiagram({
   draft,
   eventCount,
   onEdit,
+  inspection,
+  selected,
+  onInspect,
+  onOccurrence,
+  onSequence,
+  onFollow,
+  revealRequest,
+  context,
 }: {
   run: EngineView;
   draft: ExperimentDefinition;
   eventCount: number;
   onEdit: Edit;
+  inspection: DiagramInspection | undefined;
+  selected: string | undefined;
+  onInspect: (target: DiagramTarget) => void;
+  onOccurrence: (id: string) => void;
+  onSequence: () => void;
+  onFollow: () => void;
+  revealRequest: number;
+  context: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [participant, setParticipant] = useState<ParticipantId>('A');
+  const panel = useDiagramPanel(revealRequest);
+  const [manual, setManual] = useState<{ participant: ParticipantId; key: string | undefined }>({
+    participant: 'A',
+    key: undefined,
+  });
+  const participant =
+    manual.key === inspection?.key
+      ? manual.participant
+      : (inspection?.participant ?? manual.participant);
   const protocol = sourceProtocol(run, participant);
   const editorIndex = useMemo(
     () => (protocol ? matchingDiagramDefinition(draft, protocol) : undefined),
@@ -97,12 +123,13 @@ export function ExecutionStateDiagram({
   );
   return (
     <details
+      ref={panel.ref}
       className='execution-state-diagram'
-      open={expanded}
-      onToggle={(event) => setExpanded(event.currentTarget.open)}
+      open={panel.expanded}
+      onToggle={(event) => panel.onToggle(event.currentTarget.open)}
     >
       <summary>실행 상태도 보기</summary>
-      {expanded && protocol && (
+      {panel.expanded && protocol && (
         <>
           <fieldset className='diagram-participants' aria-label='상태도 참여자 선택'>
             {participants.map((id) => (
@@ -110,24 +137,42 @@ export function ExecutionStateDiagram({
                 key={id}
                 type='button'
                 aria-pressed={participant === id}
-                onClick={() => setParticipant(id)}
+                onClick={() => setManual({ participant: id, key: inspection?.key })}
               >
                 참여자 {id} 상태도
               </button>
             ))}
           </fieldset>
           <StateDiagram
-            key={`${run.runId}-${participant}`}
+            key={`${run.runId}-${context}-${participant}`}
             protocol={protocol}
             title={`참여자 ${participant} 실행 상태도`}
             source={`실행 당시 정의 v${protocol.revision} · ${run.runId} · ${run.timeMs} ms`}
             actors={[actor(run, participant, protocol, eventCount)]}
+            inspection={inspection?.participant === participant ? inspection : undefined}
+            onInspect={(kind, index) => onInspect({ participant, kind, index })}
+            onFollow={onFollow}
             onEdit={
               editorIndex === undefined
                 ? undefined
                 : (kind, index) => onEdit(editorIndex, kind, index)
             }
           />
+          {inspection && inspection.participant === participant && (
+            <DiagramLinkDetails
+              key={`${participant}-${inspection.target?.kind ?? inspection.event?.eventId}-${inspection.target?.index ?? ''}`}
+              inspection={inspection}
+              selected={selected}
+              onSelect={onOccurrence}
+              onSequence={onSequence}
+            />
+          )}
+          {inspection && inspection.participant !== participant && (
+            <p className='hint'>
+              선택한 기록은 참여자 {inspection.participant}의 실행입니다. 해당 참여자 버튼으로
+              연결을 확인하세요.
+            </p>
+          )}
         </>
       )}
     </details>

@@ -23,6 +23,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [통신 시퀀스](exec-plans/completed/20261102-communication-sequence-diagram.md)도 완료했다. 실제 관찰 prefix의 A/B 화살표·손실/중복·타임아웃/재전송 후보와 snapshot 필드·바이트·원인/후속을 표시한다. 30행 페이지·키보드·390px·열린 그림의 10k/1 MiB 검증을 포함한다.
 
+후속 [두 그림 연동](exec-plans/completed/20261102-linked-execution-diagrams.md)을 완료했다. 같은 snapshot/prefix의 선택 이벤트·규칙·전후 상태와 여러 실행 회차를 연결한다.
+
 ## 선택 문서
 
 v1의 제품 규칙·화면과 하위 서비스·상태·타이머·재현성 계약을 분리할 필요가 생겨 Product Specs와 Design Docs를 도입했다. 두 영역은 index와 재사용 양식을 포함한다. 독립적인 기술 결정 문서·용어 사전·skill은 현재 필요가 없어 추가하지 않았다. 실제로 추가한 문서만 이 지도에 링크한다.

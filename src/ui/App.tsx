@@ -2,6 +2,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRunSession } from '../application/create-simulation.ts';
 import {
+  buildDiagramLinks,
+  type DiagramTarget,
+  diagramOccurrences,
+  inspectDiagramLinks,
+} from '../application/diagram-links.ts';
+import {
   changeProfile,
   createBlankExperiment,
   editExperiment,
@@ -102,6 +108,14 @@ export function App() {
   const [run, setRun] = useState<EngineView>();
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<string>();
+  const [diagramTarget, setDiagramTarget] = useState<{
+    runId: string;
+    historyId: string | undefined;
+    count: number;
+    selected: string | undefined;
+    target: DiagramTarget;
+  }>();
+  const [diagramReveal, setDiagramReveal] = useState({ runId: '', state: 0, sequence: 0 });
   const [focusRequest, setFocusRequest] = useState<{ path: string; serial: number }>();
   const [notice, setNotice] = useState('');
   const validation = useMemo(() => parseExperiment(draft), [draft]);
@@ -121,6 +135,28 @@ export function App() {
   const diagramEventCount = historical
     ? Math.min(historyPosition, displayed?.events.length ?? 0)
     : (displayed?.events.length ?? 0);
+  const diagramEvents = displayed?.events;
+  const diagramLinks = useMemo(
+    () =>
+      diagramEvents && viewId === 'run'
+        ? buildDiagramLinks({ events: diagramEvents }, diagramEventCount)
+        : undefined,
+    [diagramEvents, diagramEventCount, viewId],
+  );
+  const activeDiagramTarget =
+    diagramTarget?.runId === displayed?.runId &&
+    diagramTarget?.historyId === historyId &&
+    diagramTarget?.count === diagramEventCount &&
+    diagramTarget?.selected === selected
+      ? diagramTarget?.target
+      : undefined;
+  const diagramInspection = useMemo(
+    () =>
+      displayed && diagramLinks
+        ? inspectDiagramLinks(diagramLinks, displayed, selected, activeDiagramTarget)
+        : undefined,
+    [diagramLinks, displayed, selected, activeDiagramTarget],
+  );
   const shownVersion = historical?.draftVersion ?? runVersion;
   const changed =
     !!displayed &&
@@ -172,7 +208,11 @@ export function App() {
       setHistoryPlaying(false);
       return;
     }
-    const timeout = window.setTimeout(() => setHistoryPosition((position) => position + 1), 120);
+    const timeout = window.setTimeout(() => {
+      setHistoryPosition(historyPosition + 1);
+      setSelected(historical.view.events[historyPosition]?.eventId);
+      setDiagramTarget(undefined);
+    }, 120);
     return () => window.clearTimeout(timeout);
   }, [historical, historyPlaying, historyPosition]);
   useEffect(() => {
@@ -245,6 +285,7 @@ export function App() {
     });
   }
   function reset() {
+    setDiagramTarget(undefined);
     setPlaying(false);
     const engine = session.current();
     if (engine && !engine.result()) checkpoint(engine.cancel());
@@ -289,6 +330,7 @@ export function App() {
     setNotice('');
   }
   function selectHistory(record: SavedRun) {
+    setDiagramTarget(undefined);
     pause();
     const latest =
       storage.controller.view().data.runs.find((item) => item.id === record.id) ?? record;
@@ -397,11 +439,50 @@ export function App() {
     navigate(`/definitions/${index}/rules/${ruleIndex}`);
   }
   function selectRunEvent(id: string) {
+    if (playing && !historical) pause();
+    setHistoryPlaying(false);
+    setDiagramTarget(undefined);
     setSelected(id);
     if (historical) {
       setHistoryPosition(historical.view.events.findIndex((item) => item.eventId === id) + 1);
-      setHistoryPlaying(false);
     }
+  }
+  function inspectTarget(target: DiagramTarget) {
+    if (!displayed || !diagramLinks) return;
+    if (playing && !historical) pause();
+    setHistoryPlaying(false);
+    const id = diagramOccurrences(diagramLinks, displayed, target).at(-1)?.eventId;
+    setSelected(id);
+    setDiagramTarget({
+      runId: displayed.runId,
+      historyId,
+      count: diagramEventCount,
+      selected: id,
+      target,
+    });
+  }
+  function selectOccurrence(id: string) {
+    selectRunEvent(id);
+    if (displayed && activeDiagramTarget)
+      setDiagramTarget({
+        runId: displayed.runId,
+        historyId,
+        count: historical
+          ? historical.view.events.findIndex((item) => item.eventId === id) + 1
+          : diagramEventCount,
+        selected: id,
+        target: activeDiagramTarget,
+      });
+  }
+  function revealDiagram(panel: 'state' | 'sequence') {
+    if (displayed)
+      setDiagramReveal((request) => {
+        const current =
+          request.runId === displayed.runId
+            ? request
+            : { runId: displayed.runId, state: 0, sequence: 0 };
+        return { ...current, [panel]: current[panel] + 1 };
+      });
   }
   function diagnosticLocation(diagnostic: ModelDiagnostic) {
     const match = /^\/participants\/([AB])(?:\/rules\/([^/]+))?/.exec(diagnostic.path);
@@ -422,6 +503,8 @@ export function App() {
     setLibrary(false);
     setViewId('run');
     setNotice('');
+    setDiagramTarget(undefined);
+    setSelected(undefined);
     let engine = session.current();
     if (!engine || changed || historical || engine.result()) {
       if (storage.data.runs.length >= WORKSPACE_POLICY.maxRuns) {
@@ -784,6 +867,7 @@ export function App() {
                       playing={historyPlaying}
                       onSelect={selectHistory}
                       onPosition={(position) => {
+                        setDiagramTarget(undefined);
                         setHistoryPosition(position);
                         setHistoryPlaying(false);
                         setSelected(historical?.view.events[position - 1]?.eventId);
@@ -807,12 +891,14 @@ export function App() {
                           runs: data.runs.filter((item) => item.id !== id),
                         }));
                         if (historyId === id) {
+                          setDiagramTarget(undefined);
                           setHistoryId(undefined);
                           setHistoryPlaying(false);
                           setSelected(undefined);
                         }
                       }}
                       onLive={() => {
+                        setDiagramTarget(undefined);
                         setHistoryId(undefined);
                         setHistoryPlaying(false);
                         setSelected(undefined);
@@ -820,21 +906,40 @@ export function App() {
                     />
                     {displayed && (
                       <ExecutionStateDiagram
-                        key={displayed.runId}
+                        key={`state-${displayed.runId}`}
+                        context={historyId ?? 'live'}
                         run={displayed}
                         draft={draft}
                         eventCount={diagramEventCount}
                         onEdit={editDiagram}
+                        inspection={diagramInspection}
+                        selected={selected}
+                        onInspect={inspectTarget}
+                        onOccurrence={selectOccurrence}
+                        onSequence={() => revealDiagram('sequence')}
+                        onFollow={() => {
+                          setDiagramTarget(undefined);
+                          setSelected(undefined);
+                        }}
+                        revealRequest={
+                          diagramReveal.runId === displayed.runId ? diagramReveal.state : 0
+                        }
                       />
                     )}
                     {displayed && (
                       <SequenceDiagram
-                        key={displayed.runId}
+                        key={`sequence-${displayed.runId}`}
+                        context={historyId ?? 'live'}
                         run={displayed}
                         eventCount={diagramEventCount}
                         selected={selected}
                         onSelect={selectRunEvent}
                         onRule={(event) => navigateRule(event.participant, event.ruleId)}
+                        inspection={diagramInspection}
+                        onState={() => revealDiagram('state')}
+                        revealRequest={
+                          diagramReveal.runId === displayed.runId ? diagramReveal.sequence : 0
+                        }
                       />
                     )}
                     <RunView
@@ -895,13 +1000,7 @@ export function App() {
             <EventInspector
               event={event}
               onCause={(id) => {
-                setSelected(id);
-                if (historical) {
-                  setHistoryPosition(
-                    historical.view.events.findIndex((item) => item.eventId === id) + 1,
-                  );
-                  setHistoryPlaying(false);
-                }
+                selectRunEvent(id);
                 setLibrary(false);
                 setViewId('run');
               }}

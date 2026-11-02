@@ -56,6 +56,7 @@ export function buildStateDiagram(
     readonly statePage?: number;
     readonly rulePage?: number;
     readonly currentStateIds?: readonly string[];
+    readonly selectedStateIds?: readonly string[];
   } = {},
 ): StateDiagramModel {
   const states = page(options.statePage, protocol.states.length, DIAGRAM_POLICY.statesPerPage);
@@ -108,6 +109,7 @@ export function buildStateDiagram(
     addState(index);
   const initial = endpoint(protocol.initialStateId);
   for (const id of (options.currentStateIds ?? []).slice(0, 2)) endpoint(id);
+  for (const id of (options.selectedStateIds ?? []).slice(0, 2)) endpoint(id);
   const visibleRules = Array.from(
     {
       length: Math.min(

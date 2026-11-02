@@ -78,6 +78,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
+그림 연동은 실제 trigger별 회차·다중 parsed·반복/무시·환경 원인과 prefix를 코어에서 검사한다. 브라우저에서는 양방향 선택·전후 변수·참여자·규칙/상태 페이지·확대 유지·미실행 규칙·390px snapshot·자동 재생/선택 정지·초기화를 검사한다. 대형 fixture에서는 두 그림을 열고 규칙→시퀀스 연결 시간과 회차 20개 상한도 검사한다. 기준은 [V1-010](product-specs/protocol-simulator-v1.md#v1-010-상태도와-시퀀스-연동)을 따른다.
+
 통신 시퀀스는 catalog·실제 수신과 예정 구분·ACK 손실·중복 역전·분할/합침·타이머 실패와 prefix·10k/1 MiB 참조 보존을 Node에서 검사한다. Chromium/Firefox에서는 HTTP 필드/바이트·원인 선택·TCP snapshot·390px·페이지·Enter/Space를 검사한다. 기존 응답성 fixture는 상태도와 시퀀스를 모두 연 상태에서 시퀀스 선택 상세까지 측정한다. 표시 기준은 [제품 명세](product-specs/protocol-simulator-v1.md#v1-009-통신-시퀀스-다이어그램)를 따른다.
 
 [CI workflow](../.github/workflows/check.yml)는 Ubuntu 24.04에서 같은 Node·pnpm/frozen lockfile과 Chromium/Firefox·OS 의존성을 설치하고 `pnpm check`를 실행한다. 테스트 trace/응답성 report는 artifact로 7일 보관한다. workflow 구성과 실제 원격 실행 결과는 별도이며 최종 결과는 [실행 계획](exec-plans/completed/20261030-1641-layered-protocol-v1.md)에 기록한다. branch protection·배포는 설정하지 않았다.

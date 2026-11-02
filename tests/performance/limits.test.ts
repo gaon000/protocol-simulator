@@ -132,6 +132,22 @@ for (const fixture of ['10k', '1MiB'] as const) {
     await expect(
       page.getByRole('region', { name: '참여자 A 실행 상태도', exact: true }),
     ).toBeVisible();
+    await page.evaluate(() => performance.mark('probe-link'));
+    const linkBegan = performance.now();
+    await page
+      .getByRole('combobox', { name: '참여자 A 실행 상태도 규칙 선택', exact: true })
+      .selectOption(fixture === '10k' ? '1' : '0');
+    const linked = page.getByRole('region', { name: '연결된 실행 회차', exact: true });
+    await expect(linked).toBeVisible();
+    await linked.getByRole('button', { name: '시퀀스에서 관련 기록 보기', exact: true }).click();
+    await expect(page.locator('.sequence-row.is-related[aria-pressed="true"]')).toHaveCount(1);
+    const linkMs = performance.now() - linkBegan;
+    expect(await linked.locator('[data-linked-transition]').count()).toBeLessThanOrEqual(20);
+    if (fixture === '10k') {
+      await linked.getByRole('button', { name: '회차 이전 페이지', exact: true }).click();
+      await expect(linked.locator('[data-linked-transition]')).toHaveCount(20);
+      await linked.getByRole('button', { name: '회차 다음 페이지', exact: true }).click();
+    }
     await page.evaluate(() => performance.mark('probe-control'));
     const controlSamples: number[] = [];
     const checkbox = page.getByLabel('메시지 중심으로 보기');
@@ -223,6 +239,7 @@ for (const fixture of ['10k', '1MiB'] as const) {
       browser: browser.version(),
       runMs,
       controlMs,
+      linkMs,
       controlSamples: controlSamples.length,
       detailMs,
       detailChars,
@@ -238,6 +255,7 @@ for (const fixture of ['10k', '1MiB'] as const) {
     });
     expect(runMs).toBeLessThan(10_000);
     expect(controlMs).toBeLessThan(200);
+    expect(linkMs).toBeLessThan(500);
     expect(detailMs).toBeLessThan(500);
     expect(detailChars).toBeLessThan(32_768);
     expect(sequenceDetailChars).toBeLessThan(32_768);
