@@ -132,6 +132,10 @@ for (const fixture of ['10k', '1MiB'] as const) {
     await expect(
       page.getByRole('region', { name: '참여자 A 실행 상태도', exact: true }),
     ).toBeVisible();
+    // Keep checkpoint serialization inside the frame/long-task probe, outside the link latency sample.
+    await expect(
+      page.getByRole('region', { name: '로컬 저장과 파일' }).getByRole('status'),
+    ).toHaveText('브라우저에 저장됨');
     await page.evaluate(() => performance.mark('probe-link'));
     const linkBegan = performance.now();
     await page

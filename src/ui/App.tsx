@@ -158,10 +158,14 @@ export function App() {
     [diagramLinks, displayed, selected, activeDiagramTarget],
   );
   const shownVersion = historical?.draftVersion ?? runVersion;
-  const changed =
-    !!displayed &&
-    (shownVersion !== draftVersion ||
-      JSON.stringify(displayed.snapshot.configuration) !== JSON.stringify(draft));
+  const capturedConfiguration = displayed?.snapshot.configuration;
+  const changed = useMemo(
+    () =>
+      !!capturedConfiguration &&
+      (shownVersion !== draftVersion ||
+        JSON.stringify(capturedConfiguration) !== JSON.stringify(draft)),
+    [capturedConfiguration, shownVersion, draftVersion, draft],
+  );
   const controller = storage.controller;
   const checkpoint = useCallback(
     (view: EngineView) => {
