@@ -1,4 +1,9 @@
 import { useMemo, useState } from 'react';
+import {
+  type DraftDiagramAppend,
+  type DraftDiagramSelection,
+  validDiagramEndpoint,
+} from '../application/diagram-authoring.ts';
 import type { DiagramInspection, DiagramTarget } from '../application/diagram-links.ts';
 import {
   appliedDiagramRule,
@@ -12,6 +17,7 @@ import type {
   ProtocolDefinition,
 } from '../domain/protocol-model.ts';
 import { DiagramLinkDetails } from './DiagramLinkDetails.tsx';
+import { type DiagramConnection, DraftDiagramTools } from './DraftDiagramTools.tsx';
 import { type DiagramActor, StateDiagram } from './StateDiagram.tsx';
 import { useDiagramPanel } from './useDiagramPanel.ts';
 
@@ -44,13 +50,25 @@ export function DraftStateDiagram({
   run,
   eventCount,
   onEdit,
+  selection,
+  onSelect,
+  onAppend,
 }: {
   protocol: ProtocolDefinition;
   index: number;
   run: EngineView | undefined;
   eventCount: number;
   onEdit: Edit;
+  selection: DraftDiagramSelection | undefined;
+  onSelect: (selection: DraftDiagramSelection) => void;
+  onAppend: (value: DraftDiagramAppend, revision: number) => boolean;
 }) {
+  const [connection, setConnection] = useState<DiagramConnection>();
+  const [connectionError, setConnectionError] = useState('');
+  const active =
+    connection?.revision === protocol.revision && connection.protocolId === protocol.id
+      ? connection
+      : undefined;
   const snapshot = run?.snapshot;
   const matching = useMemo(
     () =>
@@ -68,14 +86,62 @@ export function DraftStateDiagram({
     ? matching.map((participant) => actor(run, participant, protocol, eventCount))
     : [];
   return (
-    <StateDiagram
-      key={`${index}-${protocol.revision}`}
-      protocol={protocol}
-      title='프로토콜 상태도'
-      source={`현재 초안 · 정의 v${protocol.revision}${run && !actors.length ? ' · 일치하는 실행 표시 없음' : ''}`}
-      actors={actors}
-      onEdit={(kind, item) => onEdit(index, kind, item)}
-    />
+    <section
+      aria-label='초안 상태도 작성'
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && connection) {
+          setConnection(undefined);
+          setConnectionError('');
+          event.stopPropagation();
+        }
+      }}
+    >
+      <DraftDiagramTools
+        protocol={protocol}
+        connection={connection}
+        onChange={(value) => {
+          setConnection(value);
+          setConnectionError('');
+        }}
+        onAppend={onAppend}
+      />
+      {connectionError && <p role='alert'>{connectionError}</p>}
+      <StateDiagram
+        key={index}
+        protocol={protocol}
+        title='프로토콜 상태도'
+        source={`현재 초안 · 정의 v${protocol.revision}${run && !actors.length ? ' · 일치하는 실행 표시 없음' : ''}`}
+        actors={actors}
+        onEdit={(kind, item) => {
+          setConnection(undefined);
+          setConnectionError('');
+          onEdit(index, kind, item);
+        }}
+        draft={{ selection: active ? undefined : selection, revision: protocol.revision }}
+        connection={active ? { from: active.from?.index, to: active.to?.index } : undefined}
+        onInspect={(kind, item) => {
+          if (!active) {
+            setConnectionError('');
+            onSelect({ kind, index: item });
+            return;
+          }
+          const state = protocol.states[item];
+          if (
+            kind !== 'state' ||
+            !state ||
+            !validDiagramEndpoint(protocol, { index: item, id: state.id })
+          ) {
+            setConnectionError(
+              '연결할 수 있는 유일한 ID의 상태를 선택하세요. 규칙 편집은 연결 취소 후 가능합니다.',
+            );
+            return;
+          }
+          const endpoint = { index: item, id: state.id };
+          setConnection({ ...active, ...(!active.from ? { from: endpoint } : { to: endpoint }) });
+          setConnectionError('');
+        }}
+      />
+    </section>
   );
 }
 

@@ -1,6 +1,10 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Form rows are stateless and controlled by JSON Pointer; structural edits clear pending values for the affected collection. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRunSession } from '../application/create-simulation.ts';
+import type {
+  DraftDiagramAppend,
+  DraftDiagramSelection,
+} from '../application/diagram-authoring.ts';
 import {
   buildDiagramLinks,
   type DiagramTarget,
@@ -30,6 +34,7 @@ import { type DraftRecord, type SavedRun, WORKSPACE_POLICY } from '../domain/wor
 import { rawDiagnostics } from '../domain/workspace-validation.ts';
 import type { EngineView } from '../engine/simulation.ts';
 import { createExampleCopy, EXAMPLES } from '../examples/catalog.ts';
+import { DraftDiagramEditor } from './DraftDiagramEditor.tsx';
 import { EnvironmentEditor } from './EnvironmentEditor.tsx';
 import { ExampleDetails, ExampleOrigin } from './ExampleInfo.tsx';
 import { Control, EditorContext, Group } from './forms.tsx';
@@ -103,6 +108,11 @@ export function App() {
   const [viewId, setViewId] = useState<ViewId>('configuration');
   const [library, setLibrary] = useState(false);
   const [protocolIndex, setProtocolIndex] = useState(0);
+  const [draftSelection, setDraftSelection] = useState<{
+    definition: number;
+    item: DraftDiagramSelection;
+  }>();
+  const [draftEditorInList, setDraftEditorInList] = useState(false);
   const [startErrors, setStartErrors] = useState<readonly ModelDiagnostic[]>([]);
   const [session] = useState(() => createRunSession());
   const [run, setRun] = useState<EngineView>();
@@ -125,6 +135,13 @@ export function App() {
     ...startErrors,
   ];
   const protocol = draft.definitions[protocolIndex] ?? draft.definitions[0];
+  const draftItem =
+    draftSelection?.definition === protocolIndex &&
+    (draftSelection.item.kind === 'state'
+      ? protocol?.states[draftSelection.item.index]
+      : protocol?.rules[draftSelection.item.index])
+      ? draftSelection.item
+      : undefined;
   const view = views.find((item) => item.id === viewId) ?? views[0];
   const historical = storage.data.runs.find((item) => item.id === historyId);
   const displayed = useMemo(
@@ -268,6 +285,8 @@ export function App() {
     setNotice('');
   }
   function edit(path: string, value: JsonValue | undefined) {
+    if (/^\/definitions\/(?:\d+)(?:\/(?:states|rules)(?:\/\d+)?)?$/.test(path))
+      setDraftSelection(undefined);
     changing();
     updateActive((record) => ({
       ...record,
@@ -301,6 +320,8 @@ export function App() {
     comparison.current = undefined;
   }
   function resetSelection() {
+    setDraftEditorInList(false);
+    setDraftSelection(undefined);
     setHistoryId(undefined);
     setHistoryPlaying(false);
     setHistoryPosition(0);
@@ -413,9 +434,19 @@ export function App() {
     setNotice('과거 snapshot 설정으로 새 실행을 시작했습니다. 현재 초안은 유지합니다.');
   }
   function navigate(path: string) {
+    setDraftEditorInList(false);
     setLibrary(false);
     setNotice('');
     const definitionIndex = /^\/definitions\/(\d+)/.exec(path)?.[1];
+    const item = /^\/definitions\/(\d+)\/(states|rules)\/(\d+)/.exec(path);
+    setDraftSelection(
+      item
+        ? {
+            definition: Number(item[1]),
+            item: { kind: item[2] === 'states' ? 'state' : 'rule', index: Number(item[3]) },
+          }
+        : undefined,
+    );
     if (definitionIndex !== undefined) {
       setProtocolIndex(Number(definitionIndex));
       setViewId('protocol');
@@ -426,6 +457,30 @@ export function App() {
   }
   function editDiagram(definition: number, kind: 'state' | 'rule', index: number) {
     navigate(`/definitions/${definition}/${kind === 'state' ? 'states' : 'rules'}/${index}`);
+  }
+  function appendDiagram(value: DraftDiagramAppend, revision: number): boolean {
+    const current = draft.definitions[protocolIndex];
+    if (!current || current.revision !== revision) {
+      setNotice('정의가 변경되었습니다. 상태도에서 다시 선택하세요.');
+      return false;
+    }
+    const kind = value.kind;
+    const collection = kind === 'state' ? 'states' : 'rules';
+    const index = current[collection].length;
+    edit(`/definitions/${protocolIndex}/${collection}`, [...current[collection], value.value]);
+    setDraftSelection({ definition: protocolIndex, item: { kind, index } });
+    setDraftEditorInList(false);
+    setFocusRequest((request) => ({
+      path: `/definitions/${protocolIndex}/${collection}/${index}/id`,
+      serial: (request?.serial ?? 0) + 1,
+    }));
+    return true;
+  }
+  function reattachDiagramItem() {
+    if (!draftItem) return;
+    const path = `/definitions/${protocolIndex}/${draftItem.kind === 'state' ? 'states' : 'rules'}/${draftItem.index}`;
+    setDraftEditorInList(true);
+    setFocusRequest((request) => ({ path, serial: (request?.serial ?? 0) + 1 }));
   }
   function navigateRule(participant: 'A' | 'B', ruleId: string | undefined) {
     const ref = displayed?.snapshot.configuration.protocols[participant];
@@ -823,7 +878,10 @@ export function App() {
                       <span>편집할 정의</span>
                       <select
                         value={protocolIndex}
-                        onChange={(event) => setProtocolIndex(Number(event.target.value))}
+                        onChange={(event) => {
+                          setDraftSelection(undefined);
+                          setProtocolIndex(Number(event.target.value));
+                        }}
                       >
                         {draft.definitions.map((definition, index) => (
                           <option key={index} value={index}>
@@ -849,13 +907,25 @@ export function App() {
                           선택한 정의 삭제
                         </button>
                         <DraftStateDiagram
+                          key={protocolIndex}
                           protocol={protocol}
                           index={protocolIndex}
                           run={displayed}
                           eventCount={diagramEventCount}
                           onEdit={editDiagram}
+                          selection={draftItem}
+                          onSelect={(item) => {
+                            setDraftSelection({ definition: protocolIndex, item });
+                            setDraftEditorInList(false);
+                          }}
+                          onAppend={appendDiagram}
                         />
-                        <ProtocolEditor index={protocolIndex} protocol={protocol} />
+                        <ProtocolEditor
+                          index={protocolIndex}
+                          protocol={protocol}
+                          detached={draftEditorInList ? undefined : draftItem}
+                          onReattach={reattachDiagramItem}
+                        />
                       </>
                     )}
                   </>
@@ -1001,15 +1071,25 @@ export function App() {
             )}
           </main>
           <aside className='inspector' aria-label='실행 상세와 서비스 계약'>
-            <EventInspector
-              event={event}
-              onCause={(id) => {
-                selectRunEvent(id);
-                setLibrary(false);
-                setViewId('run');
-              }}
-              onRule={() => event && navigateRule(event.participant, event.ruleId)}
-            />
+            {viewId === 'protocol' && !library && draftItem && !draftEditorInList && protocol ? (
+              <DraftDiagramEditor
+                key={`${protocolIndex}-${draftItem.kind}-${draftItem.index}`}
+                protocol={protocol}
+                definition={protocolIndex}
+                selection={draftItem}
+                onReattach={reattachDiagramItem}
+              />
+            ) : (
+              <EventInspector
+                event={event}
+                onCause={(id) => {
+                  selectRunEvent(id);
+                  setLibrary(false);
+                  setViewId('run');
+                }}
+                onRule={() => event && navigateRule(event.participant, event.ruleId)}
+              />
+            )}
             <hr />
             <section aria-label='하위 서비스 계약'>
               <p className='eyebrow'>선택한 하위 서비스</p>

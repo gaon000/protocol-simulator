@@ -22,6 +22,7 @@
 | [docs/exec-plans/](docs/exec-plans/index.md) | 실행 계획 양식, 상태별 목록과 기술 부채 |
 | [index.html](index.html), [src/main.tsx](src/main.tsx) | Vite·React 웹 진입점 |
 | [src/application/state-diagram.ts](src/application/state-diagram.ts) | 상태/규칙 페이지·그룹 전이·유한 배치, cursor 내 적용 규칙·정확한 snapshot/초안 대응 |
+| [src/application/diagram-authoring.ts](src/application/diagram-authoring.ts), [src/ui/DraftDiagramTools.tsx](src/ui/DraftDiagramTools.tsx), [DraftDiagramEditor.tsx](src/ui/DraftDiagramEditor.tsx) | 참조를 보존하는 상태/전이 생성·연결 모드와 옆 편집기. 기존 edit/revision·단일 폼 소유를 사용 |
 | [src/application/sequence-diagram.ts](src/application/sequence-diagram.ts), [src/ui/SequenceDiagram.tsx](src/ui/SequenceDiagram.tsx) | 관찰 prefix의 통신/장애·반복 송신 추정·원인/직접 후속과 30행 SVG·필드/바이트 상세 |
 | [src/application/diagram-links.ts](src/application/diagram-links.ts), [src/ui/DiagramLinkDetails.tsx](src/ui/DiagramLinkDetails.tsx), [useDiagramPanel.ts](src/ui/useDiagramPanel.ts) | prefix 인과 인덱스·규칙/상태의 회차·선택 전후와 두 그림의 명시적 이동/초점. App이 선택·재생 정지를 조정 |
 | [src/ui/StateDiagram.tsx](src/ui/StateDiagram.tsx), [ProtocolStateDiagrams.tsx](src/ui/ProtocolStateDiagrams.tsx) | SVG 선택·조건/동작 상세·폼 이동, 초안 및 참여자별 실행 상태도 |

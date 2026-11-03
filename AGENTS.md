@@ -2,7 +2,7 @@
 
 응용·전송 계층의 프로토콜을 직접 정의하거나 기존 예제를 살펴보고, 하위 통신 환경을 설정해 가상 참여자 사이에서 검증하는 도구다. P7까지 실제 편집·실행·환경 장애·재전송, 제한된 HTTP/1.1·TCP 연결 예제와 로컬 저장·과거 실행 재생을 구현했다. 예제는 원본 출처·버전을 가진 사용자 사본으로 편집하며 IndexedDB에 초안·snapshot·기록을 보존한다. 최종 검증은 [P7](docs/design-docs/p7-validation.md)의 브라우저·viewport·응답성 기준을 따른다. 현재 구현과 제안 구조를 구분하고 구현 진척에 맞춰 문서를 갱신한다.
 
-후속 상태도는 [작업 계획](docs/exec-plans/completed/20261102-protocol-state-diagram.md)을 따른다. 초안/실행 snapshot·history cursor를 구분하며 SVG는 읽기 전용 보기다.
+후속 상태도는 [작업 계획](docs/exec-plans/completed/20261102-protocol-state-diagram.md)을 따른다. 초안/실행 snapshot·history cursor를 구분한다. 실행 snapshot은 읽기 전용이며 초안 작성은 [V1-011](docs/product-specs/protocol-simulator-v1.md#v1-011-초안-상태도의-시각적-작성)과 [작성 계획](docs/exec-plans/completed/20261103-visual-protocol-authoring.md)을 따른다.
 
 통신 시퀀스는 [완료 계획](docs/exec-plans/completed/20261102-communication-sequence-diagram.md)과 [제품 기준](docs/product-specs/protocol-simulator-v1.md#v1-009-통신-시퀀스-다이어그램)을 따른다. 예정과 실제 수신, 청크/해석/상위 전달, 타이머 만료/실패·재전송 후보를 구분하고 cursor 밖 관찰을 표시하지 않는다.
 

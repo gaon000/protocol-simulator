@@ -1065,3 +1065,52 @@ pre {
 .sequence-row.is-related[aria-pressed="true"] {
   box-shadow: inset 4px 0 #205eae;
 }
+
+.draft-diagram-tools {
+  min-width: 0;
+  border: 1px solid #bacde5;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
+  background: #f7faff;
+  overflow-wrap: anywhere;
+}
+.draft-diagram-tools legend {
+  color: #294c7b;
+  font-weight: 600;
+}
+.draft-diagram-tools .form-grid {
+  margin: 12px 0;
+}
+.draft-diagram-editor {
+  min-width: 0;
+  max-height: 75vh;
+  overflow: auto;
+  padding: 4px;
+  overflow-wrap: anywhere;
+  scroll-margin-top: 100px;
+}
+.draft-diagram-editor .form-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.draft-diagram-editor .editor-group {
+  padding: 10px;
+}
+.diagram-node.is-connection-from > rect:first-child {
+  stroke: #237873;
+  stroke-width: 3px;
+}
+.diagram-node.is-connection-to > rect:first-child {
+  stroke: #a36c1b;
+  stroke-width: 3px;
+}
+@media (max-width: 960px) {
+  .draft-diagram-editor {
+    max-height: none;
+    overflow: visible;
+  }
+}
+.draft-diagram-editor legend {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

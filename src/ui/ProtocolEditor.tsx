@@ -1,9 +1,31 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Form rows are stateless and controlled by JSON Pointer; structural edits clear pending values for the affected collection. */
+
+import type { DraftDiagramSelection } from '../application/diagram-authoring.ts';
 import { nextId } from '../application/edit-experiment.ts';
 import type { FieldDefinition, ProtocolDefinition } from '../domain/protocol-model.ts';
 import { Control, Group, JsonControl, Remove, useEditor } from './forms.tsx';
-import { RuleEditor } from './RuleEditor.tsx';
 import { HttpMappingEditor } from './HttpMappingEditor.tsx';
+import { RuleEditor } from './RuleEditor.tsx';
+
+/** Edit the same state fields from the list or the draft diagram sidebar, with one owner at a time. */
+export function StateEditor({
+  state,
+  path,
+}: {
+  state: ProtocolDefinition['states'][number];
+  path: string;
+}) {
+  return (
+    <Group path={path} title={`상태 · ${state.id}`}>
+      <div className='form-grid'>
+        <Control path={`${path}/id`} label='상태 ID' />
+        <Control path={`${path}/label`} label='상태 이름' />
+        <Control path={`${path}/terminal`} label='종료 상태' type='checkbox' />
+      </div>
+      <Remove path={path} label='상태 삭제' />
+    </Group>
+  );
+}
 
 function FieldEditor({ field, path }: { field: FieldDefinition; path: string }) {
   const { edit } = useEditor();
@@ -110,9 +132,13 @@ function FieldEditor({ field, path }: { field: FieldDefinition; path: string }) 
 export function ProtocolEditor({
   protocol,
   index,
+  detached,
+  onReattach,
 }: {
   protocol: ProtocolDefinition;
   index: number;
+  detached?: DraftDiagramSelection | undefined;
+  onReattach?: (() => void) | undefined;
 }) {
   const { edit } = useEditor();
   const path = `/definitions/${index}`;
@@ -197,24 +223,18 @@ export function ProtocolEditor({
           label='초기 상태'
           options={protocol.states.map((state) => state.id)}
         />
-        {protocol.states.map((state, stateIndex) => (
-          <Group
-            key={stateIndex}
-            path={`${path}/states/${stateIndex}`}
-            title={`상태 · ${state.id}`}
-          >
-            <div className='form-grid'>
-              <Control path={`${path}/states/${stateIndex}/id`} label='상태 ID' />
-              <Control path={`${path}/states/${stateIndex}/label`} label='상태 이름' />
-              <Control
-                path={`${path}/states/${stateIndex}/terminal`}
-                label='종료 상태'
-                type='checkbox'
-              />
-            </div>
-            <Remove path={`${path}/states/${stateIndex}`} label='상태 삭제' />
-          </Group>
-        ))}
+        {protocol.states.map((state, stateIndex) =>
+          detached?.kind === 'state' && detached.index === stateIndex ? (
+            <p key={stateIndex}>
+              상태 {state.id} · 상태도 옆 편집기에서 편집 중입니다.{' '}
+              <button type='button' onClick={onReattach}>
+                이 상태를 목록에서 편집
+              </button>
+            </p>
+          ) : (
+            <StateEditor key={stateIndex} path={`${path}/states/${stateIndex}`} state={state} />
+          ),
+        )}
         <button
           type='button'
           onClick={() => {
@@ -273,14 +293,23 @@ export function ProtocolEditor({
         </button>
       </Group>
       <Group path={`${path}/rules`} title='규칙'>
-        {protocol.rules.map((rule, ruleIndex) => (
-          <RuleEditor
-            key={ruleIndex}
-            path={`${path}/rules/${ruleIndex}`}
-            rule={rule}
-            protocol={protocol}
-          />
-        ))}
+        {protocol.rules.map((rule, ruleIndex) =>
+          detached?.kind === 'rule' && detached.index === ruleIndex ? (
+            <p key={ruleIndex}>
+              규칙 {rule.id} · 상태도 옆 편집기에서 편집 중입니다.{' '}
+              <button type='button' onClick={onReattach}>
+                이 규칙을 목록에서 편집
+              </button>
+            </p>
+          ) : (
+            <RuleEditor
+              key={ruleIndex}
+              path={`${path}/rules/${ruleIndex}`}
+              rule={rule}
+              protocol={protocol}
+            />
+          ),
+        )}
         <button
           type='button'
           onClick={() =>

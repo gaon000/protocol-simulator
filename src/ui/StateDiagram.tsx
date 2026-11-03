@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { DraftDiagramSelection } from '../application/diagram-authoring.ts';
 import type { DiagramInspection } from '../application/diagram-links.ts';
 import { previewJson } from '../application/preview-json.ts';
 import {
@@ -80,7 +81,8 @@ function actionText(action: Action): string {
   if (action.kind === 'start-timer')
     return short(`타이머 ${action.timerId} 시작 · ${expression(action.durationMs)} ms`, 180);
   if (action.kind === 'cancel-timer') return `타이머 ${short(action.timerId)} 취소`;
-  if (action.kind === 'finish') return `${action.outcome === 'success' ? '성공' : '실패'}로 종료`;
+  if (action.kind === 'finish')
+    return action.outcome === 'success' ? '성공으로 종료' : '실패로 종료';
   return '';
 }
 function activate(event: KeyboardEvent<SVGGElement>, callback: () => void) {
@@ -95,7 +97,7 @@ function revealKeyboardFocus(event: FocusEvent<SVGGElement>) {
     event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
-/** Render an authored or frozen protocol as an accessible, paginated, read-only state diagram. */
+/** Render an accessible bounded graph, exposing authoring only for the draft's callbacks. */
 export function StateDiagram({
   protocol,
   title,
@@ -105,6 +107,8 @@ export function StateDiagram({
   inspection,
   onInspect,
   onFollow,
+  draft,
+  connection,
 }: {
   protocol: ProtocolDefinition;
   title: string;
@@ -114,12 +118,23 @@ export function StateDiagram({
   inspection?: DiagramInspection | undefined;
   onInspect?: ((kind: 'state' | 'rule', index: number) => void) | undefined;
   onFollow?: (() => void) | undefined;
+  draft?:
+    | { readonly selection: DraftDiagramSelection | undefined; readonly revision: number }
+    | undefined;
+  connection?: { readonly from: number | undefined; readonly to: number | undefined } | undefined;
 }) {
   const marker = `diagram-arrow-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [statePage, setStatePage] = useState(0);
   const [rulePage, setRulePage] = useState(0);
   const [zoom, setZoom] = useState(0.75);
   const [followFocus, setFollowFocus] = useState(0);
+  const authoringSelection = draft?.selection;
+  useEffect(() => {
+    if (authoringSelection?.kind === 'state')
+      setStatePage(Math.floor(authoringSelection.index / DIAGRAM_POLICY.statesPerPage));
+    if (authoringSelection?.kind === 'rule')
+      setRulePage(Math.floor(authoringSelection.index / DIAGRAM_POLICY.rulesPerPage));
+  }, [authoringSelection]);
   const selectedGraphic = useRef<SVGGElement | null>(null);
   const canvas = useRef<HTMLElement | null>(null);
   type Selection = { kind: 'state'; key: string } | { kind: 'rule'; index: number };
@@ -127,27 +142,42 @@ export function StateDiagram({
     key: string | undefined;
     value: Selection | undefined;
   }>();
-  const targetState = inspection?.target?.kind === 'state' ? inspection.target.index : undefined;
+  const selectionKey = draft
+    ? `draft-${draft.revision}-${draft.selection?.kind ?? ''}-${draft.selection?.index ?? ''}`
+    : inspection?.key;
+  const targetState =
+    draft?.selection?.kind === 'state'
+      ? draft.selection.index
+      : inspection?.target?.kind === 'state'
+        ? inspection.target.index
+        : undefined;
   const selection =
-    localSelection && localSelection.key === inspection?.key
+    localSelection && localSelection.key === selectionKey
       ? localSelection.value
       : targetState !== undefined
         ? { kind: 'state' as const, key: `state-${targetState}` }
         : undefined;
   function setSelection(value: Selection | undefined) {
-    setLocalSelection({ key: inspection?.key, value });
+    setLocalSelection({ key: selectionKey, value });
   }
   const followRule = actors.find((actor) => actor.ruleIndex !== undefined)?.ruleIndex;
-  const focusRule = inspection ? inspection.ruleIndex : followRule;
+  const focusRule = draft
+    ? draft.selection?.kind === 'rule'
+      ? draft.selection.index
+      : undefined
+    : inspection
+      ? inspection.ruleIndex
+      : followRule;
   const requestedRulePage =
     !selection && focusRule !== undefined
       ? Math.floor(focusRule / DIAGRAM_POLICY.rulesPerPage)
       : rulePage;
   const currentKey = JSON.stringify(actors.map((actor) => actor.stateId));
   const selectedKey = JSON.stringify(
-    [inspection?.beforeStateId, inspection?.afterStateId].filter(
-      (id): id is string => id !== undefined,
-    ),
+    (connection
+      ? [protocol.states[connection.from ?? -1]?.id, protocol.states[connection.to ?? -1]?.id]
+      : [inspection?.beforeStateId, inspection?.afterStateId]
+    ).filter((id): id is string => id !== undefined),
   );
   const requestedStatePage =
     targetState !== undefined ? Math.floor(targetState / DIAGRAM_POLICY.statesPerPage) : statePage;
@@ -166,16 +196,19 @@ export function StateDiagram({
       ? selection.index
       : selection?.kind === 'state'
         ? undefined
-        : inspection
-          ? inspection.ruleIndex
-          : (followRule ?? graph.visibleRules[0]);
+        : draft?.selection?.kind === 'rule'
+          ? draft.selection.index
+          : inspection
+            ? inspection.ruleIndex
+            : (followRule ?? graph.visibleRules[0]);
   const rule = selectedRuleIndex === undefined ? undefined : protocol.rules[selectedRuleIndex];
   const node =
     selection?.kind === 'state'
       ? graph.nodes.find((item) => item.key === selection.key)
       : undefined;
   useEffect(() => {
-    if (!graph.nodes.length || (!selection && !inspection && followFocus <= 0)) return;
+    if (!graph.nodes.length || (!selection && !inspection && !selectionKey && followFocus <= 0))
+      return;
     const container = canvas.current;
     const element = selectedGraphic.current;
     if (!container || !element) return;
@@ -185,7 +218,7 @@ export function StateDiagram({
       container.scrollLeft += inner.left - outer.left - 24;
     if (inner.top < outer.top || inner.bottom > outer.bottom)
       container.scrollTop += inner.top - outer.top - 24;
-  }, [selection, followFocus, graph, inspection]);
+  }, [selection, followFocus, graph, inspection, selectionKey]);
   function selectRule(index: number) {
     setFollowFocus(0);
     setSelection({ kind: 'rule', index });
@@ -210,6 +243,7 @@ export function StateDiagram({
         <span>굵은 화살표: 최근 적용</span>
         <span>점선: 선택</span>
         {inspection && <span>선택 전/후: 관찰된 한 회차의 상태</span>}
+        {connection && <span>연결 출발/도착: 생성 전 선택</span>}
       </div>
       {!!actors.length && (
         <p className='diagram-runtime'>
@@ -401,12 +435,18 @@ export function StateDiagram({
             };
             const before = inspection?.beforeStateId === item.id;
             const after = inspection?.afterStateId === item.id;
+            const connectionFrom =
+              item.stateIndex !== undefined && item.stateIndex === connection?.from;
+            const connectionTo =
+              item.stateIndex !== undefined && item.stateIndex === connection?.to;
             const badges = [
               item.initial ? '초기' : '',
               item.terminal ? '종료' : '',
               current.length ? `현재 ${current.map((actor) => actor.participant).join('·')}` : '',
               before ? '선택 전' : '',
               after ? '선택 후' : '',
+              connectionFrom ? '연결 출발' : '',
+              connectionTo ? '연결 도착' : '',
             ]
               .filter(Boolean)
               .join(' · ');
@@ -422,7 +462,7 @@ export function StateDiagram({
                     ? selectedGraphic
                     : undefined
                 }
-                className={`diagram-node ${item.problem ? 'is-invalid' : ''} ${current.length ? 'is-current' : ''} ${selected ? 'is-selected' : ''} ${before ? 'is-before' : ''} ${after ? 'is-after' : ''}`}
+                className={`diagram-node ${item.problem ? 'is-invalid' : ''} ${current.length ? 'is-current' : ''} ${selected ? 'is-selected' : ''} ${before ? 'is-before' : ''} ${after ? 'is-after' : ''} ${connectionFrom ? 'is-connection-from' : ''} ${connectionTo ? 'is-connection-to' : ''}`}
                 role='button'
                 tabIndex={0}
                 aria-pressed={selected}

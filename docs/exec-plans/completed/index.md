@@ -8,3 +8,4 @@
 | [프로토콜 상태도 자동 생성과 실행 표시](20261102-protocol-state-diagram.md) | 2026-11-02 | 초안/실행 SVG 상태도·현재/최근 전이·조건/동작·편집 이동 | 로컬 Node 222·문서 28·Chromium/Firefox E2E 92·열린 상태도 응답성 2. 시퀀스 그림·직접 그래프 편집은 범위 밖 |
 | [통신 시퀀스 다이어그램과 메시지 상세](20261102-communication-sequence-diagram.md) | 2026-11-02 | 관찰 prefix의 송신/수신·장애·재전송 후보·snapshot 필드/바이트·인과관계 | 로컬 Node 231·문서 29·Chromium/Firefox E2E 104·열린 상태도/시퀀스 응답성 2. 실제 네트워크·직접 그래프 편집은 범위 밖 |
 | [상태도와 통신 시퀀스 연동](20261102-linked-execution-diagrams.md) | 2026-11-02 | 실행 회차·선택 전후와 관련 시퀀스의 양방향 탐색·자동 재생/선택 정지 | 로컬 Node 240·문서 30·Chromium/Firefox E2E 120·연동 포함 응답성 2. 초기 성능 초과와 동일 기준 재검사 기록, 실제 네트워크·배포는 범위 밖 |
+| [초안 상태도 시각적 편집](20261103-visual-protocol-authoring.md) | 2026-11-03 | 상태·전이 생성과 기존 폼의 옆 편집기·단일 필드 소유 | 로컬 Node 250·문서 31·Chromium/Firefox E2E 134·응답성 2. 자유 배치/드래그·실행 snapshot 수정은 범위 밖 |
