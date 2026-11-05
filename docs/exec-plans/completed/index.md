@@ -13,3 +13,4 @@
 | [규칙 선택과 변수 변경 설명](20261105-execution-explanations.md) | 2026-11-05 | snapshot·직접 trigger의 조건/단락·순차 대입과 기록 대조, 현재 prefix·회차 연동 | 로컬 Node 273·문서 33·Chromium/Firefox E2E 160·설명 포함 응답성 2. 초기 저장 복구 시험 경합과 수정/재검증 기록. 실제 네트워크·배포는 범위 밖 |
 | [시나리오 묶음과 회귀 검증](20261105-scenario-regression-suites.md) | 2026-11-05 | 공통 정의의 최대 20사례 작성·독립 실행·동일 조건 판정 비교·기록 재생과 저장 | 로컬 Node 284·문서 34·Chromium/Firefox E2E 170·응답성 2. 중단 경계/저장 selector 수정과 미재현 timeout·최종 통과 기록. 실제 네트워크·배포는 범위 밖 |
 | [실패 원인 진단과 관련 기록 이동](20261105-failure-diagnostics.md) | 2026-11-05 | 네 기대 조건의 기대/관찰·저장 판정 대조, 직접 연결/참고 관찰과 기존 시퀀스/설명 이동 | 로컬 Node 294·문서 35·Chromium/Firefox E2E 182·진단 포함 응답성 2. 과거 prefix 보강·미판정/한도 유지. 실제 네트워크·배포는 범위 밖 |
+| [메시지 구조 시각화](20261105-message-structure-visualization.md) | 2026-11-05 | HTTP/JSON 실제 구획/필드 범위·논리 패킷/청크 구분·선택 byte 강조와 유한 hex/ASCII | 로컬 Node 305·문서 36·Chromium/Firefox E2E 196·구조 포함 응답성 2. split fixture/page 보강·507 kB build advisory 기록. 실제 네트워크/임의 binary·배포는 범위 밖 |

@@ -35,6 +35,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [실패 진단과 관련 기록 이동](exec-plans/completed/20261105-failure-diagnostics.md)을 구현·검증했다. 당시 기대/실제·직접 연결과 참고 관찰을 구분하며, 현재 계약은 [V1-015](product-specs/protocol-simulator-v1.md#v1-015-실패-원인-진단과-관련-기록-이동)를 따른다.
 
+[메시지 구조 시각화](exec-plans/completed/20261105-message-structure-visualization.md)를 구현·검증했다. 실제 전송 구획/필드 범위와 논리 구조·수신 청크를 구분하며 현재 기준은 [V1-016](product-specs/protocol-simulator-v1.md#v1-016-메시지-구조-시각화)을 따른다.
+
 ## 선택 문서
 
 v1의 제품 규칙·화면과 하위 서비스·상태·타이머·재현성 계약을 분리할 필요가 생겨 Product Specs와 Design Docs를 도입했다. 두 영역은 index와 재사용 양식을 포함한다. 독립적인 기술 결정 문서·용어 사전·skill은 현재 필요가 없어 추가하지 않았다. 실제로 추가한 문서만 이 지도에 링크한다.

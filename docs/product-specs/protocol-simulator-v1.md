@@ -174,6 +174,18 @@ DraftRecord.suite와 SavedRun.regression은 optional 확장으로 이전 workspa
 
 패널을 열었을 때 선택 조건만 계산한다. 최대 10,000개 이벤트를 읽되 wire payload를 복사/해석하지 않는다. 값 비교는 누적 4096 node·32768 character·깊이 32, 연결 탐색은 최대 64개, 근거/참고/연결 기록은 페이지당 20개이며 긴 값/ID는 요약한다. 키보드·390px와 진단을 연 상태의 10k/1 MiB 응답성을 검증한다. 저장/engine/trace 버전·실행 결과·production dependency는 변경하지 않는다.
 
+### V1-016: 메시지 구조 시각화
+
+실행의 이벤트/시퀀스를 선택하고 ‘메시지 구조 보기’를 열면 당시 참여자 정의와 관찰된 전송 표현을 연결한다. 필드 카드에 stable ID·wire 이름·타입·필수/선택·논리 배치·기록 값을 표시하고, 전송 영역과 필드를 선택해 `[start,end)` byte 범위·길이와 실제 hex/ASCII 페이지를 강조한다. header/body/payload는 JSON 코덱에서 논리 분류이며 고정 크기 binary header를 만들어내지 않는다. 영역 카드의 화면 크기는 byte 길이 비율이 아니며 실제 길이는 숫자로 표시한다.
+
+HTTP 송신은 관찰 bytes에서 시작 줄·각 헤더·CRLF 종료·현재 송신 끝까지의 본문을 표시한다. request method/target, response status/reason, 선언한 헤더 값과 본문 필드를 실제 범위로 연결한다. Content-Length는 코덱이 계산한 전송 헤더 값이며 현재 송신 본문 byte 수와 함께 표시하고 차이를 명시한다. 중복 헤더는 단일 필드 범위를 선택하지 않는다. raw HTTP는 구획 표시와 유효성 판정을 구분한다. 제한된 헤더 분석 구간에 경계가 없으면 본문을 추정하지 않는다. 전체 HTTP 검증이나 수신 성공을 새로 판정하지 않는다.
+
+작은 완전한 JSON 송신은 실제 envelope·messageId·wire 필드 token·JSON Lines LF를 표시한다. 문자열의 따옴표/escape와 UTF-8 byte offset을 포함하며 0/false/빈 문자열을 보존한다. 중복 key·잘못된 UTF-8/JSON·단일 frame을 확인할 수 없는 경우 원시 bytes로 표시한다. 전송 값과 메시지 필드 기록이 다르면 명시한다. 큰 JSON의 token 분석은 생략하고 필드 값과 원시 byte 페이지를 별도로 제공한다. 논리 패킷은 실제 wire-name 필드를 표시하되 binary TCP/IP encoding이나 byte offset을 부여하지 않는다.
+
+receive의 byte 청크는 현재 청크만 표시한다. 원인 송신/다른 청크/나중 parsed를 합쳐 완전한 메시지나 필드 범위를 추정하지 않는다. input/parsed/deliver에는 당시 필드 값을 표시하고 없는 wire를 재생성하지 않는다. 현재 history cursor 밖 이벤트는 조회하지 않으며 새 초안·복원/회귀 사례에서도 frozen snapshot과 실제 선택 기록을 사용한다. 지원하지 않는 버전/없는 정의는 원시 bytes와 명시적 제한을 제공한다. 이 조회는 재전송·재해석·실행 판정·기록 저장을 변경하지 않는다.
+
+패널을 열었을 때만 계산한다. 구조 분석은 앞 32768 bytes, JSON token 1024개/깊이 8, 필드/영역 각 128개로 제한한다. 값은 240자, 필드/영역은 20개/page, 실제 byte 표는 256 bytes/page이며 처음/이전/다음/끝/페이지 번호/선택 범위로 이동할 수 있다. 큰 원본은 trace/bundle에 보존하고 전체 payload를 복사하지 않는다. 키보드·390px 내부 가로 스크롤과 열린 구조 패널의 10k/1 MiB 응답성 500ms·32768자 미만을 검증한다. 기존 입력·저장·프레임 한도, engine/trace/storage 버전과 dependency는 유지한다.
+
 ## 화면 구성
 
 시작 화면은 예제, 내 실험, 새 실험 만들기로 구성한다. 새 실험은 대상 계층 → 프로토콜·하위 서비스 → 기본 시나리오 순서로 안내한다.

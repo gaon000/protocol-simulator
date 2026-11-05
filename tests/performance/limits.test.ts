@@ -172,6 +172,20 @@ for (const fixture of ['10k', '1MiB'] as const) {
     const diagnosisMs = performance.now() - diagnosisBegan;
     const diagnosisChars = await diagnosis.evaluate((element) => element.textContent?.length ?? 0);
     expect(await diagnosis.locator('[data-diagnosis-event]').count()).toBeLessThanOrEqual(40);
+    if (fixture === '10k')
+      await page.getByRole('button', { name: '기록 첫 페이지', exact: true }).click();
+    await page.locator(`[data-event-id="${fixture === '10k' ? 'e-1' : 'e-2'}"]`).click();
+    await page.evaluate(() => performance.mark('probe-structure'));
+    const structureBegan = performance.now();
+    await page.locator('summary').filter({ hasText: '메시지 구조 보기' }).click();
+    const structure = page.getByRole('region', { name: '선택 메시지 구조', exact: true });
+    await expect(structure).toHaveAttribute(
+      'data-structure-status',
+      fixture === '10k' ? 'logical' : 'limited',
+    );
+    const structureMs = performance.now() - structureBegan;
+    const structureChars = await structure.evaluate((element) => element.textContent?.length ?? 0);
+    expect(await structure.locator('[data-byte-offset]').count()).toBeLessThanOrEqual(256);
     await page.evaluate(() => performance.mark('probe-control'));
     const controlSamples: number[] = [];
     const checkbox = page.getByLabel('메시지 중심으로 보기');
@@ -268,6 +282,8 @@ for (const fixture of ['10k', '1MiB'] as const) {
       explanationChars,
       diagnosisMs,
       diagnosisChars,
+      structureMs,
+      structureChars,
       controlSamples: controlSamples.length,
       detailMs,
       detailChars,
@@ -288,6 +304,8 @@ for (const fixture of ['10k', '1MiB'] as const) {
     expect(explanationChars).toBeLessThan(32_768);
     expect(diagnosisMs).toBeLessThan(500);
     expect(diagnosisChars).toBeLessThan(32_768);
+    expect(structureMs).toBeLessThan(500);
+    expect(structureChars).toBeLessThan(32_768);
     expect(detailMs).toBeLessThan(500);
     expect(detailChars).toBeLessThan(32_768);
     expect(sequenceDetailChars).toBeLessThan(32_768);

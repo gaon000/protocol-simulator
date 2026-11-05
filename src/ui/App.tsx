@@ -42,6 +42,7 @@ import { ExecutionExplanation } from './ExecutionExplanation.tsx';
 import { FailureDiagnostics } from './FailureDiagnostics.tsx';
 import { Control, EditorContext, Group } from './forms.tsx';
 import { HistoryPanel } from './HistoryPanel.tsx';
+import { MessageStructurePanel } from './MessageStructure.tsx';
 import { ProtocolEditor } from './ProtocolEditor.tsx';
 import { DraftStateDiagram, ExecutionStateDiagram } from './ProtocolStateDiagrams.tsx';
 import { EventInspector, RunView } from './RunView.tsx';
@@ -1139,6 +1140,15 @@ export function App() {
                           selectRunEvent(id);
                           revealDiagram(explain ? 'explanation' : 'sequence');
                         }}
+                      />
+                    )}
+                    {displayed && (
+                      <MessageStructurePanel
+                        key={`structure-${displayed.runId}`}
+                        context={historyId ?? 'live'}
+                        run={displayed}
+                        selected={selected}
+                        eventCount={diagramEventCount}
                       />
                     )}
                     <RunView
