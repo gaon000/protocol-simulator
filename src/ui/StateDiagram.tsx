@@ -33,6 +33,11 @@ export type DiagramActor = {
   readonly outcome: string;
   readonly ruleIndex: number | undefined;
 };
+export type DiagramCoverage = {
+  readonly states: ReadonlyMap<string, number>;
+  readonly rules: ReadonlyMap<string, number>;
+  readonly selection: DraftDiagramSelection | undefined;
+};
 const EMPTY_ACTORS: readonly DiagramActor[] = [];
 const short = (text: string, size = 24) => (text.length > size ? `${text.slice(0, size)}…` : text);
 function expression(value: ValueExpression, depth = 0): string {
@@ -109,6 +114,8 @@ export function StateDiagram({
   onFollow,
   draft,
   connection,
+  coverage,
+  readOnlyMessage,
 }: {
   protocol: ProtocolDefinition;
   title: string;
@@ -122,13 +129,15 @@ export function StateDiagram({
     | { readonly selection: DraftDiagramSelection | undefined; readonly revision: number }
     | undefined;
   connection?: { readonly from: number | undefined; readonly to: number | undefined } | undefined;
+  coverage?: DiagramCoverage;
+  readOnlyMessage?: string;
 }) {
   const marker = `diagram-arrow-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [statePage, setStatePage] = useState(0);
   const [rulePage, setRulePage] = useState(0);
   const [zoom, setZoom] = useState(0.75);
   const [followFocus, setFollowFocus] = useState(0);
-  const authoringSelection = draft?.selection;
+  const authoringSelection = draft?.selection ?? coverage?.selection;
   useEffect(() => {
     if (authoringSelection?.kind === 'state')
       setStatePage(Math.floor(authoringSelection.index / DIAGRAM_POLICY.statesPerPage));
@@ -144,13 +153,17 @@ export function StateDiagram({
   }>();
   const selectionKey = draft
     ? `draft-${draft.revision}-${draft.selection?.kind ?? ''}-${draft.selection?.index ?? ''}`
-    : inspection?.key;
+    : coverage
+      ? `coverage-${coverage.selection?.kind}-${coverage.selection?.index}`
+      : inspection?.key;
   const targetState =
     draft?.selection?.kind === 'state'
       ? draft.selection.index
-      : inspection?.target?.kind === 'state'
-        ? inspection.target.index
-        : undefined;
+      : coverage?.selection?.kind === 'state'
+        ? coverage.selection.index
+        : inspection?.target?.kind === 'state'
+          ? inspection.target.index
+          : undefined;
   const selection =
     localSelection && localSelection.key === selectionKey
       ? localSelection.value
@@ -165,9 +178,11 @@ export function StateDiagram({
     ? draft.selection?.kind === 'rule'
       ? draft.selection.index
       : undefined
-    : inspection
-      ? inspection.ruleIndex
-      : followRule;
+    : coverage?.selection?.kind === 'rule'
+      ? coverage.selection.index
+      : inspection
+        ? inspection.ruleIndex
+        : followRule;
   const requestedRulePage =
     !selection && focusRule !== undefined
       ? Math.floor(focusRule / DIAGRAM_POLICY.rulesPerPage)
@@ -198,9 +213,11 @@ export function StateDiagram({
         ? undefined
         : draft?.selection?.kind === 'rule'
           ? draft.selection.index
-          : inspection
-            ? inspection.ruleIndex
-            : (followRule ?? graph.visibleRules[0]);
+          : coverage?.selection?.kind === 'rule'
+            ? coverage.selection.index
+            : inspection
+              ? inspection.ruleIndex
+              : (followRule ?? graph.visibleRules[0]);
   const rule = selectedRuleIndex === undefined ? undefined : protocol.rules[selectedRuleIndex];
   const node =
     selection?.kind === 'state'
@@ -239,11 +256,18 @@ export function StateDiagram({
       <div className='diagram-legend'>
         <span>→ 초기</span>
         <span>이중 테두리: 종료</span>
-        <span>현재 A/B: 실행 위치</span>
-        <span>굵은 화살표: 최근 적용</span>
+        {!coverage && <span>현재 A/B: 실행 위치</span>}
+        {!coverage && <span>굵은 화살표: 최근 적용</span>}
         <span>점선: 선택</span>
         {inspection && <span>선택 전/후: 관찰된 한 회차의 상태</span>}
         {connection && <span>연결 출발/도착: 생성 전 선택</span>}
+        {coverage && (
+          <>
+            <span>초록: 관찰됨</span>
+            <span>주황: 일부 평행 규칙 관찰</span>
+            <span>회색: 미관찰</span>
+          </>
+        )}
       </div>
       {!!actors.length && (
         <p className='diagram-runtime'>
@@ -387,6 +411,13 @@ export function StateDiagram({
             const selected =
               selectedRuleIndex !== undefined && edge.ruleIndices.includes(selectedRuleIndex);
             const first = protocol.rules[edge.ruleIndices[0] ?? -1];
+            const counts = coverage
+              ? edge.ruleIndices.map(
+                  (index) => coverage.rules.get(protocol.rules[index]?.id ?? '') ?? 0,
+                )
+              : [];
+            const covered = counts.filter((count) => count > 0).length;
+            const executions = counts.reduce((sum, count) => sum + count, 0);
             const label =
               edge.ruleIndices.length === 1
                 ? short(first?.id || '(빈 규칙 ID)', 16)
@@ -400,7 +431,17 @@ export function StateDiagram({
                 role='button'
                 tabIndex={0}
                 aria-pressed={selected}
-                aria-label={`상태도 규칙 ${edge.ruleIndices.map((index) => short(protocol.rules[index]?.id || '(빈 ID)')).join(', ')} 선택${applied.length ? ` · 최근 적용 ${applied.map((actor) => actor.participant).join(',')}` : ''}`}
+                data-coverage={
+                  coverage
+                    ? !covered
+                      ? 'unobserved'
+                      : covered < counts.length
+                        ? 'partial'
+                        : 'covered'
+                    : undefined
+                }
+                data-coverage-count={coverage ? executions : undefined}
+                aria-label={`상태도 규칙 ${edge.ruleIndices.map((index) => short(protocol.rules[index]?.id || '(빈 ID)')).join(', ')} 선택${applied.length ? ` · 최근 적용 ${applied.map((actor) => actor.participant).join(',')}` : ''}${coverage ? ` · 관찰 ${covered}/${counts.length} 규칙 · 실행 ${executions}회` : ''}`}
                 onClick={choose}
                 onKeyDown={(event) => activate(event, choose)}
                 onFocus={revealKeyboardFocus}
@@ -418,9 +459,13 @@ export function StateDiagram({
                   {label}
                 </text>
                 <text x={edge.labelX} y={edge.labelY + 12} className='diagram-event-label'>
-                  {edge.ruleIndices.length > 1
-                    ? '개별 규칙 선택'
-                    : short(first ? eventText(first.event) : '', 14)}
+                  {coverage
+                    ? counts.length > 1
+                      ? `관찰 ${covered}/${counts.length} 규칙`
+                      : `실행 ${executions}회`
+                    : edge.ruleIndices.length > 1
+                      ? '개별 규칙 선택'
+                      : short(first ? eventText(first.event) : '', 14)}
                 </text>
               </g>
             );
@@ -447,6 +492,7 @@ export function StateDiagram({
               after ? '선택 후' : '',
               connectionFrom ? '연결 출발' : '',
               connectionTo ? '연결 도착' : '',
+              coverage ? `관찰 ${coverage.states.get(item.id) ?? 0}회` : '',
             ]
               .filter(Boolean)
               .join(' · ');
@@ -468,6 +514,14 @@ export function StateDiagram({
                 aria-pressed={selected}
                 aria-label={`상태 ${short(item.id || '(빈 ID)', 80)} · ${short(item.label, 80)}${badges ? ` · ${badges}` : ''}${item.problem ? ` · ${item.problem}` : ''}`}
                 data-state-index={item.stateIndex}
+                data-coverage={
+                  coverage
+                    ? (coverage.states.get(item.id) ?? 0) > 0
+                      ? 'covered'
+                      : 'unobserved'
+                    : undefined
+                }
+                data-coverage-count={coverage ? (coverage.states.get(item.id) ?? 0) : undefined}
                 data-current-participants={current.map((actor) => actor.participant).join(',')}
                 onClick={choose}
                 onKeyDown={(event) => activate(event, choose)}
@@ -512,6 +566,9 @@ export function StateDiagram({
             <option key={index} value={index}>
               {short(protocol.rules[index]?.id || '(빈 ID)', 80)} ·{' '}
               {protocol.rules[index] ? eventText(protocol.rules[index].event) : ''}
+              {coverage
+                ? ` · 실행 ${coverage.rules.get(protocol.rules[index]?.id ?? '') ?? 0}회`
+                : ''}
             </option>
           ))}
         </select>
@@ -576,8 +633,8 @@ export function StateDiagram({
       {!protocol.rules.length && <p>규칙을 추가하면 상태 사이의 화살표를 표시합니다.</p>}
       {!onEdit && (
         <p className='hint'>
-          실행 당시 정의가 현재 초안과 달라 편집 이동을 사용할 수 없습니다. 기록의 ‘이 설정을 새
-          초안으로’에서 복원 사본을 만들 수 있습니다.
+          {readOnlyMessage ??
+            '실행 당시 정의가 현재 초안과 달라 편집 이동을 사용할 수 없습니다. 기록의 ‘이 설정을 새 초안으로’에서 복원 사본을 만들 수 있습니다.'}
         </p>
       )}
     </section>

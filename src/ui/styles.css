@@ -1379,3 +1379,62 @@ pre {
   border-left: 4px solid #a47534;
   background: #fff6e8;
 }
+.suite-coverage {
+  padding: 1rem;
+  border: 1px solid #cbd5e2;
+  border-radius: 8px;
+  min-width: 0;
+}
+.coverage-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 10px;
+}
+.coverage-summary section,
+.coverage-case {
+  padding: 10px;
+  border: 1px solid #d7deea;
+  border-radius: 6px;
+  margin-block: 10px;
+}
+.coverage-items {
+  display: grid;
+  gap: 7px;
+  margin-block: 12px;
+}
+.coverage-items button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.coverage-items [aria-pressed="true"] {
+  background: #e2efff;
+  border-color: #3269b0;
+}
+.suite-coverage .diagram-node[data-coverage="covered"] > rect:first-child {
+  fill: #e7f5eb;
+  stroke: #388354;
+}
+.suite-coverage .diagram-node[data-coverage="unobserved"] > rect:first-child {
+  fill: #f2f3f5;
+  stroke: #7d8795;
+  stroke-dasharray: 5 4;
+}
+.suite-coverage .diagram-edge[data-coverage="covered"] .diagram-edge-line {
+  stroke: #388354;
+  stroke-width: 3;
+}
+.suite-coverage .diagram-edge[data-coverage="partial"] .diagram-edge-line {
+  stroke: #a46a24;
+  stroke-width: 3;
+  stroke-dasharray: 8 3;
+}
+.suite-coverage .diagram-edge[data-coverage="unobserved"] .diagram-edge-line {
+  stroke: #7d8795;
+  stroke-dasharray: 4 4;
+}
+.suite-coverage .diagram-node.is-selected > rect:first-child,
+.suite-coverage .diagram-node:focus-visible > rect:first-child {
+  stroke: #7447a5;
+  stroke-width: 3;
+  stroke-dasharray: 6 3;
+}

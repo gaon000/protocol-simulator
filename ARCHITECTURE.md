@@ -50,6 +50,7 @@
 | [tests/unit/](tests/unit/execution-contract.test.ts), [tests/integration/](tests/integration/run-snapshot.test.ts), [tests/e2e/](tests/e2e/workspace.test.ts) | 계약·문서 검사와 실제 브라우저의 편집·실행 흐름 |
 | [src/domain/suite-validation.ts](src/domain/suite-validation.ts), [src/application/scenario-suites.ts](src/application/scenario-suites.ts), [src/ui/ScenarioSuitePanel.tsx](src/ui/ScenarioSuitePanel.tsx) | 공통 정의/사례 분리·미완성 저장·전체 검증·동일 조건의 판정 비교와 history 연결 |
 | [src/application/run-series.ts](src/application/run-series.ts), [src/ui/useBatchExperiments.ts](src/ui/useBatchExperiments.ts) | 반복/회귀 실행의 공통 64작업 slice·취소 fence·단일 scheduler와 용량 정책 |
+| [src/application/suite-coverage.ts](src/application/suite-coverage.ts), [src/ui/SuiteCoverage.tsx](src/ui/SuiteCoverage.tsx) | 한 regression group의 공통 snapshot/manifest 검증·관찰 counts와 사례별 첫 위치. 기존 상태도에 readonly coverage를 주입하고 history cursor로 연결 |
 
 공개 서버 API·CLI는 미구성이며 로컬 저장은 native IndexedDB를 사용한다. 실제 개발 도구·명령은 [Development](docs/development.md)를 따른다.
 

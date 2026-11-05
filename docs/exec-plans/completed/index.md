@@ -15,3 +15,4 @@
 | [실패 원인 진단과 관련 기록 이동](20261105-failure-diagnostics.md) | 2026-11-05 | 네 기대 조건의 기대/관찰·저장 판정 대조, 직접 연결/참고 관찰과 기존 시퀀스/설명 이동 | 로컬 Node 294·문서 35·Chromium/Firefox E2E 182·진단 포함 응답성 2. 과거 prefix 보강·미판정/한도 유지. 실제 네트워크·배포는 범위 밖 |
 | [메시지 구조 시각화](20261105-message-structure-visualization.md) | 2026-11-05 | HTTP/JSON 실제 구획/필드 범위·논리 패킷/청크 구분·선택 byte 강조와 유한 hex/ASCII | 로컬 Node 305·문서 36·Chromium/Firefox E2E 196·구조 포함 응답성 2. split fixture/page 보강·507 kB build advisory 기록. 실제 네트워크/임의 binary·배포는 범위 밖 |
 | [중단점과 조건부 실행 정지](20261105-conditional-breakpoints.md) | 2026-11-05 | 상태/parsed/after 변수 조건·원자적 단계 정지와 근거/계속/재생·탭별 설정 | 로컬 Node 318·문서 37·Chromium/Firefox E2E 212·20개 활성 응답성 2. revision 재검증·원본 trace 동등성·390px 확인. 일괄 실행 정지/실제 통신/배포는 범위 밖 |
+| [시나리오 묶음 검증 커버리지](20261105-scenario-suite-coverage.md) | 2026-11-05 | 공통 snapshot의 A/B 관찰 횟수·미관찰/평행 전이와 사례 첫 관찰 재생 | 로컬 Node 330·문서 38·Chromium/Firefox E2E 226·응답성 3. 실제 20사례/200k trace·부분/누락/오류·390px 확인. 분기/경로 증명·실제 통신/배포는 범위 밖 |

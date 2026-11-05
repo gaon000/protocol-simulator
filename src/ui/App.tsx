@@ -445,7 +445,7 @@ export function App() {
     setViewId('configuration');
     setNotice('');
   }
-  function selectHistory(record: SavedRun) {
+  function selectHistory(record: SavedRun, position?: number) {
     setDebugStop(undefined);
     batch.stop('기록을 살펴보기 위해 실행 묶음을 중단했습니다.');
     setDiagramTarget(undefined);
@@ -453,9 +453,13 @@ export function App() {
     const latest =
       storage.controller.view().data.runs.find((item) => item.id === record.id) ?? record;
     setHistoryId(record.id);
-    setHistoryPosition(latest.view.events.length + 1);
+    const cursor =
+      position === undefined
+        ? latest.view.events.length + 1
+        : Math.max(0, Math.min(latest.view.events.length + 1, Math.floor(position)));
+    setHistoryPosition(cursor);
     setHistoryPlaying(false);
-    setSelected(undefined);
+    setSelected(position === undefined ? undefined : latest.view.events[cursor - 1]?.eventId);
     setLibrary(false);
     setViewId('run');
     setNotice('');

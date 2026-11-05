@@ -24,6 +24,7 @@ import {
 import { EnvironmentEditor } from './EnvironmentEditor.tsx';
 import { EditorContext } from './forms.tsx';
 import { ScenarioEditor } from './ScenarioEditor.tsx';
+import { SuiteCoveragePanel } from './SuiteCoverage.tsx';
 
 const verdicts = { pass: '통과', fail: '실패', undetermined: '미판정' };
 function verdict(record: SavedRun | undefined) {
@@ -57,7 +58,7 @@ export function ScenarioSuitePanel({
   onSuite: (suite: ScenarioSuite | undefined) => void;
   onStart: (plan: RegressionPlan) => void;
   onStop: () => void;
-  onInspect: (record: SavedRun) => void;
+  onInspect: (record: SavedRun, position?: number) => void;
   onSharedEdit: (path: string) => void;
 }) {
   const suite = draft.suite;
@@ -402,6 +403,7 @@ export function ScenarioSuitePanel({
               }}
             />
           </label>
+          <SuiteCoveragePanel records={local} groupId={currentId} onInspect={onInspect} />
           <p>
             사례 {rows.length}개 · 새 실패 {rows.filter((row) => row.change === '새 실패').length}개
             · 개선 {rows.filter((row) => row.change === '개선').length}개
