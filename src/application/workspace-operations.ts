@@ -1,16 +1,16 @@
+import { isOwnedImmutable } from '../domain/immutable-data.ts';
 import type {
-  ExperimentDefinition,
   EngineView,
+  ExperimentDefinition,
   ValidationResult,
 } from '../domain/protocol-model.ts';
-import { parseWorkspaceBundle, parseWorkspaceData } from '../domain/workspace-validation.ts';
 import {
-  WORKSPACE_POLICY,
   type DraftRecord,
   type SavedRun,
+  WORKSPACE_POLICY,
   type WorkspaceData,
 } from '../domain/workspace-model.ts';
-import { isOwnedImmutable } from '../domain/immutable-data.ts';
+import { parseWorkspaceBundle, parseWorkspaceData } from '../domain/workspace-validation.ts';
 
 /** Allocate a workspace identity independently of declaration IDs inside experiments. */
 export function workspaceId(prefix: string): string {
@@ -72,9 +72,26 @@ export function mergeWorkspaces(
     if (!drafts.some((draft) => draft.id === id)) drafts.push({ ...item, id });
   }
   const runs = [...current.runs];
+  const batchIds = new Set(current.runs.flatMap((run) => (run.batch ? [run.batch.id] : [])));
+  const batches = new Map<string, string>();
+  for (const run of incoming.runs) {
+    if (!run.batch || batches.has(run.batch.id)) continue;
+    const id = run.batch.id;
+    const canReuse =
+      reuseIdentical &&
+      incoming.runs
+        .filter((item) => item.batch?.id === id)
+        .every((item) => {
+          if (mapping.get(item.experimentId) !== item.experimentId) return false;
+          const existing = current.runs.find((saved) => saved.id === item.id);
+          return !existing || JSON.stringify(existing) === JSON.stringify(item);
+        });
+    batches.set(id, batchIds.has(id) && !canReuse ? workspaceId('batch') : id);
+  }
   for (const item of incoming.runs) {
     if (
       reuseIdentical &&
+      (!item.batch || batches.get(item.batch.id) === item.batch.id) &&
       runs.some((run) => run.id === item.id && JSON.stringify(run) === JSON.stringify(item))
     )
       continue;
@@ -82,6 +99,9 @@ export function mergeWorkspaces(
       ...item,
       id: runs.some((run) => run.id === item.id) ? workspaceId('saved_run') : item.id,
       experimentId: mapping.get(item.experimentId) ?? item.experimentId,
+      ...(item.batch
+        ? { batch: { ...item.batch, id: batches.get(item.batch.id) ?? item.batch.id } }
+        : {}),
     });
   }
   if (drafts.length > WORKSPACE_POLICY.maxDrafts || runs.length > WORKSPACE_POLICY.maxRuns)

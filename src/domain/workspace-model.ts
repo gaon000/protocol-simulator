@@ -21,6 +21,19 @@ export type SavedRun = {
   readonly createdAt: number;
   readonly draftVersion: number;
   readonly view: EngineView;
+  readonly batch?: BatchRunInfo;
+};
+export type BatchRunInfo = {
+  readonly id: string;
+  readonly label: string;
+  readonly totalRuns: number;
+  readonly variantCount: number;
+  readonly variantIndex: number;
+  readonly seedIndex: number;
+  readonly seeds: readonly number[];
+  readonly direction: 'both' | 'AtoB' | 'BtoA';
+  readonly lossRate: number | null;
+  readonly delayMs: number | null;
 };
 export type WorkspaceData = {
   readonly schemaVersion: 1;

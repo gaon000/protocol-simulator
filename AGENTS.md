@@ -10,6 +10,8 @@
 
 초기 대상 사용자: 프로토콜의 구조·흐름을 이해하거나 자기 프로토콜을 설계·검증하려는 개발자와 학습자.
 
+반복 실험은 [V1-012](docs/product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다. 같은 seed 목록과 고정한 초안으로 독립 실행하며 completed·기대 조건 통과·미판정·미실행을 구분한다. SavedRun의 optional batch metadata와 기존 workspace 한도·저장 오류 계약을 보존한다.
+
 ## 먼저 읽을 문서
 
 - [문서 지도](docs/index.md): 작업에 필요한 문서 찾기.

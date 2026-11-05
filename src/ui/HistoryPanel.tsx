@@ -1,5 +1,5 @@
-import { snapshotCompatibility } from '../domain/workspace-validation.ts';
 import type { SavedRun } from '../domain/workspace-model.ts';
+import { snapshotCompatibility } from '../domain/workspace-validation.ts';
 
 /** Keep saved-record navigation and explicit snapshot execution separate from live-run controls. */
 export function HistoryPanel({
@@ -47,6 +47,9 @@ export function HistoryPanel({
             <option key={item.id} value={item.id}>
               {item.view.snapshot.configuration.label} · {new Date(item.createdAt).toLocaleString()}{' '}
               · {item.id.slice(-8)} · {item.view.status}
+              {item.batch
+                ? ` · ${item.batch.label} · 조건 ${item.batch.variantIndex + 1} · seed ${item.view.snapshot.seed}`
+                : ''}
             </option>
           ))}
         </select>
@@ -60,6 +63,12 @@ export function HistoryPanel({
           <p className='hint'>
             상태는 선택 위치까지의 전이 기록 기준입니다. 현재 실행의 상태·큐는 변경하지 않습니다.
           </p>
+          {record.batch && (
+            <p>
+              반복 실험 · {record.batch.label} · 조건 {record.batch.variantIndex + 1} · seed{' '}
+              {record.view.snapshot.seed}
+            </p>
+          )}
           <label className='control'>
             <span>
               기록 재생 위치 · {position}/{record.view.events.length + 1}

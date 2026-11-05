@@ -25,6 +25,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 후속 [두 그림 연동](exec-plans/completed/20261102-linked-execution-diagrams.md)을 완료했다. 같은 snapshot/prefix의 선택 이벤트·규칙·전후 상태와 여러 실행 회차를 연결한다.
 
+[반복 실험과 결과 비교](exec-plans/completed/20261105-batch-experiment-comparison.md)를 구현·검증했다. 조건별 공통 seed 실행·집계·로컬 기록과 기존 그림 재생을 연결한다. 현재 계약은 [V1-012](product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다.
+
 [초안 상태도 작성](exec-plans/completed/20261103-visual-protocol-authoring.md)을 완료했다. 상태 추가·두 상태 연결·이벤트 선택과 기존 폼의 옆 편집기를 연결하며 실행 snapshot의 읽기 전용 경계를 유지한다.
 
 ## 선택 문서

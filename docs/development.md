@@ -78,6 +78,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
+반복 실험은 [V1-012](product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다. 같은 seed 순서·방향별 설정 보존·불변 source·독립 재실행 일치·중단 callback·한도/미판정·bundle metadata/충돌을 Node에서 검사한다. Chromium/Firefox에서 손실률별 결과·초안 수정 전후 공통 seed·기록 재생/새로고침·다른 화면에서 중단·불완전 초안/잘못된 입력과 390px 키보드/native 표 스크롤을 검사한다. 묶음은 최대 100회이며 기존 응답성 검사 한도를 완화하지 않는다.
+
 초안 상태도 작성은 [V1-011](product-specs/protocol-simulator-v1.md#v1-011-초안-상태도의-시각적-작성)을 따른다. 상태/전이 생성의 ID·endpoint·이벤트·충돌·snapshot 검사를 Node에서 실행하고, 브라우저에서 실제 작성→폼 수정→실행→저장/새로고침, 단일 data-path·미완성 JSON·자기/평행 전이·취소·정의 전환·페이지/확대·390px를 검증한다. 실행 그림에는 작성 도구를 제공하지 않는다.
 
 그림 연동은 실제 trigger별 회차·다중 parsed·반복/무시·환경 원인과 prefix를 코어에서 검사한다. 브라우저에서는 양방향 선택·전후 변수·참여자·규칙/상태 페이지·확대 유지·미실행 규칙·390px snapshot·자동 재생/선택 정지·초기화를 검사한다. 대형 fixture에서는 두 그림을 열고 규칙→시퀀스 연결 시간과 회차 20개 상한도 검사한다. 기준은 [V1-010](product-specs/protocol-simulator-v1.md#v1-010-상태도와-시퀀스-연동)을 따른다.

@@ -39,8 +39,9 @@ function strictObject(
   path: string,
   keys: readonly string[],
   r: Reader,
+  required: readonly string[] = keys,
 ): ObjectData | undefined {
-  const node = r.object(value, path, keys, keys);
+  const node = r.object(value, path, keys, required);
   if (
     node &&
     Object.values(Object.getOwnPropertyDescriptors(node)).some((item) => !('value' in item))
@@ -411,6 +412,129 @@ function inspectView(value: unknown, path: string, r: Reader) {
     );
 }
 
+function inspectBatch(value: unknown, view: unknown, path: string, r: Reader) {
+  const batch = strictObject(
+    value,
+    path,
+    [
+      'id',
+      'label',
+      'totalRuns',
+      'variantCount',
+      'variantIndex',
+      'seedIndex',
+      'seeds',
+      'direction',
+      'lossRate',
+      'delayMs',
+    ],
+    r,
+  );
+  if (!batch) return;
+  r.text(batch.id, `${path}/id`, true);
+  r.text(batch.label, `${path}/label`);
+  if (typeof batch.label === 'string' && batch.label.length > 80)
+    r.issue(path, 'batch-label', 'Batch label exceeds 80 characters');
+  r.number(batch.totalRuns, `${path}/totalRuns`, 1, 100);
+  r.number(batch.variantCount, `${path}/variantCount`, 1, 100);
+  r.number(batch.variantIndex, `${path}/variantIndex`, 0, Number(batch.variantCount) - 1);
+  r.array(
+    batch.seeds,
+    `${path}/seeds`,
+    (seed, location) => r.number(seed, location, 0, 0xffff_ffff),
+    1,
+  );
+  const seeds = Array.isArray(batch.seeds) ? batch.seeds : [];
+  if (
+    seeds.length > 100 ||
+    new Set(seeds).size !== seeds.length ||
+    Number(batch.totalRuns) !== Number(batch.variantCount) * seeds.length
+  )
+    r.issue(path, 'batch-size', 'Invalid batch seed list or total');
+  r.number(batch.seedIndex, `${path}/seedIndex`, 0, seeds.length - 1);
+  r.choice(batch.direction, `${path}/direction`, ['both', 'AtoB', 'BtoA']);
+  if (batch.lossRate !== null) r.number(batch.lossRate, `${path}/lossRate`, 0, 1, false);
+  if (batch.delayMs !== null) r.number(batch.delayMs, `${path}/delayMs`);
+  const recorded = view as import('./protocol-model.ts').EngineView | undefined;
+  const configuration = recorded?.snapshot?.configuration;
+  if (!configuration?.environment) return;
+  if (seeds[Number(batch.seedIndex)] !== configuration.seed)
+    r.issue(path, 'batch-seed', 'Batch seed differs from snapshot');
+  if (configuration.environment.kind === 'stream' && batch.lossRate !== null)
+    r.issue(path, 'batch-service', 'Stream cannot have loss overrides');
+  for (const direction of batch.direction === 'both' ? ['AtoB', 'BtoA'] : [batch.direction]) {
+    const settings = configuration.environment.directions[direction as 'AtoB' | 'BtoA'];
+    if (!settings) continue;
+    if (batch.delayMs !== null && batch.delayMs !== settings.delayMs)
+      r.issue(path, 'batch-delay', 'Batch delay differs from snapshot');
+    if (
+      batch.lossRate !== null &&
+      (!('lossRate' in settings) || batch.lossRate !== settings.lossRate)
+    )
+      r.issue(path, 'batch-loss', 'Batch loss differs from snapshot');
+  }
+}
+function inspectBatchGroups(value: unknown, r: Reader) {
+  if (!Array.isArray(value) || r.diagnostics.length) return;
+  const groups = new Map<
+    string,
+    { header: string; slots: Set<string>; variants: Map<number, string> }
+  >();
+  for (const record of value as import('./workspace-model.ts').SavedRun[]) {
+    const batch = record.batch;
+    if (!batch) continue;
+    const config = record.view.snapshot.configuration;
+    const env = config.environment;
+    const settings = (direction: 'AtoB' | 'BtoA') => ({
+      ...env.directions[direction],
+      ...(batch.delayMs !== null && (batch.direction === 'both' || batch.direction === direction)
+        ? { delayMs: 0 }
+        : {}),
+      ...(batch.lossRate !== null && (batch.direction === 'both' || batch.direction === direction)
+        ? { lossRate: 0 }
+        : {}),
+    });
+    const header = JSON.stringify({
+      experimentId: record.experimentId,
+      draftVersion: record.draftVersion,
+      label: batch.label,
+      total: batch.totalRuns,
+      count: batch.variantCount,
+      seeds: batch.seeds,
+      direction: batch.direction,
+      delayOverride: batch.delayMs !== null,
+      lossOverride: batch.lossRate !== null,
+      engine: record.view.snapshot.engineVersion,
+      limits: record.view.snapshot.limits,
+      configuration: {
+        ...config,
+        seed: 0,
+        environment: { ...env, directions: { AtoB: settings('AtoB'), BtoA: settings('BtoA') } },
+      },
+    });
+    const group = groups.get(batch.id) ?? {
+      header,
+      slots: new Set<string>(),
+      variants: new Map<number, string>(),
+    };
+    const slot = `${batch.variantIndex}:${batch.seedIndex}`;
+    const variant = JSON.stringify([batch.delayMs, batch.lossRate]);
+    if (
+      group.header !== header ||
+      group.slots.has(slot) ||
+      (group.variants.has(batch.variantIndex) && group.variants.get(batch.variantIndex) !== variant)
+    )
+      r.issue(
+        '/runs',
+        'batch-consistency',
+        'Batch members must have unique slots and identical source settings',
+      );
+    group.slots.add(slot);
+    group.variants.set(batch.variantIndex, variant);
+    groups.set(batch.id, group);
+  }
+}
+
 /** Validate untrusted workspace data before it can replace or merge with local data. */
 export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceData> {
   const json = parseJsonData(value, {
@@ -490,8 +614,9 @@ export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceDa
     const run = strictObject(
       value,
       path,
-      ['id', 'experimentId', 'createdAt', 'draftVersion', 'view'],
+      ['id', 'experimentId', 'createdAt', 'draftVersion', 'view', 'batch'],
       r,
+      ['id', 'experimentId', 'createdAt', 'draftVersion', 'view'],
     );
     if (!run) return;
     r.text(run.id, `${path}/id`, true);
@@ -500,8 +625,12 @@ export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceDa
     r.number(run.draftVersion, `${path}/draftVersion`, 1);
     if (runs.has(String(run.id))) r.issue(`${path}/id`, 'duplicate-run', 'Duplicate record ID');
     runs.add(String(run.id));
+    const beforeView = r.diagnostics.length;
     inspectView(run.view, `${path}/view`, r);
+    if (run.batch !== undefined && r.diagnostics.length === beforeView)
+      inspectBatch(run.batch, run.view, `${path}/batch`, r);
   });
+  inspectBatchGroups(workspace.runs, r);
   return r.result(value as WorkspaceData);
 }
 

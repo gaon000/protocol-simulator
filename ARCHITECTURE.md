@@ -27,6 +27,7 @@
 | [src/application/diagram-links.ts](src/application/diagram-links.ts), [src/ui/DiagramLinkDetails.tsx](src/ui/DiagramLinkDetails.tsx), [useDiagramPanel.ts](src/ui/useDiagramPanel.ts) | prefix 인과 인덱스·규칙/상태의 회차·선택 전후와 두 그림의 명시적 이동/초점. App이 선택·재생 정지를 조정 |
 | [src/ui/StateDiagram.tsx](src/ui/StateDiagram.tsx), [ProtocolStateDiagrams.tsx](src/ui/ProtocolStateDiagrams.tsx) | SVG 선택·조건/동작 상세·폼 이동, 초안 및 참여자별 실행 상태도 |
 | [src/ui/App.tsx](src/ui/App.tsx) | 초안·실행 수명과 작업 공간 연결 |
+| [src/application/batch-experiments.ts](src/application/batch-experiments.ts), [src/ui/BatchExperiments.tsx](src/ui/BatchExperiments.tsx), [useBatchExperiments.ts](src/ui/useBatchExperiments.ts) | 같은 seed 목록의 조건 조합·독립 엔진/유한 scheduler·실제 결과 집계와 기존 history 연결. SavedRun의 optional batch metadata로 보존 |
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |
 | [src/codecs/message-codecs.ts](src/codecs/message-codecs.ts), [http-codec.ts](src/codecs/http-codec.ts) | JSON Lines·JSON datagram·논리 패킷·제한된 HTTP/1.1과 바이트 상한 |

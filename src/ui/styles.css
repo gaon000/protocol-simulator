@@ -1114,3 +1114,46 @@ pre {
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+
+.batch-experiments .run-toolbar {
+  position: static;
+}
+.batch-settings {
+  min-width: 0;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  padding: 16px;
+}
+.batch-table-scroll {
+  max-width: 100%;
+  overflow: auto;
+  margin-bottom: 14px;
+}
+.batch-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.batch-table th,
+.batch-table td {
+  border: 1px solid #d7deea;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.batch-table th {
+  background: #f4f6f9;
+}
+.batch-records {
+  padding: 0;
+  list-style: none;
+}
+.batch-records li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #d7deea;
+}
