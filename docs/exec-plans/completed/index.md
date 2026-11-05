@@ -16,3 +16,4 @@
 | [메시지 구조 시각화](20261105-message-structure-visualization.md) | 2026-11-05 | HTTP/JSON 실제 구획/필드 범위·논리 패킷/청크 구분·선택 byte 강조와 유한 hex/ASCII | 로컬 Node 305·문서 36·Chromium/Firefox E2E 196·구조 포함 응답성 2. split fixture/page 보강·507 kB build advisory 기록. 실제 네트워크/임의 binary·배포는 범위 밖 |
 | [중단점과 조건부 실행 정지](20261105-conditional-breakpoints.md) | 2026-11-05 | 상태/parsed/after 변수 조건·원자적 단계 정지와 근거/계속/재생·탭별 설정 | 로컬 Node 318·문서 37·Chromium/Firefox E2E 212·20개 활성 응답성 2. revision 재검증·원본 trace 동등성·390px 확인. 일괄 실행 정지/실제 통신/배포는 범위 밖 |
 | [시나리오 묶음 검증 커버리지](20261105-scenario-suite-coverage.md) | 2026-11-05 | 공통 snapshot의 A/B 관찰 횟수·미관찰/평행 전이와 사례 첫 관찰 재생 | 로컬 Node 330·문서 38·Chromium/Firefox E2E 226·응답성 3. 실제 20사례/200k trace·부분/누락/오류·390px 확인. 분기/경로 증명·실제 통신/배포는 범위 밖 |
+| [두 실행 결과 나란히 비교](20261105-side-by-side-run-comparison.md) | 2026-11-05 | frozen 설정/결과·상태/변수/판정·순서 보존 관찰 차이와 각 쪽 재생/회귀 쌍 진입 | 로컬 Node 344·문서 39·Chromium/Firefox E2E 244·응답성 5. 두 10k/두 1 MiB·390px/한도 확인. 인과/최장 경로 증명·실제 통신/배포는 범위 밖 |

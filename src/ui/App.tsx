@@ -53,6 +53,7 @@ import { HistoryPanel } from './HistoryPanel.tsx';
 import { MessageStructurePanel } from './MessageStructure.tsx';
 import { ProtocolEditor } from './ProtocolEditor.tsx';
 import { DraftStateDiagram, ExecutionStateDiagram } from './ProtocolStateDiagrams.tsx';
+import { RunComparison } from './RunComparison.tsx';
 import { EventInspector, RunView } from './RunView.tsx';
 import { ScenarioEditor } from './ScenarioEditor.tsx';
 import { ScenarioSuitePanel } from './ScenarioSuitePanel.tsx';
@@ -97,6 +98,11 @@ const views = [
     label: '시나리오 묶음',
     description: '여러 입력·기대 조건·환경 사례를 함께 검증하고 수정 전후의 실패를 비교합니다.',
   },
+  {
+    id: 'compare',
+    label: '실행 비교',
+    description: '저장된 두 실행의 설정·결과·관찰 차이를 나란히 살펴봅니다.',
+  },
 ] as const;
 type ViewId = (typeof views)[number]['id'];
 
@@ -116,6 +122,7 @@ export function App() {
     [raw],
   );
   const [historyId, setHistoryId] = useState<string>();
+  const [comparisonPair, setComparisonPair] = useState<readonly [string, string]>();
   const [historyPosition, setHistoryPosition] = useState(0);
   const [historyPlaying, setHistoryPlaying] = useState(false);
   const runMeta = useRef<
@@ -443,6 +450,19 @@ export function App() {
     storage.controller.update((data) => ({ ...data, activeDraftId: id }));
     setLibrary(false);
     setViewId('configuration');
+    setNotice('');
+  }
+  function showComparison(left?: SavedRun, right?: SavedRun) {
+    pause();
+    batch.stop('두 실행의 저장 기록을 비교하기 위해 실행 묶음을 중단했습니다.');
+    setHistoryPlaying(false);
+    if (left && right) setComparisonPair([left.id, right.id]);
+    else if (!comparisonPair) {
+      const records = storage.controller.view().data.runs;
+      setComparisonPair([records.at(-2)?.id ?? '', records.at(-1)?.id ?? '']);
+    }
+    setLibrary(false);
+    setViewId('compare');
     setNotice('');
   }
   function selectHistory(record: SavedRun, position?: number) {
@@ -773,7 +793,7 @@ export function App() {
           }}
           onImport={importBundle}
         />
-        <div className='app-body'>
+        <div className={`app-body${viewId === 'compare' && !library ? ' is-comparing' : ''}`}>
           <nav className='navigation' aria-label='작업 공간'>
             <p className='eyebrow'>작업 공간</p>
             {views.map((item) => (
@@ -782,6 +802,10 @@ export function App() {
                 type='button'
                 aria-current={!library && viewId === item.id ? 'page' : undefined}
                 onClick={() => {
+                  if (item.id === 'compare') {
+                    showComparison();
+                    return;
+                  }
                   setLibrary(false);
                   setViewId(item.id);
                 }}
@@ -873,8 +897,8 @@ export function App() {
                 <p className='eyebrow'>프로토콜 설계 · 이해 · 검증</p>
                 <h1>{view.label}</h1>
                 <p className='lead'>{view.description}</p>
-                <ExampleOrigin experiment={draft} />
-                {viewId !== 'batch' && viewId !== 'suite' && (
+                {viewId !== 'compare' && <ExampleOrigin experiment={draft} />}
+                {viewId !== 'batch' && viewId !== 'suite' && viewId !== 'compare' && (
                   <section className='run-toolbar' aria-label='실행 제어'>
                     <button
                       className='primary'
@@ -903,7 +927,7 @@ export function App() {
                     </button>
                   </section>
                 )}
-                {viewId !== 'batch' && viewId !== 'suite' && displayed && (
+                {viewId !== 'batch' && viewId !== 'suite' && viewId !== 'compare' && displayed && (
                   <p className={changed ? 'version-note changed' : 'version-note'} role='status'>
                     초안 v{draftVersion} · 실행 v{shownVersion} ({displayed.runId})
                     {changed ? ' · 초안 변경됨 — 다음 실행에 반영' : ' · 동일 설정'}
@@ -1140,6 +1164,15 @@ export function App() {
                     onStop={() => batch.stop()}
                     onInspect={selectHistory}
                     onSharedEdit={navigate}
+                    onCompare={showComparison}
+                  />
+                )}
+                {viewId === 'compare' && (
+                  <RunComparison
+                    records={storage.data.runs}
+                    pair={comparisonPair ?? ['', '']}
+                    onPair={setComparisonPair}
+                    onInspect={selectHistory}
                   />
                 )}
                 {viewId === 'run' && (
@@ -1180,6 +1213,12 @@ export function App() {
                       position={historyPosition}
                       playing={historyPlaying}
                       onSelect={selectHistory}
+                      onCompare={(record) =>
+                        showComparison(
+                          record,
+                          storage.data.runs.findLast((item) => item.id !== record.id) ?? record,
+                        )
+                      }
                       onPosition={(position) => {
                         setDebugStop(undefined);
                         setDiagramTarget(undefined);
@@ -1341,7 +1380,7 @@ export function App() {
                 </p>
               )}
             {notice && <p role='status'>{notice}</p>}
-            {(viewId !== 'suite' || library) && (
+            {((viewId !== 'suite' && viewId !== 'compare') || library) && (
               <section className='diagnostics-panel' aria-label='정의 진단' aria-live='polite'>
                 <h2>정의 진단 · {diagnostics.length}개</h2>
                 {diagnostics.length ? (
@@ -1365,7 +1404,7 @@ export function App() {
                 )}
               </section>
             )}
-            {!!displayed?.diagnostics.length && (
+            {viewId !== 'compare' && !!displayed?.diagnostics.length && (
               <section className='diagnostics-panel' aria-label='실행 진단'>
                 <h2>실행 진단</h2>
                 <ul>
@@ -1381,37 +1420,39 @@ export function App() {
               </section>
             )}
           </main>
-          <aside className='inspector' aria-label='실행 상세와 서비스 계약'>
-            {viewId === 'protocol' && !library && draftItem && !draftEditorInList && protocol ? (
-              <DraftDiagramEditor
-                key={`${protocolIndex}-${draftItem.kind}-${draftItem.index}`}
-                protocol={protocol}
-                definition={protocolIndex}
-                selection={draftItem}
-                onReattach={reattachDiagramItem}
-              />
-            ) : (
-              <EventInspector
-                event={event}
-                onCause={(id) => {
-                  selectRunEvent(id);
-                  setLibrary(false);
-                  setViewId('run');
-                }}
-                onRule={() => event && navigateRule(event.participant, event.ruleId)}
-              />
-            )}
-            <hr />
-            <section aria-label='하위 서비스 계약'>
-              <p className='eyebrow'>선택한 하위 서비스</p>
-              <h2>{draft.environment.kind === 'stream' ? '바이트 스트림' : '데이터그램'}</h2>
-              <p>
-                {draft.environment.kind === 'stream'
-                  ? '바이트 순서와 중복 없는 전달을 보장합니다. 메시지 경계는 프로토콜의 프레이밍으로 복원합니다.'
-                  : '패킷 경계를 유지합니다. 설정한 손실·중복·지연 변동으로 순서 역전이 발생할 수 있으며 필요한 보장은 프로토콜이 구현합니다.'}
-              </p>
-            </section>
-          </aside>
+          {(viewId !== 'compare' || library) && (
+            <aside className='inspector' aria-label='실행 상세와 서비스 계약'>
+              {viewId === 'protocol' && !library && draftItem && !draftEditorInList && protocol ? (
+                <DraftDiagramEditor
+                  key={`${protocolIndex}-${draftItem.kind}-${draftItem.index}`}
+                  protocol={protocol}
+                  definition={protocolIndex}
+                  selection={draftItem}
+                  onReattach={reattachDiagramItem}
+                />
+              ) : (
+                <EventInspector
+                  event={event}
+                  onCause={(id) => {
+                    selectRunEvent(id);
+                    setLibrary(false);
+                    setViewId('run');
+                  }}
+                  onRule={() => event && navigateRule(event.participant, event.ruleId)}
+                />
+              )}
+              <hr />
+              <section aria-label='하위 서비스 계약'>
+                <p className='eyebrow'>선택한 하위 서비스</p>
+                <h2>{draft.environment.kind === 'stream' ? '바이트 스트림' : '데이터그램'}</h2>
+                <p>
+                  {draft.environment.kind === 'stream'
+                    ? '바이트 순서와 중복 없는 전달을 보장합니다. 메시지 경계는 프로토콜의 프레이밍으로 복원합니다.'
+                    : '패킷 경계를 유지합니다. 설정한 손실·중복·지연 변동으로 순서 역전이 발생할 수 있으며 필요한 보장은 프로토콜이 구현합니다.'}
+                </p>
+              </section>
+            </aside>
+          )}
         </div>
         <footer>
           이 브라우저에 자동 저장 · ‘저장됨’ 표시 후 다시 열기 가능 · 실제 서버·기기 연결 없음

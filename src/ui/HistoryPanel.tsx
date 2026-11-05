@@ -8,6 +8,7 @@ export function HistoryPanel({
   position,
   playing,
   onSelect,
+  onCompare,
   onPosition,
   onPlay,
   onRerun,
@@ -20,6 +21,7 @@ export function HistoryPanel({
   position: number;
   playing: boolean;
   onSelect: (record: SavedRun) => void;
+  onCompare: (record: SavedRun) => void;
   onPosition: (position: number) => void;
   onPlay: () => void;
   onRerun: (record: SavedRun) => void;
@@ -118,6 +120,9 @@ export function HistoryPanel({
             </button>
           </div>
           <div className='run-toolbar'>
+            <button type='button' onClick={() => onCompare(record)}>
+              이 기록을 나란히 비교
+            </button>
             <button type='button' disabled={!!unsupported} onClick={() => onRerun(record)}>
               이 snapshot으로 재실행
             </button>

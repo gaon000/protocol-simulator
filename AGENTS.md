@@ -10,6 +10,8 @@
 
 검증 커버리지는 [V1-018](docs/product-specs/protocol-simulator-v1.md#v1-018-시나리오-묶음의-검증-커버리지)을 따른다. 선택한 regression group의 공통 snapshot과 실제 초기/committed 전이만 집계한다. A/B·부분/누락/제외를 구분하고 미관찰을 실패/도달 불가능으로 추정하지 않는다. 항목별 사례의 첫 관찰 cursor로 기존 읽기 전용 재생을 연다.
 
+두 실행 비교는 [V1-019](docs/product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다. frozen 기록의 설정/결과·관찰을 나란히 표시하고 실행별 ID를 공유 인과관계로 간주하지 않는다. 순서 보존/유한 대응·비교 한도와 부분 관찰을 명시하며 각 쪽의 실제 cursor로 재생한다.
+
 초기 대상 사용자: 프로토콜의 구조·흐름을 이해하거나 자기 프로토콜을 설계·검증하려는 개발자와 학습자.
 
 반복 실험은 [V1-012](docs/product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다. 같은 seed 목록과 고정한 초안으로 독립 실행하며 completed·기대 조건 통과·미판정·미실행을 구분한다. SavedRun의 optional batch metadata와 기존 workspace 한도·저장 오류 계약을 보존한다.

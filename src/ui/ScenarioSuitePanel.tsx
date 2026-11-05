@@ -47,6 +47,7 @@ export function ScenarioSuitePanel({
   onStop,
   onInspect,
   onSharedEdit,
+  onCompare,
 }: {
   draft: DraftRecord;
   records: readonly SavedRun[];
@@ -60,6 +61,7 @@ export function ScenarioSuitePanel({
   onStop: () => void;
   onInspect: (record: SavedRun, position?: number) => void;
   onSharedEdit: (path: string) => void;
+  onCompare: (left: SavedRun, right: SavedRun) => void;
 }) {
   const suite = draft.suite;
   const editor = useRef<HTMLElement>(null);
@@ -437,6 +439,16 @@ export function ScenarioSuitePanel({
                     <td>{row.currentIncluded ? verdict(row.current) : '대상 없음'}</td>
                     <td>{row.change}</td>
                     <td>
+                      {row.current && row.baseline && (
+                        <button
+                          type='button'
+                          onClick={() => {
+                            if (row.baseline && row.current) onCompare(row.baseline, row.current);
+                          }}
+                        >
+                          두 사례 나란히 비교 · {row.label.slice(0, 80)}
+                        </button>
+                      )}
                       {row.current && (
                         <button type='button' onClick={() => onInspect(row.current as SavedRun)}>
                           비교 사례 재생 · {row.label.slice(0, 80)}

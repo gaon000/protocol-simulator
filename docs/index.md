@@ -41,6 +41,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [시나리오 묶음 검증 커버리지](exec-plans/completed/20261105-scenario-suite-coverage.md)를 구현·검증했다. 선택한 검증 snapshot의 참여자별 상태/규칙 관찰과 사례 첫 위치를 연결한다. 현재 기준은 [V1-018](product-specs/protocol-simulator-v1.md#v1-018-시나리오-묶음의-검증-커버리지)을 따른다.
 
+[두 실행 결과 나란히 비교](exec-plans/completed/20261105-side-by-side-run-comparison.md)를 구현·검증했다. 당시 설정·결과·관찰 차이와 양쪽의 실제 기록 위치를 연결한다. 기준은 [V1-019](product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다.
+
 ## 선택 문서
 
 v1의 제품 규칙·화면과 하위 서비스·상태·타이머·재현성 계약을 분리할 필요가 생겨 Product Specs와 Design Docs를 도입했다. 두 영역은 index와 재사용 양식을 포함한다. 독립적인 기술 결정 문서·용어 사전·skill은 현재 필요가 없어 추가하지 않았다. 실제로 추가한 문서만 이 지도에 링크한다.
