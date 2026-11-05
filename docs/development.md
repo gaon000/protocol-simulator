@@ -78,6 +78,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
+실행 이유 설명은 [V1-013](product-specs/protocol-simulator-v1.md#v1-013-규칙-선택과-변수-변경-설명)을 따른다. 모든 catalog 전이·조건 후보·AND/OR 단락·순차/반복/같은 값 대입·원자적 rollback·불일치/구버전·prefix·1 MiB/10k의 유한 설명을 Node에서 검사한다. Chromium/Firefox는 실제 선택/계산식·기록 복원·변경된 초안 격리·반복 실험 회차·다중 해석·390px·키보드·대입 20행을 검사한다. 기존 응답성 fixture에서는 설명을 열어 계산/표시 시간을 500ms, DOM 32768자 미만으로 추가 검사하고 기존 입력·저장·cursor·frame·longtask 상한을 유지한다.
+
 반복 실험은 [V1-012](product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다. 같은 seed 순서·방향별 설정 보존·불변 source·독립 재실행 일치·중단 callback·한도/미판정·bundle metadata/충돌을 Node에서 검사한다. Chromium/Firefox에서 손실률별 결과·초안 수정 전후 공통 seed·기록 재생/새로고침·다른 화면에서 중단·불완전 초안/잘못된 입력과 390px 키보드/native 표 스크롤을 검사한다. 묶음은 최대 100회이며 기존 응답성 검사 한도를 완화하지 않는다.
 
 초안 상태도 작성은 [V1-011](product-specs/protocol-simulator-v1.md#v1-011-초안-상태도의-시각적-작성)을 따른다. 상태/전이 생성의 ID·endpoint·이벤트·충돌·snapshot 검사를 Node에서 실행하고, 브라우저에서 실제 작성→폼 수정→실행→저장/새로고침, 단일 data-path·미완성 JSON·자기/평행 전이·취소·정의 전환·페이지/확대·390px를 검증한다. 실행 그림에는 작성 도구를 제공하지 않는다.

@@ -10,3 +10,4 @@
 | [상태도와 통신 시퀀스 연동](20261102-linked-execution-diagrams.md) | 2026-11-02 | 실행 회차·선택 전후와 관련 시퀀스의 양방향 탐색·자동 재생/선택 정지 | 로컬 Node 240·문서 30·Chromium/Firefox E2E 120·연동 포함 응답성 2. 초기 성능 초과와 동일 기준 재검사 기록, 실제 네트워크·배포는 범위 밖 |
 | [초안 상태도 시각적 편집](20261103-visual-protocol-authoring.md) | 2026-11-03 | 상태·전이 생성과 기존 폼의 옆 편집기·단일 필드 소유 | 로컬 Node 250·문서 31·Chromium/Firefox E2E 134·응답성 2. 자유 배치/드래그·실행 snapshot 수정은 범위 밖 |
 | [반복 실험과 결과 비교](20261105-batch-experiment-comparison.md) | 2026-11-05 | 공통 seed·환경 조건별 독립 실행, 두 묶음 비교·기록 재생·로컬 저장 | 로컬 Node 260·문서 32·Chromium/Firefox E2E 146·응답성 2. 최종 병합 보강 후 관련 검사 재확인. 실제 네트워크 성능은 범위 밖 |
+| [규칙 선택과 변수 변경 설명](20261105-execution-explanations.md) | 2026-11-05 | snapshot·직접 trigger의 조건/단락·순차 대입과 기록 대조, 현재 prefix·회차 연동 | 로컬 Node 273·문서 33·Chromium/Firefox E2E 160·설명 포함 응답성 2. 초기 저장 복구 시험 경합과 수정/재검증 기록. 실제 네트워크·배포는 범위 밖 |

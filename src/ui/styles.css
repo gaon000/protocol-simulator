@@ -1157,3 +1157,47 @@ pre {
   padding: 10px 0;
   border-bottom: 1px solid #d7deea;
 }
+
+.execution-explanation {
+  border: 1px solid #cbd8e8;
+  border-radius: 8px;
+  padding: 14px;
+  margin: 18px 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  scroll-margin-top: 100px;
+}
+.execution-explanation summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #294c7b;
+}
+.execution-explanation h3 {
+  margin-top: 16px;
+}
+.explanation-candidate {
+  margin: 0 8px 8px 0;
+}
+.explanation-candidate[aria-pressed="true"] {
+  background: #e5f0ff;
+  border-color: #205eae;
+}
+.explanation-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-left: 3px solid #bdcde2;
+  background: #f7f9fc;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+.explanation-status {
+  padding: 10px;
+  background: #f4f6f9;
+  border-radius: 6px;
+}
+.explanation-verified {
+  background: #eaf5ef;
+}

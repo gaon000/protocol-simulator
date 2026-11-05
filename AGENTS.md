@@ -12,6 +12,8 @@
 
 반복 실험은 [V1-012](docs/product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다. 같은 seed 목록과 고정한 초안으로 독립 실행하며 completed·기대 조건 통과·미판정·미실행을 구분한다. SavedRun의 optional batch metadata와 기존 workspace 한도·저장 오류 계약을 보존한다.
 
+실행 이유 설명은 [V1-013](docs/product-specs/protocol-simulator-v1.md#v1-013-규칙-선택과-변수-변경-설명)을 따른다. snapshot·직접 trigger와 before 값으로 계산하고 실제 transition 결과와 대조한다. 생략 분기·중간 대입과 관찰된 최종 값을 구분하며, 현재 prefix 밖의 commit·다중 회차·rollback을 적용 완료로 추정하지 않는다.
+
 ## 먼저 읽을 문서
 
 - [문서 지도](docs/index.md): 작업에 필요한 문서 찾기.

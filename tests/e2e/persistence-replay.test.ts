@@ -1,7 +1,7 @@
 import { mkdtemp, rm, truncate, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import type { WorkspaceEnvelope } from '../../src/domain/workspace-model.ts';
 
 function field(page: Page, path: string) {
@@ -198,8 +198,22 @@ for (const mode of ['quota', 'abort-after-request-success']) {
     ).toHaveText('저장 실패 · 메모리 초안 유지');
     await expect(field(page, '/label')).toHaveValue('실패 후 메모리');
     expect(await stored(page)).toEqual(before);
-    await page.evaluate(() => sessionStorage.removeItem('storage-test-failure'));
-    await page.getByRole('button', { name: '저장 다시 시도', exact: true }).click();
+    const retry = page.getByRole('button', { name: '저장 다시 시도', exact: true });
+    // Keep injected faults active through pending auto-save; recover on the actual retry click.
+    await page.evaluate(() => {
+      const recover = (event: MouseEvent) => {
+        if (
+          !(event.target instanceof Element) ||
+          event.target.closest('button')?.textContent !== '저장 다시 시도'
+        )
+          return;
+        sessionStorage.removeItem('storage-test-failure');
+        document.removeEventListener('click', recover, true);
+      };
+      // Saving temporarily replaces the alert/button, so listen on the stable document.
+      document.addEventListener('click', recover, true);
+    });
+    await retry.click();
     await expect(
       page.getByRole('region', { name: '로컬 저장과 파일' }).getByRole('status'),
     ).toHaveText('브라우저에 저장됨');

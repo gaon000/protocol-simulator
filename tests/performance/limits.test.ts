@@ -152,6 +152,15 @@ for (const fixture of ['10k', '1MiB'] as const) {
       await expect(linked.locator('[data-linked-transition]')).toHaveCount(20);
       await linked.getByRole('button', { name: '회차 다음 페이지', exact: true }).click();
     }
+    await page.evaluate(() => performance.mark('probe-explanation'));
+    const explanationBegan = performance.now();
+    await page.locator('summary').filter({ hasText: '실행 이유 설명' }).click();
+    const explanation = page.getByRole('region', { name: '선택 실행의 설명', exact: true });
+    await expect(explanation).toHaveAttribute('data-explanation-status', 'verified');
+    const explanationMs = performance.now() - explanationBegan;
+    const explanationChars = await explanation.evaluate(
+      (element) => element.textContent?.length ?? 0,
+    );
     await page.evaluate(() => performance.mark('probe-control'));
     const controlSamples: number[] = [];
     const checkbox = page.getByLabel('메시지 중심으로 보기');
@@ -244,6 +253,8 @@ for (const fixture of ['10k', '1MiB'] as const) {
       runMs,
       controlMs,
       linkMs,
+      explanationMs,
+      explanationChars,
       controlSamples: controlSamples.length,
       detailMs,
       detailChars,
@@ -260,6 +271,8 @@ for (const fixture of ['10k', '1MiB'] as const) {
     expect(runMs).toBeLessThan(10_000);
     expect(controlMs).toBeLessThan(200);
     expect(linkMs).toBeLessThan(500);
+    expect(explanationMs).toBeLessThan(500);
+    expect(explanationChars).toBeLessThan(32_768);
     expect(detailMs).toBeLessThan(500);
     expect(detailChars).toBeLessThan(32_768);
     expect(sequenceDetailChars).toBeLessThan(32_768);

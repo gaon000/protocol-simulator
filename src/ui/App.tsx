@@ -38,6 +38,7 @@ import { BatchExperiments, type BatchForm, DEFAULT_BATCH_FORM } from './BatchExp
 import { DraftDiagramEditor } from './DraftDiagramEditor.tsx';
 import { EnvironmentEditor } from './EnvironmentEditor.tsx';
 import { ExampleDetails, ExampleOrigin } from './ExampleInfo.tsx';
+import { ExecutionExplanation } from './ExecutionExplanation.tsx';
 import { Control, EditorContext, Group } from './forms.tsx';
 import { HistoryPanel } from './HistoryPanel.tsx';
 import { ProtocolEditor } from './ProtocolEditor.tsx';
@@ -1055,6 +1056,16 @@ export function App() {
                         revealRequest={
                           diagramReveal.runId === displayed.runId ? diagramReveal.sequence : 0
                         }
+                      />
+                    )}
+                    {displayed && (
+                      <ExecutionExplanation
+                        key={`explanation-${displayed.runId}`}
+                        context={historyId ?? 'live'}
+                        run={displayed}
+                        links={diagramLinks}
+                        inspection={diagramInspection}
+                        onSelect={selectRunEvent}
                       />
                     )}
                     <RunView
