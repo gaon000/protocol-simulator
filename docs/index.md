@@ -29,6 +29,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [실행 이유 설명](exec-plans/completed/20261105-execution-explanations.md)을 구현·검증했다. snapshot·실제 전이의 후보 조건·생략 분기·순차 대입을 설명하고 기록과 대조한다. 현재 계약은 [V1-013](product-specs/protocol-simulator-v1.md#v1-013-규칙-선택과-변수-변경-설명)을 따른다.
 
+[시나리오 묶음과 회귀 검증](exec-plans/completed/20261105-scenario-regression-suites.md)을 구현·검증했다. 공통 정의의 여러 사례를 저장·독립 실행하고 동일 조건의 판정 변화를 비교한다. 기준은 [V1-014](product-specs/protocol-simulator-v1.md#v1-014-시나리오-묶음과-회귀-검증)다.
+
 [초안 상태도 작성](exec-plans/completed/20261103-visual-protocol-authoring.md)을 완료했다. 상태 추가·두 상태 연결·이벤트 선택과 기존 폼의 옆 편집기를 연결하며 실행 snapshot의 읽기 전용 경계를 유지한다.
 
 ## 선택 문서

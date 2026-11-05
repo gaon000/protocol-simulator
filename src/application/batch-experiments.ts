@@ -8,8 +8,8 @@ import type {
 } from '../domain/protocol-model.ts';
 import type { BatchRunInfo, SavedRun } from '../domain/workspace-model.ts';
 import { WORKSPACE_POLICY } from '../domain/workspace-model.ts';
-import type { SimulationEngine } from '../engine/simulation.ts';
 import { createSimulation } from './create-simulation.ts';
+import { createRunSeries } from './run-series.ts';
 import { captureRun, workspaceId } from './workspace-operations.ts';
 
 export type BatchOptions = {
@@ -130,60 +130,30 @@ export function batchConfiguration(plan: BatchPlan, index: number): ExperimentDe
 
 /** Execute finite queue slices; cancellation fences every later callback on this session. */
 export function createBatchSession(plan: BatchPlan) {
-  let index = 0;
-  let stopped = false;
-  let engine: SimulationEngine | undefined;
-  function capture(view: EngineView): SavedRun {
-    const variantIndex = Math.floor(index / plan.options.seeds.length);
-    const variant = plan.variants[variantIndex];
-    if (!variant) throw new RangeError('Unknown batch variant');
-    return freezeOwned({
-      ...captureRun(view, plan.experimentId, plan.draftVersion),
-      batch: {
-        id: plan.id,
-        label: plan.options.label.trim(),
-        totalRuns: plan.totalRuns,
-        variantCount: plan.variants.length,
-        variantIndex,
-        seedIndex: index % plan.options.seeds.length,
-        seeds: plan.options.seeds,
-        direction: plan.options.direction,
-        ...variant,
-      },
-    });
-  }
-  return {
+  return createRunSeries({
     id: plan.id,
-    progress: () => ({
-      finished: index,
-      total: plan.totalRuns,
-      done: stopped || index >= plan.totalRuns,
-    }),
-    advance(): SavedRun | undefined {
-      if (stopped || index >= plan.totalRuns) return;
-      if (!engine) {
-        const created = createSimulation(batchConfiguration(plan, index));
-        if (!created.success)
-          throw new Error(created.diagnostics[0]?.message ?? '반복 실행 초기화 실패');
-        engine = created.value;
-      }
-      const view = engine.runBatch(64);
-      if (view.status === 'paused') return;
-      const record = capture(view);
-      index++;
-      engine = undefined;
-      return record;
+    totalRuns: plan.totalRuns,
+    create: (index) => createSimulation(batchConfiguration(plan, index)),
+    capture: (view, index) => {
+      const variantIndex = Math.floor(index / plan.options.seeds.length);
+      const variant = plan.variants[variantIndex];
+      if (!variant) throw new RangeError('Unknown batch variant');
+      return freezeOwned({
+        ...captureRun(view, plan.experimentId, plan.draftVersion),
+        batch: {
+          id: plan.id,
+          label: plan.options.label.trim(),
+          totalRuns: plan.totalRuns,
+          variantCount: plan.variants.length,
+          variantIndex,
+          seedIndex: index % plan.options.seeds.length,
+          seeds: plan.options.seeds,
+          direction: plan.options.direction,
+          ...variant,
+        },
+      });
     },
-    cancel(): SavedRun | undefined {
-      if (stopped || index >= plan.totalRuns) return;
-      stopped = true;
-      if (!engine) return;
-      const record = capture(engine.cancel());
-      index++;
-      engine = undefined;
-      return record;
-    },
-  };
+  });
 }
 
 export type RunMetrics = {

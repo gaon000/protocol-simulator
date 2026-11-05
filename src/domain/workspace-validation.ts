@@ -15,6 +15,11 @@ import type {
   ValidationResult,
 } from './protocol-model.ts';
 import {
+  inspectRegressionGroups,
+  inspectRegressionInfo,
+  inspectScenarioSuite,
+} from './suite-validation.ts';
+import {
   WORKSPACE_POLICY,
   type WorkspaceBundle,
   type WorkspaceData,
@@ -564,8 +569,9 @@ export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceDa
       const draft = strictObject(
         value,
         path,
-        ['id', 'configuration', 'raw', 'version', 'updatedAt'],
+        ['id', 'configuration', 'raw', 'version', 'updatedAt', 'suite'],
         r,
+        ['id', 'configuration', 'raw', 'version', 'updatedAt'],
       );
       if (!draft) return;
       r.text(draft.id, `${path}/id`, true);
@@ -576,6 +582,8 @@ export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceDa
       r.number(draft.updatedAt, `${path}/updatedAt`);
       const configuration = parseExperimentDraft(draft.configuration);
       prefix(r, `${path}/configuration`, configuration);
+      if (draft.suite !== undefined && configuration.success)
+        inspectScenarioSuite(draft.suite, configuration.value, `${path}/suite`, r);
       const raw = r.object(draft.raw, `${path}/raw`);
       if (raw && configuration.success)
         for (const [key, text] of Object.entries(raw)) {
@@ -614,7 +622,7 @@ export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceDa
     const run = strictObject(
       value,
       path,
-      ['id', 'experimentId', 'createdAt', 'draftVersion', 'view', 'batch'],
+      ['id', 'experimentId', 'createdAt', 'draftVersion', 'view', 'batch', 'regression'],
       r,
       ['id', 'experimentId', 'createdAt', 'draftVersion', 'view'],
     );
@@ -629,8 +637,13 @@ export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceDa
     inspectView(run.view, `${path}/view`, r);
     if (run.batch !== undefined && r.diagnostics.length === beforeView)
       inspectBatch(run.batch, run.view, `${path}/batch`, r);
+    if (run.regression !== undefined)
+      inspectRegressionInfo(run.regression, `${path}/regression`, r);
+    if (run.batch !== undefined && run.regression !== undefined)
+      r.issue(path, 'run-group', 'A run cannot belong to two series types');
   });
   inspectBatchGroups(workspace.runs, r);
+  inspectRegressionGroups(workspace.runs, r);
   return r.result(value as WorkspaceData);
 }
 

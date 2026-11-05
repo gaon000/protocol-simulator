@@ -45,6 +45,7 @@ import { ProtocolEditor } from './ProtocolEditor.tsx';
 import { DraftStateDiagram, ExecutionStateDiagram } from './ProtocolStateDiagrams.tsx';
 import { EventInspector, RunView } from './RunView.tsx';
 import { ScenarioEditor } from './ScenarioEditor.tsx';
+import { ScenarioSuitePanel } from './ScenarioSuitePanel.tsx';
 import { SequenceDiagram } from './SequenceDiagram.tsx';
 import { StoragePanel } from './StoragePanel.tsx';
 import { useBatchExperiments } from './useBatchExperiments.ts';
@@ -80,6 +81,11 @@ const views = [
     id: 'batch',
     label: '반복 실험',
     description: '같은 seed 목록으로 환경 조건을 바꾸어 실행하고 저장된 결과를 비교합니다.',
+  },
+  {
+    id: 'suite',
+    label: '시나리오 묶음',
+    description: '여러 입력·기대 조건·환경 사례를 함께 검증하고 수정 전후의 실패를 비교합니다.',
   },
 ] as const;
 type ViewId = (typeof views)[number]['id'];
@@ -318,7 +324,7 @@ export function App() {
     });
   }
   function reset() {
-    batch.stop('현재 반복 실행을 중단했습니다. 기록한 결과는 유지합니다.');
+    batch.stop('현재 실행 묶음을 중단했습니다. 기록한 결과는 유지합니다.');
     setDiagramTarget(undefined);
     setPlaying(false);
     const engine = session.current();
@@ -366,7 +372,7 @@ export function App() {
     setNotice('');
   }
   function selectHistory(record: SavedRun) {
-    batch.stop('기록을 살펴보기 위해 반복 실행을 중단했습니다.');
+    batch.stop('기록을 살펴보기 위해 실행 묶음을 중단했습니다.');
     setDiagramTarget(undefined);
     pause();
     const latest =
@@ -415,7 +421,7 @@ export function App() {
     return undefined;
   }
   function rerun(record: SavedRun) {
-    batch.stop('snapshot 재실행을 시작하기 위해 반복 실행을 중단했습니다.');
+    batch.stop('snapshot 재실행을 시작하기 위해 실행 묶음을 중단했습니다.');
     if (storage.controller.view().data.runs.length >= WORKSPACE_POLICY.maxRuns) {
       setNotice('기록 100개 한도입니다. 먼저 불필요한 기록을 삭제하세요.');
       return;
@@ -572,7 +578,7 @@ export function App() {
   }
   function start(step: boolean) {
     if (diagnostics.length) return;
-    batch.stop('단일 실행을 시작하기 위해 반복 실행을 중단했습니다.');
+    batch.stop('단일 실행을 시작하기 위해 실행 묶음을 중단했습니다.');
     setLibrary(false);
     setViewId('run');
     setNotice('');
@@ -744,7 +750,7 @@ export function App() {
                 <h1>{view.label}</h1>
                 <p className='lead'>{view.description}</p>
                 <ExampleOrigin experiment={draft} />
-                {viewId !== 'batch' && (
+                {viewId !== 'batch' && viewId !== 'suite' && (
                   <section className='run-toolbar' aria-label='실행 제어'>
                     <button
                       className='primary'
@@ -773,7 +779,7 @@ export function App() {
                     </button>
                   </section>
                 )}
-                {viewId !== 'batch' && displayed && (
+                {viewId !== 'batch' && viewId !== 'suite' && displayed && (
                   <p className={changed ? 'version-note changed' : 'version-note'} role='status'>
                     초안 v{draftVersion} · 실행 v{shownVersion} ({displayed.runId})
                     {changed ? ' · 초안 변경됨 — 다음 실행에 반영' : ' · 동일 설정'}
@@ -956,10 +962,11 @@ export function App() {
                     draftVersion={draftVersion}
                     records={storage.data.runs}
                     invalid={diagnostics.length > 0}
-                    running={batch.running}
+                    running={batch.running && batch.kind === 'batch'}
+                    busy={batch.running}
                     finished={batch.finished}
                     total={batch.total}
-                    message={batch.message}
+                    message={batch.kind === 'batch' ? batch.message : ''}
                     form={batchForms[activeId] ?? DEFAULT_BATCH_FORM}
                     onForm={(form) =>
                       setBatchForms((current) => ({ ...current, [activeId]: form }))
@@ -972,6 +979,43 @@ export function App() {
                     }}
                     onStop={() => batch.stop()}
                     onInspect={selectHistory}
+                  />
+                )}
+                {viewId === 'suite' && (
+                  <ScenarioSuitePanel
+                    key={activeId}
+                    draft={active}
+                    records={storage.data.runs}
+                    busy={batch.running}
+                    running={batch.running && batch.kind === 'regression'}
+                    finished={batch.finished}
+                    total={batch.total}
+                    message={batch.kind === 'regression' ? batch.message : ''}
+                    onSuite={(suite) =>
+                      updateActive((record) => {
+                        if (!suite) {
+                          const { suite: _suite, ...rest } = record;
+                          return { ...rest, updatedAt: Date.now() };
+                        }
+                        return {
+                          ...record,
+                          suite: {
+                            ...suite,
+                            revision: record.suite?.id === suite.id ? record.suite.revision + 1 : 1,
+                          },
+                          updatedAt: Date.now(),
+                        };
+                      })
+                    }
+                    onStart={(plan) => {
+                      pause();
+                      setHistoryPlaying(false);
+                      setNotice('');
+                      batch.startRegression(plan);
+                    }}
+                    onStop={() => batch.stop()}
+                    onInspect={selectHistory}
+                    onSharedEdit={navigate}
                   />
                 )}
                 {viewId === 'run' && (
@@ -1083,46 +1127,50 @@ export function App() {
                 )}
               </>
             )}
-            {batch.running && viewId !== 'batch' && (
-              <p role='status'>
-                반복 실행 중 · {batch.finished}/{batch.total}회 기록 ·{' '}
-                <button
-                  type='button'
-                  onClick={() => {
-                    setLibrary(false);
-                    setViewId('batch');
-                  }}
-                >
-                  비교 화면으로 이동
-                </button>
-                <button type='button' onClick={() => batch.stop()}>
-                  반복 실행 중단
-                </button>
-              </p>
-            )}
-            {notice && <p role='status'>{notice}</p>}
-            <section className='diagnostics-panel' aria-label='정의 진단' aria-live='polite'>
-              <h2>정의 진단 · {diagnostics.length}개</h2>
-              {diagnostics.length ? (
-                <ul>
-                  {diagnostics.map((item, index) => (
-                    <li key={`${item.path}-${item.code}-${index}`}>
-                      <button type='button' onClick={() => diagnosticLocation(item)}>
-                        <strong>{item.code}</strong> · {item.message}
-                        <small>{item.path} · 편집 위치로 이동</small>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>
-                  실행 가능한 정의입니다.
-                  {rawErrors && Object.keys(rawErrors).length
-                    ? ''
-                    : ' 입력과 기대 조건도 실행 전에 검사합니다.'}
+            {batch.running &&
+              (library || viewId !== (batch.kind === 'batch' ? 'batch' : 'suite')) && (
+                <p role='status'>
+                  {batch.kind === 'batch' ? '반복 실행 중' : '회귀 검증 중'} · {batch.finished}/
+                  {batch.total}회 기록 ·{' '}
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setLibrary(false);
+                      setViewId(batch.kind === 'batch' ? 'batch' : 'suite');
+                    }}
+                  >
+                    비교 화면으로 이동
+                  </button>
+                  <button type='button' onClick={() => batch.stop()}>
+                    {batch.kind === 'batch' ? '반복 실행 중단' : '회귀 검증 중단'}
+                  </button>
                 </p>
               )}
-            </section>
+            {notice && <p role='status'>{notice}</p>}
+            {(viewId !== 'suite' || library) && (
+              <section className='diagnostics-panel' aria-label='정의 진단' aria-live='polite'>
+                <h2>정의 진단 · {diagnostics.length}개</h2>
+                {diagnostics.length ? (
+                  <ul>
+                    {diagnostics.map((item, index) => (
+                      <li key={`${item.path}-${item.code}-${index}`}>
+                        <button type='button' onClick={() => diagnosticLocation(item)}>
+                          <strong>{item.code}</strong> · {item.message}
+                          <small>{item.path} · 편집 위치로 이동</small>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>
+                    실행 가능한 정의입니다.
+                    {rawErrors && Object.keys(rawErrors).length
+                      ? ''
+                      : ' 입력과 기대 조건도 실행 전에 검사합니다.'}
+                  </p>
+                )}
+              </section>
+            )}
             {!!displayed?.diagnostics.length && (
               <section className='diagnostics-panel' aria-label='실행 진단'>
                 <h2>실행 진단</h2>

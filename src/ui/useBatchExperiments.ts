@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { type BatchPlan, createBatchSession } from '../application/batch-experiments.ts';
+import { createRegressionSession, type RegressionPlan } from '../application/scenario-suites.ts';
 import type { createWorkspaceController } from '../application/workspace-controller.ts';
 import { type SavedRun, WORKSPACE_POLICY } from '../domain/workspace-model.ts';
 
 type Progress = {
+  readonly kind: 'batch' | 'regression';
   readonly running: boolean;
   readonly finished: number;
   readonly total: number;
@@ -14,6 +16,7 @@ type Progress = {
 export function useBatchExperiments(controller: ReturnType<typeof createWorkspaceController>) {
   const session = useRef<ReturnType<typeof createBatchSession> | undefined>(undefined);
   const [progress, setProgress] = useState<Progress>({
+    kind: 'batch',
     running: false,
     finished: 0,
     total: 0,
@@ -31,7 +34,9 @@ export function useBatchExperiments(controller: ReturnType<typeof createWorkspac
       );
     controller.update((current) => ({ ...current, runs: [...current.runs, record] }));
   }
-  function stop(message = '반복 실행을 중단했습니다. 시작하지 않은 실행은 미실행으로 남습니다.') {
+  function stop(
+    message = '실행 묶음을 중단했습니다. 시작하지 않은 사례/실행은 미실행으로 남습니다.',
+  ) {
     const current = session.current;
     if (!current) return;
     session.current = undefined;
@@ -47,7 +52,9 @@ export function useBatchExperiments(controller: ReturnType<typeof createWorkspac
     setProgress((previous) => ({
       ...previous,
       ...current.progress(),
-      finished: controller.view().data.runs.filter((record) => record.batch?.id === current.id)
+      finished: controller
+        .view()
+        .data.runs.filter((record) => (record.batch?.id ?? record.regression?.id) === current.id)
         .length,
       running: false,
       message: detail,
@@ -63,10 +70,15 @@ export function useBatchExperiments(controller: ReturnType<typeof createWorkspac
         if (record) append(record);
         const next = current.progress();
         setProgress({
+          kind: progress.kind,
           running: !next.done,
           finished: next.finished,
           total: next.total,
-          message: next.done ? '반복 실행을 완료했습니다.' : '',
+          message: next.done
+            ? progress.kind === 'batch'
+              ? '반복 실행을 완료했습니다.'
+              : '회귀 검증을 완료했습니다.'
+            : '',
         });
         if (next.done) session.current = undefined;
       } catch (error) {
@@ -88,7 +100,24 @@ export function useBatchExperiments(controller: ReturnType<typeof createWorkspac
     start(plan: BatchPlan) {
       stop();
       session.current = createBatchSession(plan);
-      setProgress({ running: true, finished: 0, total: plan.totalRuns, message: '' });
+      setProgress({
+        kind: 'batch',
+        running: true,
+        finished: 0,
+        total: plan.totalRuns,
+        message: '',
+      });
+    },
+    startRegression(plan: RegressionPlan) {
+      stop();
+      session.current = createRegressionSession(plan);
+      setProgress({
+        kind: 'regression',
+        running: true,
+        finished: 0,
+        total: plan.totalRuns,
+        message: '',
+      });
     },
   };
 }

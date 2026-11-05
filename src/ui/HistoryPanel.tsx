@@ -50,6 +50,9 @@ export function HistoryPanel({
               {item.batch
                 ? ` · ${item.batch.label} · 조건 ${item.batch.variantIndex + 1} · seed ${item.view.snapshot.seed}`
                 : ''}
+              {item.regression
+                ? ` · ${item.regression.label} · 사례 ${item.regression.cases[item.regression.caseIndex]?.label}`
+                : ''}
             </option>
           ))}
         </select>
@@ -67,6 +70,13 @@ export function HistoryPanel({
             <p>
               반복 실험 · {record.batch.label} · 조건 {record.batch.variantIndex + 1} · seed{' '}
               {record.view.snapshot.seed}
+            </p>
+          )}
+          {record.regression && (
+            <p>
+              회귀 검증 · {record.regression.label} · 사례{' '}
+              {record.regression.cases[record.regression.caseIndex]?.label} · 사례 묶음 v
+              {record.regression.suiteRevision}
             </p>
           )}
           <label className='control'>

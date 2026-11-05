@@ -66,14 +66,65 @@ export function mergeWorkspaces(
     const reuse = reuseIdentical && old && next && JSON.stringify(old) === JSON.stringify(next);
     mapping.set(id, parents.has(id) && !reuse ? workspaceId('experiment') : id);
   }
+  const suiteIds = new Set([
+    ...current.drafts.flatMap((item) => (item.suite ? [item.suite.id] : [])),
+    ...current.runs.flatMap((item) => (item.regression ? [item.regression.suiteId] : [])),
+  ]);
+  const suites = new Map<string, string>();
+  for (const id of new Set([
+    ...incoming.drafts.flatMap((item) => (item.suite ? [item.suite.id] : [])),
+    ...incoming.runs.flatMap((item) => (item.regression ? [item.regression.suiteId] : [])),
+  ])) {
+    const owners = [
+      ...incoming.drafts.filter((item) => item.suite?.id === id).map((item) => item.id),
+      ...incoming.runs
+        .filter((item) => item.regression?.suiteId === id)
+        .map((item) => item.experimentId),
+    ];
+    suites.set(
+      id,
+      suiteIds.has(id) && !(reuseIdentical && owners.every((owner) => mapping.get(owner) === owner))
+        ? workspaceId('suite')
+        : id,
+    );
+  }
   const drafts = [...current.drafts];
   for (const item of incoming.drafts) {
     const id = mapping.get(item.id) ?? item.id;
-    if (!drafts.some((draft) => draft.id === id)) drafts.push({ ...item, id });
+    if (!drafts.some((draft) => draft.id === id))
+      drafts.push({
+        ...item,
+        id,
+        ...(item.suite
+          ? { suite: { ...item.suite, id: suites.get(item.suite.id) ?? item.suite.id } }
+          : {}),
+      });
   }
   const runs = [...current.runs];
   const batchIds = new Set(current.runs.flatMap((run) => (run.batch ? [run.batch.id] : [])));
   const batches = new Map<string, string>();
+  const regressions = new Map<string, string>();
+  const regressionIds = new Set(
+    current.runs.flatMap((item) => (item.regression ? [item.regression.id] : [])),
+  );
+  for (const item of incoming.runs) {
+    const info = item.regression;
+    if (!info || regressions.has(info.id)) continue;
+    const canReuse =
+      reuseIdentical &&
+      suites.get(info.suiteId) === info.suiteId &&
+      incoming.runs
+        .filter((entry) => entry.regression?.id === info.id)
+        .every((entry) => {
+          if (mapping.get(entry.experimentId) !== entry.experimentId) return false;
+          const old = current.runs.find((saved) => saved.id === entry.id);
+          return !old || JSON.stringify(old) === JSON.stringify(entry);
+        });
+    regressions.set(
+      info.id,
+      regressionIds.has(info.id) && !canReuse ? workspaceId('regression') : info.id,
+    );
+  }
   for (const run of incoming.runs) {
     if (!run.batch || batches.has(run.batch.id)) continue;
     const id = run.batch.id;
@@ -92,6 +143,7 @@ export function mergeWorkspaces(
     if (
       reuseIdentical &&
       (!item.batch || batches.get(item.batch.id) === item.batch.id) &&
+      (!item.regression || regressions.get(item.regression.id) === item.regression.id) &&
       runs.some((run) => run.id === item.id && JSON.stringify(run) === JSON.stringify(item))
     )
       continue;
@@ -101,6 +153,15 @@ export function mergeWorkspaces(
       experimentId: mapping.get(item.experimentId) ?? item.experimentId,
       ...(item.batch
         ? { batch: { ...item.batch, id: batches.get(item.batch.id) ?? item.batch.id } }
+        : {}),
+      ...(item.regression
+        ? {
+            regression: {
+              ...item.regression,
+              id: regressions.get(item.regression.id) ?? item.regression.id,
+              suiteId: suites.get(item.regression.suiteId) ?? item.regression.suiteId,
+            },
+          }
         : {}),
     });
   }

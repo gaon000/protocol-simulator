@@ -1201,3 +1201,18 @@ pre {
 .explanation-verified {
   background: #eaf5ef;
 }
+
+.scenario-suite {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.scenario-suite .run-toolbar {
+  position: static;
+}
+.scenario-suite details {
+  margin: 14px 0;
+}
+.scenario-suite summary {
+  cursor: pointer;
+  font-weight: 600;
+}

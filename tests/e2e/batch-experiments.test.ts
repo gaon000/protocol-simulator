@@ -20,8 +20,11 @@ async function setup(page: Page) {
 async function save(page: Page) {
   await page.getByRole('button', { name: '지금 저장', exact: true }).click();
   await expect(
-    page.getByRole('region', { name: '로컬 저장과 파일' }).getByRole('status'),
-  ).toHaveText('브라우저에 저장됨');
+    page
+      .getByRole('region', { name: '로컬 저장과 파일' })
+      .getByRole('status')
+      .filter({ hasText: /^브라우저에 저장됨$/ }),
+  ).toBeVisible();
 }
 async function stored(page: Page): Promise<WorkspaceEnvelope> {
   return page.evaluate(
@@ -137,13 +140,12 @@ test('bounded slices can be cancelled from another tab and stale callbacks never
   const runs = before.data.runs.filter((record) => record.batch);
   expect(runs.length).toBeGreaterThan(0);
   expect(runs.length).toBeLessThan(5);
-  expect(runs.at(-1)?.view.status).toBe('cancelled');
+  // Stopping between engines preserves the completed record without inventing a cancellation.
+  expect(['cancelled', 'limit-reached']).toContain(runs.at(-1)?.view.status);
   await tab(page, '반복 실험');
   await expect(page.getByRole('table')).toContainText('0 / 0 /');
   await page.getByRole('button', { name: /조건 1 실행 목록/ }).click();
-  await expect(page.getByRole('region', { name: '조건별 실행 목록' })).toContainText(
-    '미판정 · cancelled',
-  );
+  await expect(page.getByRole('region', { name: '조건별 실행 목록' })).toContainText('미판정 ·');
   await page.getByLabel('seed 목록', { exact: true }).fill('8');
   await run(page);
   await save(page);

@@ -1,10 +1,16 @@
-import type { EngineView, ExperimentDefinition } from './protocol-model.ts';
+import type {
+  EngineView,
+  EnvironmentDefinition,
+  ExperimentDefinition,
+  ScenarioDefinition,
+} from './protocol-model.ts';
 
 export const WORKSPACE_POLICY = {
   schemaVersion: 1,
   maxBytes: 67_108_864,
   maxDrafts: 100,
   maxRuns: 100,
+  maxCases: 20,
   maxJsonNodes: 33_554_432,
   maxJsonDepth: 128,
 } as const;
@@ -14,6 +20,30 @@ export type DraftRecord = {
   readonly raw: Readonly<Record<string, string>>;
   readonly version: number;
   readonly updatedAt: number;
+  readonly suite?: ScenarioSuite;
+};
+export type ScenarioCase = {
+  readonly id: string;
+  readonly label: string;
+  readonly enabled: boolean;
+  readonly scenario: ScenarioDefinition;
+  readonly environment: EnvironmentDefinition;
+  readonly seed: number;
+  readonly raw: Readonly<Record<string, string>>;
+};
+export type ScenarioSuite = {
+  readonly id: string;
+  readonly label: string;
+  readonly revision: number;
+  readonly cases: readonly ScenarioCase[];
+};
+export type RegressionRunInfo = {
+  readonly id: string;
+  readonly label: string;
+  readonly suiteId: string;
+  readonly suiteRevision: number;
+  readonly cases: readonly { readonly id: string; readonly label: string }[];
+  readonly caseIndex: number;
 };
 export type SavedRun = {
   readonly id: string;
@@ -22,6 +52,7 @@ export type SavedRun = {
   readonly draftVersion: number;
   readonly view: EngineView;
   readonly batch?: BatchRunInfo;
+  readonly regression?: RegressionRunInfo;
 };
 export type BatchRunInfo = {
   readonly id: string;

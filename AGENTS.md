@@ -14,6 +14,8 @@
 
 실행 이유 설명은 [V1-013](docs/product-specs/protocol-simulator-v1.md#v1-013-규칙-선택과-변수-변경-설명)을 따른다. snapshot·직접 trigger와 before 값으로 계산하고 실제 transition 결과와 대조한다. 생략 분기·중간 대입과 관찰된 최종 값을 구분하며, 현재 prefix 밖의 commit·다중 회차·rollback을 적용 완료로 추정하지 않는다.
 
+시나리오 묶음은 [V1-014](docs/product-specs/protocol-simulator-v1.md#v1-014-시나리오-묶음과-회귀-검증)를 따른다. 공통 프로토콜과 활성 사례를 고정하고 같은 사례 조건/엔진 계약에서만 새 실패·개선을 비교한다. 미완성/비활성 사례·미판정/미실행·과거 snapshot과 저장 충돌/용량 경계를 보존한다.
+
 ## 먼저 읽을 문서
 
 - [문서 지도](docs/index.md): 작업에 필요한 문서 찾기.

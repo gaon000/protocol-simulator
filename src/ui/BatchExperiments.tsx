@@ -46,6 +46,7 @@ export function BatchExperiments({
   records,
   invalid,
   running,
+  busy = running,
   finished,
   total,
   message,
@@ -61,6 +62,7 @@ export function BatchExperiments({
   records: readonly SavedRun[];
   invalid: boolean;
   running: boolean;
+  busy?: boolean;
   finished: number;
   total: number;
   message: string;
@@ -142,7 +144,7 @@ export function BatchExperiments({
   );
   return (
     <section className='batch-experiments' aria-label='반복 실험과 결과 비교'>
-      <fieldset disabled={running} className='batch-settings'>
+      <fieldset disabled={busy} className='batch-settings'>
         <legend>반복 실행 조건</legend>
         <label className='control'>
           <span>실행 묶음 이름</span>
@@ -212,7 +214,7 @@ export function BatchExperiments({
         <button
           type='button'
           className='primary'
-          disabled={invalid || running || !settings.success}
+          disabled={invalid || busy || !settings.success}
           onClick={() => {
             if (settings.success) {
               setChoices([settings.value.id, firstId]);

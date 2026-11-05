@@ -18,9 +18,10 @@ native IndexedDB를 사용한다. localStorage의 동기식 문자열 쓰기 대
 
 [workspace 모델](../../src/domain/workspace-model.ts)은 schemaVersion 1이며 최대 64 MiB, 초안 100개·기록 100개다. 초과하면 메모리 작업을 남기고 저장 실패를 표시한다. 필요한 항목을 내보내거나 삭제한 뒤 재시도한다. 엔진의 10,000 trace 이벤트·16 MiB trace 및 메시지/버퍼 1 MiB 상한은 별도다.
 
-- DraftRecord: 안정적인 workspace ID, configuration, 미완성 JSON raw 텍스트, 편집 version, updatedAt.
+- DraftRecord: 안정적인 workspace ID, configuration, 미완성 JSON raw 텍스트, 편집 version, updatedAt. optional suite는 ID/revision과 최대 20개의 case-owned scenario/environment/seed/raw를 저장한다.
 - SavedRun: 기록 ID, 원래 실험의 workspace ID, 생성 시각·초안 version, snapshot을 포함한 EngineView 전체.
 - 후속 반복 실험의 SavedRun은 optional `batch` metadata(묶음 ID·이름·계획 수·조건/seed 위치·공통 seed·방향·override)를 가진다. 이전 기록은 그대로 허용하고 새 metadata는 snapshot의 seed/환경과 묶음 내 동일 source·고유 회차를 검증한다. 가져오기 충돌은 묶음 전체 ID도 분리한다. 새 bundle을 이전 앱이 읽는 것은 지원하지 않으며 세부 정책은 [V1-012](../product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다.
+- 후속 회귀 검증의 SavedRun은 optional regression metadata에 suite ID/revision·실행 ID·사례 ID/이름 manifest와 caseIndex를 저장한다. 같은 그룹의 공통 정의·고유 사례 슬롯을 검사하고 import/복구에서 부모·suite·실행 그룹 충돌을 함께 분리한다. 세부 계약은 [V1-014](../product-specs/protocol-simulator-v1.md#v1-014-시나리오-묶음과-회귀-검증)를 따른다.
 - envelope: 저장 revision과 WorkspaceData. bundle: kind `protocol-studio-bundle`과 WorkspaceData. 모두 schemaVersion을 가진다.
 
 실험/기록 키는 UUID이며 configuration.id나 프로토콜·필드·규칙 ID와 분리한다. 선언 ID는 각 configuration 안에서 해석한다. 초기 example 사본·새 실험은 `내 실험`에 추가하고 기존 초안을 남긴다. activeDraftId도 저장한다. 실행 큐·브라우저 callback은 저장하지 않는다.
