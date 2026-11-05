@@ -1,5 +1,12 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Form rows are stateless and controlled by JSON Pointer; structural edits clear pending values for the affected collection. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type BreakpointSettings,
+  type BreakpointStop,
+  compileBreakpoints,
+  EMPTY_BREAKPOINTS,
+  matchBreakpoints,
+} from '../application/breakpoints.ts';
 import { createRunSession } from '../application/create-simulation.ts';
 import type {
   DraftDiagramAppend,
@@ -35,6 +42,7 @@ import { rawDiagnostics } from '../domain/workspace-validation.ts';
 import type { EngineView } from '../engine/simulation.ts';
 import { createExampleCopy, EXAMPLES } from '../examples/catalog.ts';
 import { BatchExperiments, type BatchForm, DEFAULT_BATCH_FORM } from './BatchExperiments.tsx';
+import { BreakpointsPanel } from './BreakpointsPanel.tsx';
 import { DraftDiagramEditor } from './DraftDiagramEditor.tsx';
 import { EnvironmentEditor } from './EnvironmentEditor.tsx';
 import { ExampleDetails, ExampleOrigin } from './ExampleInfo.tsx';
@@ -152,6 +160,13 @@ export function App() {
   const [focusRequest, setFocusRequest] = useState<{ path: string; serial: number }>();
   const [notice, setNotice] = useState('');
   const [batchForms, setBatchForms] = useState<Readonly<Record<string, BatchForm>>>({});
+  const [debugForms, setDebugForms] = useState<Readonly<Record<string, BreakpointSettings>>>({});
+  const [debugStop, setDebugStop] = useState<{
+    runId: string;
+    historyId: string | undefined;
+    stop: BreakpointStop;
+  }>();
+  const [debugReveal, setDebugReveal] = useState(0);
   const validation = useMemo(() => parseExperiment(draft), [draft]);
   const diagnostics: readonly ModelDiagnostic[] = [
     ...(validation.success ? [] : validation.diagnostics),
@@ -172,6 +187,21 @@ export function App() {
     () => (historical ? projectRecord(historical, historyPosition) : run),
     [historical, historyPosition, run],
   );
+  const debugKey =
+    historical?.experimentId ?? (displayed ? runMeta.current?.experimentId : undefined) ?? activeId;
+  const debugSettings = debugForms[debugKey] ?? EMPTY_BREAKPOINTS;
+  const debugConfiguration = displayed?.snapshot.configuration ?? draft;
+  const debugPlan = useMemo(
+    () => compileBreakpoints(debugConfiguration, debugSettings, displayed?.snapshot),
+    [debugConfiguration, debugSettings, displayed?.snapshot],
+  );
+  const shownStop =
+    debugStop &&
+    debugStop.runId === displayed?.runId &&
+    debugStop.historyId === historyId &&
+    (!historical || historyPosition === debugStop.stop.event.sequence + 1)
+      ? debugStop.stop
+      : undefined;
   const event = displayed?.events.find((item) => item.eventId === selected);
   const diagramEventCount = historical
     ? Math.min(historyPosition, displayed?.events.length ?? 0)
@@ -231,11 +261,33 @@ export function App() {
 
   useEffect(() => () => session.reset(), [session]);
   useEffect(() => {
-    if (!playing || !run) return;
+    if (!playing || !run || historical) return;
+    if (!debugPlan.success) {
+      setPlaying(false);
+      setNotice(debugPlan.diagnostics[0]?.message ?? '중단점을 확인하세요.');
+      return;
+    }
     const timeout = window.setTimeout(() => {
       session.apply(run.runId, (engine) => {
-        const next = engine.runBatch(run.processedEvents < 16 ? 1 : 64);
+        let stopped: BreakpointStop | undefined;
+        const next = engine.runBatch(
+          run.processedEvents < 16 ? 1 : 64,
+          debugPlan.value.points.length
+            ? (events) => {
+                stopped = matchBreakpoints(debugPlan.value, events);
+                return !!stopped;
+              }
+            : undefined,
+        );
         setRun(next);
+        if (stopped) {
+          setPlaying(false);
+          checkpoint(next);
+          setSelected(stopped.event.eventId);
+          setDiagramTarget(undefined);
+          setDebugStop({ runId: next.runId, historyId: undefined, stop: stopped });
+          setDebugReveal((value) => value + 1);
+        }
         if (engine.result()) {
           setPlaying(false);
           checkpoint(next);
@@ -247,20 +299,32 @@ export function App() {
       });
     }, 40);
     return () => window.clearTimeout(timeout);
-  }, [playing, run, session, checkpoint]);
+  }, [playing, run, session, checkpoint, historical, debugPlan]);
   useEffect(() => {
     if (!historical || !historyPlaying) return;
+    if (!debugPlan.success) {
+      setHistoryPlaying(false);
+      setNotice(debugPlan.diagnostics[0]?.message ?? '중단점을 확인하세요.');
+      return;
+    }
     if (historyPosition >= historical.view.events.length + 1) {
       setHistoryPlaying(false);
       return;
     }
     const timeout = window.setTimeout(() => {
+      const next = historical.view.events[historyPosition];
+      const stopped = next ? matchBreakpoints(debugPlan.value, [next]) : undefined;
       setHistoryPosition(historyPosition + 1);
-      setSelected(historical.view.events[historyPosition]?.eventId);
+      setSelected(next?.eventId);
       setDiagramTarget(undefined);
+      if (stopped) {
+        setHistoryPlaying(false);
+        setDebugStop({ runId: historical.view.runId, historyId: historical.id, stop: stopped });
+        setDebugReveal((value) => value + 1);
+      }
     }, 120);
     return () => window.clearTimeout(timeout);
-  }, [historical, historyPlaying, historyPosition]);
+  }, [historical, historyPlaying, historyPosition, debugPlan]);
   useEffect(() => {
     if (!focusRequest) return;
     let path = focusRequest.path;
@@ -333,6 +397,7 @@ export function App() {
     });
   }
   function reset() {
+    setDebugStop(undefined);
     batch.stop('현재 실행 묶음을 중단했습니다. 기록한 결과는 유지합니다.');
     setDiagramTarget(undefined);
     setPlaying(false);
@@ -381,6 +446,7 @@ export function App() {
     setNotice('');
   }
   function selectHistory(record: SavedRun) {
+    setDebugStop(undefined);
     batch.stop('기록을 살펴보기 위해 실행 묶음을 중단했습니다.');
     setDiagramTarget(undefined);
     pause();
@@ -430,6 +496,16 @@ export function App() {
     return undefined;
   }
   function rerun(record: SavedRun) {
+    const debuggerPlan = compileBreakpoints(
+      record.view.snapshot.configuration,
+      debugForms[record.experimentId] ?? EMPTY_BREAKPOINTS,
+      record.view.snapshot,
+    );
+    if (!debuggerPlan.success) {
+      setNotice(debuggerPlan.diagnostics[0]?.message ?? '중단점을 확인하세요.');
+      return;
+    }
+    setDebugStop(undefined);
     batch.stop('snapshot 재실행을 시작하기 위해 실행 묶음을 중단했습니다.');
     if (storage.controller.view().data.runs.length >= WORKSPACE_POLICY.maxRuns) {
       setNotice('기록 100개 한도입니다. 먼저 불필요한 기록을 삭제하세요.');
@@ -594,6 +670,18 @@ export function App() {
     setDiagramTarget(undefined);
     setSelected(undefined);
     let engine = session.current();
+    const reuse = engine && !changed && !historical && !engine.result() ? engine : undefined;
+    const debuggerPlan = compileBreakpoints(
+      reuse ? reuse.snapshot.configuration : draft,
+      debugForms[reuse ? (runMeta.current?.experimentId ?? activeId) : activeId] ??
+        EMPTY_BREAKPOINTS,
+      reuse ? reuse.snapshot : undefined,
+    );
+    if (!step && !debuggerPlan.success) {
+      setNotice(debuggerPlan.diagnostics[0]?.message ?? '중단점을 확인하세요.');
+      return;
+    }
+    setDebugStop(undefined);
     if (!engine || changed || historical || engine.result()) {
       if (storage.controller.view().data.runs.length >= WORKSPACE_POLICY.maxRuns) {
         setNotice('기록 100개 한도입니다. 먼저 불필요한 기록을 삭제하세요.');
@@ -618,10 +706,33 @@ export function App() {
       setRunVersion(draftVersion);
       setSelected(undefined);
     }
-    const next = step ? engine.step() : engine.view();
+    const previous = engine.view();
+    const before = previous.events.length;
+    const next = step ? engine.step() : previous;
     setRun(next);
     checkpoint(next);
     setPlaying(!step && !engine.result());
+    const stopped =
+      step && debuggerPlan.success
+        ? matchBreakpoints(debuggerPlan.value, next.events.slice(before))
+        : undefined;
+    if (stopped) {
+      setSelected(stopped.event.eventId);
+      setDebugStop({ runId: next.runId, historyId: undefined, stop: stopped });
+      setDebugReveal((value) => value + 1);
+    }
+  }
+
+  function continueDebugged() {
+    if (!debugPlan.success) return;
+    setDebugStop(undefined);
+    setDiagramTarget(undefined);
+    setSelected(undefined);
+    if (historical) setHistoryPlaying(true);
+    else {
+      const engine = session.current();
+      if (engine && !engine.result()) setPlaying(true);
+    }
   }
 
   if (!storage.ready)
@@ -1029,6 +1140,36 @@ export function App() {
                 )}
                 {viewId === 'run' && (
                   <>
+                    <BreakpointsPanel
+                      configuration={debugConfiguration}
+                      settings={debugSettings}
+                      diagnostics={debugPlan.success ? [] : debugPlan.diagnostics}
+                      onChange={(settings) => {
+                        if (playing) pause();
+                        setHistoryPlaying(false);
+                        setDebugStop(undefined);
+                        setDebugForms((previous) => ({ ...previous, [debugKey]: settings }));
+                      }}
+                      historical={!!historical}
+                      running={historical ? historyPlaying : playing}
+                      canContinue={
+                        historical
+                          ? historyPosition < historical.view.events.length + 1
+                          : !!run && ['idle', 'running', 'paused'].includes(run.status)
+                      }
+                      onContinue={continueDebugged}
+                      stop={shownStop}
+                      canExplain={
+                        !!shownStop &&
+                        (diagramLinks?.transitionsByEvent.get(shownStop.event.eventId)?.length ??
+                          0) > 0
+                      }
+                      revealRequest={debugReveal}
+                      onInspect={(id, explain) => {
+                        selectRunEvent(id);
+                        revealDiagram(explain ? 'explanation' : 'sequence');
+                      }}
+                    />
                     <HistoryPanel
                       records={storage.data.runs}
                       selectedId={historyId}
@@ -1036,12 +1177,18 @@ export function App() {
                       playing={historyPlaying}
                       onSelect={selectHistory}
                       onPosition={(position) => {
+                        setDebugStop(undefined);
                         setDiagramTarget(undefined);
                         setHistoryPosition(position);
                         setHistoryPlaying(false);
                         setSelected(historical?.view.events[position - 1]?.eventId);
                       }}
                       onPlay={() => {
+                        if (!historyPlaying && !debugPlan.success) {
+                          setNotice(debugPlan.diagnostics[0]?.message ?? '중단점을 확인하세요.');
+                          return;
+                        }
+                        setDebugStop(undefined);
                         if (historical && historyPosition >= historical.view.events.length + 1)
                           setHistoryPosition(0);
                         setHistoryPlaying((current) => !current);

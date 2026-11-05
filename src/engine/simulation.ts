@@ -1,20 +1,20 @@
-import { freezeOwned as freeze } from '../domain/immutable-data.ts';
+import { createHttpCodec } from '../codecs/http-codec.ts';
 import {
   createJsonDatagramCodec,
   createJsonLinesCodec,
   createLogicalPacketCodec,
   type DecodeBatch,
 } from '../codecs/message-codecs.ts';
-import { createHttpCodec } from '../codecs/http-codec.ts';
 import type { JsonObject, JsonValue, ParticipantId } from '../domain/execution-contract.ts';
+import { freezeOwned as freeze } from '../domain/immutable-data.ts';
 import { validateProtocolMessage } from '../domain/model-validation.ts';
 import type {
   EngineStatus,
   EngineView,
-  ParticipantView,
   EventTrace,
   ExperimentSnapshot,
   ModelDiagnostic,
+  ParticipantView,
   ProtocolDefinition,
   ProtocolMessage,
   RuleDefinition,
@@ -23,17 +23,19 @@ import type {
   ValidationResult,
 } from '../domain/protocol-model.ts';
 import {
-  EnvironmentLimit,
   type DeliveryEvent,
   type EnvironmentAdapter,
   type EnvironmentEvent,
+  EnvironmentLimit,
   type WirePayload,
 } from './environment-port.ts';
 import { EventQueue } from './event-queue.ts';
-import { equalJson, evaluateCondition, evaluateValue, EvaluationFault } from './expressions.ts';
+import { EvaluationFault, equalJson, evaluateCondition, evaluateValue } from './expressions.ts';
 
 type TerminalStatus = RunResult['status'];
+
 export type { EngineStatus, EngineView, ParticipantView } from '../domain/protocol-model.ts';
+
 type Timer = { generation: number; active: boolean; due: number };
 type ParticipantCodec = {
   encode(message: ProtocolMessage): ValidationResult<WirePayload>;
@@ -748,14 +750,21 @@ export class SimulationEngine {
     if (!terminal(this.status)) this.status = 'paused';
     return this.view();
   }
-  /** Process a finite queue budget; return paused when more work remains. */
-  runBatch(budget = 100): EngineView {
+  /** Process a finite queue budget, optionally stopping after one complete queue operation. */
+  runBatch(budget = 100, stopAfter?: (events: readonly EventTrace[]) => boolean): EngineView {
     if (!Number.isSafeInteger(budget) || budget < 1)
       throw new RangeError('Batch budget must be positive');
     if (terminal(this.status)) return this.view();
     this.status = 'running';
-    for (let index = 0; index < budget && !terminal(this.status); index++) this.safelyAdvance();
-    if (!terminal(this.status)) this.status = 'paused';
+    try {
+      for (let index = 0; index < budget && !terminal(this.status); index++) {
+        const before = this.events.length;
+        this.safelyAdvance();
+        if (stopAfter && this.events.length > before && stopAfter(this.events.slice(before))) break;
+      }
+    } finally {
+      if (!terminal(this.status)) this.status = 'paused';
+    }
     return this.view();
   }
   /** Execute until observation completion or a bounded terminal condition. */

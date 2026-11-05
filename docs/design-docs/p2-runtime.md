@@ -41,6 +41,8 @@ P2 당시 기본 [ideal environment](../../src/environments/ideal-environment.ts
 
 ## 기록·오류·판정
 
+실행 제어의 `runBatch(budget, stopAfter?)`는 optional observer에 각 queue 처리가 끝난 뒤의 새 trace를 전달한다. true이면 다음 queue 작업을 소비하지 않으며 비종료 실행은 paused로 돌려준다. 이미 종료된 실행의 terminal 상태는 유지한다. 한 규칙/수신의 원자성·이벤트 순서·난수·판정 의미를 변경하지 않는다. observer가 throw해도 비종료 엔진은 paused로 남으며 예외를 engine 오류로 바꾸지 않는다. application의 [중단점 계약](../product-specs/protocol-simulator-v1.md#v1-017-중단점과-조건부-실행-정지)이 observer를 제공하고 debugger 설정/평가 오류를 소유한다. observer가 없는 기존 호출은 같은 실행 경로를 사용한다.
+
 기록은 input → send → receive → parsed → transition/deliver처럼 구분한다. trace의 causeEventId와 ruleId로 원인과 규칙을 연결하며 전이에는 상태·변수의 전후 값과 outcome을 남긴다. ACK나 하위 수신을 상위 전달 완료로 취급하지 않는다.
 
 프로토콜의 규칙·값·파싱 오류는 해당 참여자를 outcome error로 정지하고 다른 참여자의 관찰은 계속한다. 해당 참여자의 기대 조건은 미판정이다. adapter의 예기치 않은 내부 예외는 실행 전체를 engine-error로 종료한다. 초기 정의 오류는 실행 생성 전에 반환한다.

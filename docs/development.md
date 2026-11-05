@@ -78,6 +78,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
+중단점은 [V1-017](product-specs/protocol-simulator-v1.md#v1-017-중단점과-조건부-실행-정지)을 따른다. 코어는 catalog 전체의 stop/resume trace·상태/판정 동등성, 상태 진입/parsed/after 조건·큰 batch 첫 정지·합쳐 읽기 원자성·rollback·값/참조/버전 한도·revision 재검증·observer 예외·session fence를 검사한다. 브라우저는 실제 정지→설명/계속, retry 조건·history prefix/원본 보존·불완전/비활성·초안/새 세대·탭 초기화·20개/390px/키보드를 검사한다. 기존 10k/1 MiB 응답성 fixture에 20개 활성 중단점을 설정하고 기존 모든 상한을 유지한다.
+
 메시지 구조는 [V1-016](product-specs/protocol-simulator-v1.md#v1-016-메시지-구조-시각화)을 따른다. 코어는 catalog wire 참조/범위·HTTP UTF-8/start/header/body/Content-Length·JSON escape/LF/0/false/중복·논리 packet·수신 청크/parsed·prefix/버전·큰 JSON/HTTP/필드 한도를 검사한다. Chromium/Firefox는 실제 byte 강조·선택 페이지·청크/값 경계·저장/새로고침/초안 격리·1 MiB 끝 바이트·20행/390px/키보드를 검사한다. 기존 응답성 fixture에서 구조 패널을 열어 500ms·32768자·256-byte DOM 한도를 추가 검사하며 기존 상한을 완화하지 않는다.
 
 실패 진단은 [V1-015](product-specs/protocol-simulator-v1.md#v1-015-실패-원인-진단과-관련-기록-이동)를 따른다. 코어는 전체 catalog의 판정 일치·네 기대 조건·기본값·상태/종료 기록 대조·미판정/버전/값 한도·prefix·ACK 손실 참고 관찰·직접 인과/타이머/합쳐진 송신·없는/순환 참조를 검사한다. Chromium/Firefox에서는 실패→기대/실제→연결 근거→시퀀스/설명, 저장/새로고침/초안 격리·회귀 사례·20행/390px/키보드를 검사한다. 기존 10k/1 MiB fixture는 진단을 열어 500ms·32768자 미만과 유한 행을 추가 검사하며 기존 상한은 유지한다.

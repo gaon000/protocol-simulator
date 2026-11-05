@@ -20,6 +20,8 @@
 
 메시지 구조는 [V1-016](docs/product-specs/protocol-simulator-v1.md#v1-016-메시지-구조-시각화)을 따른다. 실제 송신 구획/필드와 byte 범위를 연결하며 논리 배치·binary encoding·수신 청크/해석된 값·원시 HTTP의 유효성을 구분한다. snapshot/prefix·분석/표시 한도를 유지하고 없는 bytes를 재생성하지 않는다.
 
+중단점은 [V1-017](docs/product-specs/protocol-simulator-v1.md#v1-017-중단점과-조건부-실행-정지)을 따른다. 실제 transition.after/parsed와 frozen source를 평가하며 live queue 원자성·history 이벤트 경계를 구분한다. 같은 이벤트 재정지·미관찰 commit·rollback을 추정하지 않고 debugger 오류를 실행 실패로 만들지 않는다. 탭별 설정·20개/값 한도·session fence와 중단점 없는 최종 trace 동등성을 유지한다.
+
 ## 먼저 읽을 문서
 
 - [문서 지도](docs/index.md): 작업에 필요한 문서 찾기.

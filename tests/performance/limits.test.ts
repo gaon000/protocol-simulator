@@ -91,6 +91,17 @@ for (const fixture of ['10k', '1MiB'] as const) {
       page,
       fixture === '10k' ? createEventLimitExperiment() : createMessageLimitExperiment(),
     );
+    await page
+      .getByRole('navigation', { name: '작업 공간' })
+      .getByRole('button', { name: '실행', exact: true })
+      .click();
+    await page.locator('.breakpoints-panel summary').click();
+    await page.getByRole('button', { name: '중단점 추가', exact: true }).click();
+    for (let index = 1; index < 20; index++)
+      await page.getByRole('button', { name: '중단점 복제', exact: true }).click();
+    await expect(
+      page.getByRole('combobox', { name: '편집할 중단점', exact: true }).locator('option'),
+    ).toHaveCount(20);
     await startProbe(page);
     const began = performance.now();
     await page.getByRole('button', { name: '전체 실행', exact: true }).click();
@@ -98,6 +109,9 @@ for (const fixture of ['10k', '1MiB'] as const) {
       page.getByText(fixture === '10k' ? /실행 한도 도달 · 가상 시간/ : /관찰 완료 · 가상 시간/),
     ).toBeVisible({ timeout: 55_000 });
     const runMs = performance.now() - began;
+    await expect(page.getByRole('region', { name: '중단점 정지 근거', exact: true })).toHaveCount(
+      0,
+    );
     if (fixture === '10k') {
       await expect(page.locator('[data-event-id]')).toHaveCount(200);
       await expect(page.getByRole('navigation', { name: '기록 페이지 이동' })).toContainText(
@@ -284,6 +298,7 @@ for (const fixture of ['10k', '1MiB'] as const) {
       diagnosisChars,
       structureMs,
       structureChars,
+      enabledBreakpoints: 20,
       controlSamples: controlSamples.length,
       detailMs,
       detailChars,

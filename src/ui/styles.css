@@ -1340,3 +1340,42 @@ pre {
 .message-structure input[type="number"] {
   width: 85px;
 }
+.breakpoints-panel {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid #cbd5e2;
+  border-radius: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.breakpoints-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.breakpoints-panel fieldset {
+  min-width: 0;
+  margin-block: 1rem;
+}
+.breakpoints-panel label {
+  display: grid;
+  gap: 4px;
+  margin-block: 8px;
+}
+.breakpoints-panel input,
+.breakpoints-panel select,
+.breakpoints-panel textarea {
+  min-width: 0;
+  max-width: 100%;
+  font: inherit;
+}
+.breakpoints-panel .breakpoint-toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.breakpoints-panel [data-breakpoint-kind] {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-left: 4px solid #a47534;
+  background: #fff6e8;
+}
