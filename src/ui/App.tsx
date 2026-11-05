@@ -39,6 +39,7 @@ import { DraftDiagramEditor } from './DraftDiagramEditor.tsx';
 import { EnvironmentEditor } from './EnvironmentEditor.tsx';
 import { ExampleDetails, ExampleOrigin } from './ExampleInfo.tsx';
 import { ExecutionExplanation } from './ExecutionExplanation.tsx';
+import { FailureDiagnostics } from './FailureDiagnostics.tsx';
 import { Control, EditorContext, Group } from './forms.tsx';
 import { HistoryPanel } from './HistoryPanel.tsx';
 import { ProtocolEditor } from './ProtocolEditor.tsx';
@@ -139,7 +140,14 @@ export function App() {
     selected: string | undefined;
     target: DiagramTarget;
   }>();
-  const [diagramReveal, setDiagramReveal] = useState({ runId: '', state: 0, sequence: 0 });
+  const [diagramReveal, setDiagramReveal] = useState({
+    runId: '',
+    state: 0,
+    sequence: 0,
+    explanation: 0,
+    failure: 0,
+  });
+  const [diagnosisId, setDiagnosisId] = useState<string>();
   const [focusRequest, setFocusRequest] = useState<{ path: string; serial: number }>();
   const [notice, setNotice] = useState('');
   const [batchForms, setBatchForms] = useState<Readonly<Record<string, BatchForm>>>({});
@@ -552,13 +560,13 @@ export function App() {
         target: activeDiagramTarget,
       });
   }
-  function revealDiagram(panel: 'state' | 'sequence') {
+  function revealDiagram(panel: 'state' | 'sequence' | 'explanation' | 'failure') {
     if (displayed)
       setDiagramReveal((request) => {
         const current =
           request.runId === displayed.runId
             ? request
-            : { runId: displayed.runId, state: 0, sequence: 0 };
+            : { runId: displayed.runId, state: 0, sequence: 0, explanation: 0, failure: 0 };
         return { ...current, [panel]: current[panel] + 1 };
       });
   }
@@ -1110,6 +1118,27 @@ export function App() {
                         links={diagramLinks}
                         inspection={diagramInspection}
                         onSelect={selectRunEvent}
+                        revealRequest={
+                          diagramReveal.runId === displayed.runId ? diagramReveal.explanation : 0
+                        }
+                      />
+                    )}
+                    {displayed && (
+                      <FailureDiagnostics
+                        eventCount={diagramEventCount}
+                        key={`failure-${displayed.runId}-${historyId ?? 'live'}`}
+                        run={displayed}
+                        links={diagramLinks}
+                        selectedId={diagnosisId}
+                        onSelect={setDiagnosisId}
+                        revealRequest={
+                          diagramReveal.runId === displayed.runId ? diagramReveal.failure : 0
+                        }
+                        onInspect={(id, explain) => {
+                          if (!displayed.events.some((item) => item.eventId === id)) return;
+                          selectRunEvent(id);
+                          revealDiagram(explain ? 'explanation' : 'sequence');
+                        }}
                       />
                     )}
                     <RunView
@@ -1122,6 +1151,10 @@ export function App() {
                           : undefined
                       }
                       onSelect={selectRunEvent}
+                      onDiagnose={(id) => {
+                        setDiagnosisId(id);
+                        revealDiagram('failure');
+                      }}
                     />
                   </>
                 )}

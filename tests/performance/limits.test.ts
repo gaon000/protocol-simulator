@@ -161,6 +161,17 @@ for (const fixture of ['10k', '1MiB'] as const) {
     const explanationChars = await explanation.evaluate(
       (element) => element.textContent?.length ?? 0,
     );
+    await page.evaluate(() => performance.mark('probe-diagnosis'));
+    const diagnosisBegan = performance.now();
+    await page.locator('summary').filter({ hasText: '실패 진단과 관련 기록' }).click();
+    const diagnosis = page.getByRole('region', { name: '선택 기대 조건 진단', exact: true });
+    await expect(diagnosis).toHaveAttribute(
+      'data-diagnosis-status',
+      fixture === '10k' ? 'incomplete' : 'verified',
+    );
+    const diagnosisMs = performance.now() - diagnosisBegan;
+    const diagnosisChars = await diagnosis.evaluate((element) => element.textContent?.length ?? 0);
+    expect(await diagnosis.locator('[data-diagnosis-event]').count()).toBeLessThanOrEqual(40);
     await page.evaluate(() => performance.mark('probe-control'));
     const controlSamples: number[] = [];
     const checkbox = page.getByLabel('메시지 중심으로 보기');
@@ -255,6 +266,8 @@ for (const fixture of ['10k', '1MiB'] as const) {
       linkMs,
       explanationMs,
       explanationChars,
+      diagnosisMs,
+      diagnosisChars,
       controlSamples: controlSamples.length,
       detailMs,
       detailChars,
@@ -273,6 +286,8 @@ for (const fixture of ['10k', '1MiB'] as const) {
     expect(linkMs).toBeLessThan(500);
     expect(explanationMs).toBeLessThan(500);
     expect(explanationChars).toBeLessThan(32_768);
+    expect(diagnosisMs).toBeLessThan(500);
+    expect(diagnosisChars).toBeLessThan(32_768);
     expect(detailMs).toBeLessThan(500);
     expect(detailChars).toBeLessThan(32_768);
     expect(sequenceDetailChars).toBeLessThan(32_768);

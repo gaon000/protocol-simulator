@@ -1216,3 +1216,40 @@ pre {
   cursor: pointer;
   font-weight: 600;
 }
+.failure-diagnostics {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid #cbd5e2;
+  border-radius: 0.6rem;
+  min-width: 0;
+}
+.failure-diagnostics summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.failure-diagnostics p,
+.diagnosis-values dd {
+  overflow-wrap: anywhere;
+}
+.failure-diagnostics label {
+  display: grid;
+  gap: 0.4rem;
+}
+.failure-diagnostics select {
+  width: 100%;
+  min-width: 0;
+}
+.diagnosis-values {
+  display: grid;
+  gap: 0.4rem;
+}
+.diagnosis-values dt {
+  font-weight: 700;
+}
+.diagnosis-values dd {
+  margin: 0 0 0.7rem;
+}
+.diagnosis-evidence {
+  border-top: 1px solid #cbd5e2;
+  padding-block: 0.6rem;
+}

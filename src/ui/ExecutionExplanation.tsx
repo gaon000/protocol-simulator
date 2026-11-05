@@ -2,6 +2,7 @@ import { type ReactNode, useMemo, useState } from 'react';
 import type { DiagramInspection, DiagramLinks } from '../application/diagram-links.ts';
 import { EXPLANATION_POLICY, explainExecution } from '../application/execution-explanation.ts';
 import type { EngineView, EventTrace } from '../domain/protocol-model.ts';
+import { useDiagramPanel } from './useDiagramPanel.ts';
 
 function Pages<T>({
   items,
@@ -184,23 +185,26 @@ export function ExecutionExplanation({
   inspection,
   onSelect,
   context,
+  revealRequest = 0,
 }: {
   run: EngineView;
   links: DiagramLinks | undefined;
   inspection: DiagramInspection | undefined;
   onSelect: (id: string) => void;
   context: string;
+  revealRequest?: number;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const panel = useDiagramPanel(revealRequest);
   const transition = inspection?.focusedTransition;
   return (
     <details
       className='execution-explanation'
-      open={expanded}
-      onToggle={(event) => setExpanded(event.currentTarget.open)}
+      ref={panel.ref}
+      open={panel.expanded}
+      onToggle={(event) => panel.onToggle(event.currentTarget.open)}
     >
       <summary>실행 이유 설명</summary>
-      {expanded && (
+      {panel.expanded && (
         <div key={context}>
           {!inspection ? (
             <p>시퀀스·이벤트 기록이나 실행 상태도에서 설명할 이벤트 또는 회차를 선택하세요.</p>

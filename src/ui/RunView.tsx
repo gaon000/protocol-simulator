@@ -35,12 +35,14 @@ export function RunView({
   selected,
   onSelect,
   historyLabel,
+  onDiagnose,
 }: {
   run: EngineView | undefined;
   playing: boolean;
   selected: string | undefined;
   onSelect: (id: string) => void;
   historyLabel?: string | undefined;
+  onDiagnose: (id: string) => void;
 }) {
   const [messagesOnly, setMessagesOnly] = useState(false);
   if (!run)
@@ -194,6 +196,9 @@ export function RunView({
                   {item.status === 'pass' ? '통과' : item.status === 'fail' ? '실패' : '미판정'}
                 </strong>
                 <span>{item.detail}</span>
+                <button type='button' onClick={() => onDiagnose(item.expectationId)}>
+                  기대 조건 진단 {item.expectationId.slice(0, 120)}
+                </button>
               </li>
             ))}
           </ul>

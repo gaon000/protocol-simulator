@@ -28,6 +28,7 @@
 | [src/ui/StateDiagram.tsx](src/ui/StateDiagram.tsx), [ProtocolStateDiagrams.tsx](src/ui/ProtocolStateDiagrams.tsx) | SVG 선택·조건/동작 상세·폼 이동, 초안 및 참여자별 실행 상태도 |
 | [src/ui/App.tsx](src/ui/App.tsx) | 초안·실행 수명과 작업 공간 연결 |
 | [src/application/execution-explanation.ts](src/application/execution-explanation.ts), [src/ui/ExecutionExplanation.tsx](src/ui/ExecutionExplanation.tsx) | prefix의 관찰된 transition/snapshot으로 후보 조건·short-circuit·순차 대입을 재구성해 실제 전후 값과 대조. 유한 계산/페이지·명시적 제한, 패널 확장 시에만 조회 |
+| [src/application/failure-diagnostics.ts](src/application/failure-diagnostics.ts), [src/ui/FailureDiagnostics.tsx](src/ui/FailureDiagnostics.tsx) | 당시 기대/관찰과 판정 대조·prefix 내 직접 원인/타이머 수명과 참고 관찰 분리. 유한 탐색·페이지와 공유 선택의 시퀀스/설명 이동 |
 | [src/application/batch-experiments.ts](src/application/batch-experiments.ts), [src/ui/BatchExperiments.tsx](src/ui/BatchExperiments.tsx), [useBatchExperiments.ts](src/ui/useBatchExperiments.ts) | 같은 seed 목록의 조건 조합·독립 엔진/유한 scheduler·실제 결과 집계와 기존 history 연결. SavedRun의 optional batch metadata로 보존 |
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |

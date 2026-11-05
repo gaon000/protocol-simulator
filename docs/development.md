@@ -78,6 +78,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
+실패 진단은 [V1-015](product-specs/protocol-simulator-v1.md#v1-015-실패-원인-진단과-관련-기록-이동)를 따른다. 코어는 전체 catalog의 판정 일치·네 기대 조건·기본값·상태/종료 기록 대조·미판정/버전/값 한도·prefix·ACK 손실 참고 관찰·직접 인과/타이머/합쳐진 송신·없는/순환 참조를 검사한다. Chromium/Firefox에서는 실패→기대/실제→연결 근거→시퀀스/설명, 저장/새로고침/초안 격리·회귀 사례·20행/390px/키보드를 검사한다. 기존 10k/1 MiB fixture는 진단을 열어 500ms·32768자 미만과 유한 행을 추가 검사하며 기존 상한은 유지한다.
+
 시나리오 묶음은 [V1-014](product-specs/protocol-simulator-v1.md#v1-014-시나리오-묶음과-회귀-검증)를 따른다. 코어는 정상/ACK 손실/중복의 독립 실행·snapshot/조건 비교·취소/manifest·invalid/disabled/raw·저장/충돌/용량을 검사한다. 브라우저는 사례 작성→기대 timeout→수정 전후 새 실패→기록/설명 재생, 조건 변경·native 저장/새로고침/bundle·미완성 JSON·단일 scheduler/새 세대·390px/키보드를 검사한다. 공통 series 추출 후 기존 반복 실험과 10k/1 MiB 응답성을 회귀 검사한다.
 
 실행 이유 설명은 [V1-013](product-specs/protocol-simulator-v1.md#v1-013-규칙-선택과-변수-변경-설명)을 따른다. 모든 catalog 전이·조건 후보·AND/OR 단락·순차/반복/같은 값 대입·원자적 rollback·불일치/구버전·prefix·1 MiB/10k의 유한 설명을 Node에서 검사한다. Chromium/Firefox는 실제 선택/계산식·기록 복원·변경된 초안 격리·반복 실험 회차·다중 해석·390px·키보드·대입 20행을 검사한다. 기존 응답성 fixture에서는 설명을 열어 계산/표시 시간을 500ms, DOM 32768자 미만으로 추가 검사하고 기존 입력·저장·cursor·frame·longtask 상한을 유지한다.
