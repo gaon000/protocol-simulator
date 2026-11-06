@@ -16,6 +16,8 @@
 
 초기 대상 사용자: 프로토콜의 구조·흐름을 이해하거나 자기 프로토콜을 설계·검증하려는 개발자와 학습자.
 
+메시지의 계층별 이동 경로는 [V1-020](docs/product-specs/protocol-simulator-v1.md#v1-020-메시지의-계층별-이동-경로)을 따른다. frozen prefix의 typed byte 출처와 실제 byte 대조만 연결하고 제어 후속·모호함/한도·부분 대응을 구분한다. byte 강조는 cursor를 전진시키지 않으며 명시적 재생만 실제 위치로 이동한다.
+
 반복 실험은 [V1-012](docs/product-specs/protocol-simulator-v1.md#v1-012-반복-실험과-결과-비교)를 따른다. 같은 seed 목록과 고정한 초안으로 독립 실행하며 completed·기대 조건 통과·미판정·미실행을 구분한다. SavedRun의 optional batch metadata와 기존 workspace 한도·저장 오류 계약을 보존한다.
 
 실행 이유 설명은 [V1-013](docs/product-specs/protocol-simulator-v1.md#v1-013-규칙-선택과-변수-변경-설명)을 따른다. snapshot·직접 trigger와 before 값으로 계산하고 실제 transition 결과와 대조한다. 생략 분기·중간 대입과 관찰된 최종 값을 구분하며, 현재 prefix 밖의 commit·다중 회차·rollback을 적용 완료로 추정하지 않는다.

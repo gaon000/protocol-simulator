@@ -53,4 +53,6 @@ workflow 파일 존재·로컬 검사·원격 job 결과는 별도 증거다. �
 
 ## S5 계층 연결 확장
 
+[메시지 이동 경로](../product-specs/protocol-simulator-v1.md#v1-020-메시지의-계층별-이동-경로)는 기존 스택 10k/1 MiB fixture에 열기/구간 변경 500ms·bounded DOM 32768자·관찰/필드 20개 페이지·256-byte 창을 추가해 검사한다. 10k 타이머 fixture에 응용 송신이 없으면 미지원/미관찰 표시를 확인하며 byte 경로를 만들지 않는다. 기록 위치/키보드 초점·1440/768/390px·저장/새로고침과 당시 source 사용은 두 브라우저에서 검증한다. 기존 실행/저장/filter/rAF/longtask 상한과 다섯 legacy fixture를 유지한다. 실제 결과는 [작업 계획](../exec-plans/completed/20261106-stack-message-journey.md)을 따른다.
+
 [S5 작업 공간](s5-stack-workspace.md)은 동일한 브라우저·viewport·키보드 기준과 기존 다섯 응답성 fixture를 유지한다. 추가 세 fixture는 실제 스택 scheduler의 정확한 10000 trace(원자적 타이머 재시작 포함), 실제 한 MiB 앱 프레임/16개 provider 조각, 화면에서 실행한 20사례/12020 trace다. 첫 둘은 20개 활성 중단점과 필터 60회를 포함한다. 그림/선택/설명·history/커버리지/비교 500ms, 표시 32768자, byte 창 256 bytes, 실행/저장·rAF/long-task의 기존 상한을 그대로 적용한다. 실제 최종 수치와 실패/수정/재검증은 [완료 계획](../exec-plans/completed/20261106-layered-protocol-stacks.md)이 소유한다. 기본 저장은 실제 native IndexedDB와 strict 검사를 worker에서 처리하며 quota/abort 주입도 해당 worker API 경계에서 검사한다.

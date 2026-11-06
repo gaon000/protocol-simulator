@@ -15,6 +15,7 @@ import {
 } from './stack-diagrams.ts';
 import { explainStackExecution } from './stack-explanation.ts';
 import { projectStackRecord } from './stack-replay.ts';
+import { buildStackMessageJourney, type StackJourneyQuery } from './stack-message-journey.ts';
 
 export type StackPanelQuery = {
   readonly cursor: number;
@@ -28,7 +29,8 @@ export type StackPanelQuery = {
   readonly ruleId?: string;
   readonly stateId?: string;
   readonly followSelection?: boolean;
-  readonly detail: 'event' | 'explanation' | 'structure' | 'diagnosis';
+  readonly detail: 'event' | 'explanation' | 'structure' | 'diagnosis' | 'journey';
+  readonly journey?: StackJourneyQuery;
   readonly bytePage: number;
   readonly rangeIndex: number;
   readonly expectationId?: string;
@@ -238,6 +240,10 @@ export function buildStackPanelModel(record: SavedStackRun, query: StackPanelQue
         }
       : undefined,
     selected: selectedRow,
+    journey:
+      query.detail === 'journey'
+        ? buildStackMessageJourney(record, query.cursor, query.journey, query.eventId)
+        : undefined,
     links: links?.success
       ? {
           limited: links.value.limited,

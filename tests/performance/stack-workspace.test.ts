@@ -127,6 +127,28 @@ for (const fixture of ['10k', '1MiB'] as const)
         256,
       );
     }
+    if (fixture === '1MiB')
+      await page.getByRole('button', { name: '저장 시점', exact: true }).click();
+    const journeyBegan = performance.now();
+    await page.getByRole('button', { name: '메시지 이동 경로', exact: true }).click();
+    const journey = page.getByRole('region', { name: '메시지 이동 경로', exact: true });
+    await expect(journey).toHaveAttribute(
+      'data-journey-status',
+      fixture === '1MiB' ? 'available' : 'unavailable',
+    );
+    const journeyMs = performance.now() - journeyBegan;
+    let journeySelectMs = 0;
+    if (fixture === '1MiB') {
+      const began = performance.now();
+      await journey.getByLabel('원본 byte 시작', { exact: true }).fill('65535');
+      await journey.getByLabel('선택 byte 길이', { exact: true }).fill('2');
+      await journey.getByRole('button', { name: 'byte 범위 적용', exact: true }).click();
+      await expect(journey).toContainText('선택 범위 [65535, 65537) · 2 bytes');
+      journeySelectMs = performance.now() - began;
+      expect(await journey.locator('[data-journey-event]').count()).toBeLessThanOrEqual(20);
+      expect(await journey.locator('[data-journey-byte]').count()).toBeLessThanOrEqual(256);
+    }
+    const journeyChars = await journey.evaluate((element) => element.textContent?.length ?? 0);
     const saveBegan = performance.now();
     await page.getByRole('button', { name: '지금 저장', exact: true }).click();
     await expect(
@@ -147,6 +169,9 @@ for (const fixture of ['10k', '1MiB'] as const)
       saveMs,
       filterP95Ms,
       chars,
+      journeyMs,
+      journeySelectMs,
+      journeyChars,
       ...responsiveness,
     };
     await info.attach('stack-performance.json', {
@@ -160,6 +185,9 @@ for (const fixture of ['10k', '1MiB'] as const)
     expect(saveMs).toBeLessThan(3000);
     expect(filterP95Ms).toBeLessThan(200);
     expect(chars).toBeLessThan(32768);
+    expect(journeyMs).toBeLessThan(500);
+    expect(journeySelectMs).toBeLessThan(500);
+    expect(journeyChars).toBeLessThan(32768);
     expect(responsiveness.frameP95Ms).toBeLessThan(100);
     expect(responsiveness.longTaskMaxMs).toBeLessThan(fixture === '10k' ? 250 : 1000);
   });

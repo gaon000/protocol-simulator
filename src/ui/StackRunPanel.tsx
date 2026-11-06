@@ -2,11 +2,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { StackBreakpointStop } from '../application/stack-breakpoints.ts';
 import type { StackPanelModel, StackPanelQuery } from '../application/stack-panel-model.ts';
+import type { StackJourneyQuery } from '../application/stack-message-journey.ts';
 import type { StackWorkerClient } from '../application/stack-worker-client.ts';
 import type { StackDebugSettings } from '../application/stack-worker-protocol.ts';
 import { stackTarget } from '../domain/stack-record.ts';
 import type { SavedStackRun } from '../domain/workspace-v2-model.ts';
 import { useStackQuery } from './useStackQuery.ts';
+import { StackMessageJourneyPanel } from './StackMessageJourney.tsx';
 
 type Props = {
   record: SavedStackRun | undefined;
@@ -126,6 +128,14 @@ export function StackRunPanel({
   const [ruleId, setRuleId] = useState<string>();
   const [stateId, setStateId] = useState<string>();
   const [detail, setDetail] = useState<StackPanelQuery['detail']>('event');
+  const [journey, setJourney] = useState<StackJourneyQuery>({});
+  const [journeyFocus, setJourneyFocus] = useState<string>();
+  useEffect(() => {
+    if (record?.id) {
+      setJourney({});
+      setJourneyFocus(undefined);
+    }
+  }, [record?.id]);
   const [rangeIndex, setRangeIndex] = useState(0);
   const [bytePage, setBytePage] = useState(0);
   const [field, setField] = useState<string>();
@@ -156,6 +166,7 @@ export function StackRunPanel({
             layer,
             filterTarget,
             detail,
+            ...(detail === 'journey' ? { journey } : {}),
             bytePage,
             rangeIndex,
             followSelection,
@@ -174,6 +185,7 @@ export function StackRunPanel({
       layer,
       filterTarget,
       detail,
+      journey,
       bytePage,
       rangeIndex,
       selected,
@@ -196,14 +208,15 @@ export function StackRunPanel({
     }));
   });
   const model = result?.value;
-  function choose(id: string, next: number) {
+  const journeyRoot = model?.journey && 'root' in model.journey ? model.journey.root : undefined;
+  function choose(id: string, next: number, keepCursor = false) {
     setFollowSelection(true);
     setRangeIndex(0);
     setBytePage(0);
     setField(undefined);
     const own = record?.view.events[next - 1];
     if (own) setTarget(stackTarget(own.endpoint));
-    select(id, next);
+    select(id, keepCursor ? position : next);
   }
   if (!record)
     return (
@@ -684,6 +697,7 @@ export function StackRunPanel({
                   ['event', '이벤트·연결'],
                   ['explanation', '규칙·변수 이유'],
                   ['structure', '메시지 구조'],
+                  ['journey', '메시지 이동 경로'],
                   ['diagnosis', '실패 원인'],
                 ] as const
               ).map(([id, label]) => (
@@ -714,6 +728,29 @@ export function StackRunPanel({
                   </>
                 )}
               </>
+            )}
+            {detail === 'journey' && model.journey && (
+              <StackMessageJourneyPanel
+                value={model.journey}
+                selected={selected}
+                focus={journeyFocus}
+                setFocus={setJourneyFocus}
+                change={(patch) =>
+                  setJourney((old) =>
+                    patch.rootId
+                      ? { rootId: patch.rootId, rootPage: old.rootPage ?? 0, ...patch }
+                      : { ...old, ...(journeyRoot ? { rootId: journeyRoot.id } : {}), ...patch },
+                  )
+                }
+                select={(id, next) => {
+                  if (journeyRoot) setJourney((old) => ({ ...old, rootId: journeyRoot.id }));
+                  choose(id, next, true);
+                }}
+                replay={(id, next) => {
+                  if (journeyRoot) setJourney((old) => ({ ...old, rootId: journeyRoot.id }));
+                  choose(id, next);
+                }}
+              />
             )}
             {detail === 'explanation' &&
               (model.explanation ? (
