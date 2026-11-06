@@ -55,7 +55,7 @@ endpoint별 포트 상태·상태/변수/타이머와 송신·해석·앱 전달
 
 저장 worker의 최근 두 검증본과 동일한 불변 실행 행은 위치 참조로 전송한다. 바뀐 행과 초안은 실제 값을 보내며, worker가 소유한 정확한 행을 복원한 뒤 전체 workspace 계약을 검사한다. 기준본이 없으면 전체 전송으로 재시도한다. 검증한 불변 JSON만 정확한 노드 수·상대 깊이를 재사용하며 더 작은 예산은 다시 검사한다. 같은 불변 legacy 관찰의 자체 의미 검사만 재사용하고 행 ID·묶음·용량·revision과 DB에서 새로 읽은 자료는 계속 검사한다. 저장 형식과 CAS 경계는 바뀌지 않는다.
 
-소유 JSON 검사 때 정확한 compact JSON의 UTF-8 길이도 수집한다. 동결한 자료만 이 길이를 재사용하며 workspace root/legacy 영역의 64 MiB 검사는 같은 실제 크기를 사용한다. mutable/shallow freeze는 native 직렬화로 계산하고 더 작은 node/depth·fresh DB 검사와 실패 시 원본 미동결을 유지한다. 세부 실패/재검증은 [CI 후속 계획](../exec-plans/active/20261107-stack-authoring-ci-validation.md)을 따른다.
+소유 JSON 검사 때 정확한 compact JSON의 UTF-8 길이도 수집한다. 동결한 자료만 이 길이를 재사용하며 workspace root/legacy 영역의 64 MiB 검사는 같은 실제 크기를 사용한다. mutable/shallow freeze는 native 직렬화로 계산하고 더 작은 node/depth·fresh DB 검사와 실패 시 원본 미동결을 유지한다. 세부 실패/재검증은 [CI 후속 계획](../exec-plans/completed/20261107-stack-authoring-ci-validation.md)을 따른다.
 
 내보내기는 기본으로 두 모드를 포함한 v2 bundle이다. v1 자료만 내보내기와 이전 v1 원본 복구 파일은 별도 명시적 동작이다. 가져오기는 전체 검사·충돌 remap을 staging한 뒤 적용한다. 초안 삭제는 과거 실행 snapshot을 지우지 않는다. 두 모드의 100개 초안/100개 기록/64 MiB 한도를 공유하고 자동 삭제하지 않는다.
 

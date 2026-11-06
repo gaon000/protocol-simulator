@@ -1,20 +1,20 @@
 # 작성 기능의 CI 검증과 저장 비용 보완
 
-상태: In Progress
-종료일: 미종료
+상태: Completed
+종료일: 2026-11-07
 
 [운영 규칙](../index.md)을 따른다.
 
 ## Purpose / Big Picture
 
-[작성 기능](../completed/20261107-stack-authoring-workflow.md)의 전달 SHA `237492a`에서 발견한 원격 검증 실패를 확인하고 기존 시간/크기 기준으로 최종 CI를 통과한다. 기능·저장/엔진 schema·지원 경계는 유지한다.
+[작성 기능](20261107-stack-authoring-workflow.md)의 전달 SHA `237492a`에서 발견한 원격 검증 실패를 확인하고 기존 시간/크기 기준으로 최종 CI를 통과한다. 기능·저장/엔진 schema·지원 경계는 유지한다.
 
 ## Progress
 
 - [x] CI 두 실행의 실제 로그/trace와 동일 소스 로컬 성능 재검사 확인.
 - [x] 파일 가져오기 종료의 실제 준비 상태 대기와 소유 JSON의 정확한 byte 크기 재사용 구현.
 - [x] 새 코어·브라우저/저장·성능 전체 검사.
-- [ ] 최신 전달 SHA의 원격 CI 확인.
+- [x] 보완 코드 `8f2daff167fa27bd481929d26e6bbf3559784122`의 원격 CI 통과와 실제 검사 수/측정값 확인.
 
 ## Surprises & Discoveries
 
@@ -30,7 +30,7 @@
 
 ## Outcomes & Retrospective
 
-로컬 전체 검사를 통과했다. Node 570·문서 50·Chromium/Firefox UI 314·native DB 14·응답성 9다. 최종 전체 검사에서 legacy 1 MiB 저장 1377ms/3000ms, native 10k 최대 task 66ms/250ms였다. 기존 605동작 편집과 undo/redo도 같은 500ms 기준을 유지했다. 정확한 전달 SHA의 원격 CI를 확인한 뒤 완료한다.
+로컬 전체 검사를 통과했다. Node 570·문서 50·Chromium/Firefox UI 314·native DB 14·응답성 9다. 최종 전체 검사에서 legacy 1 MiB 저장 1377ms/3000ms, native 10k 최대 task 66ms/250ms였다. 기존 605동작 편집과 undo/redo도 같은 500ms 기준을 유지했다. 보완 코드 `8f2daff167fa27bd481929d26e6bbf3559784122`의 [원격 CI](https://github.com/gaon000/protocol-simulator/actions/runs/42256191134)도 같은 전체 검사를 통과했다. 완료 기록만 갱신한 최종 master SHA의 CI는 전달 응답에서 별도로 확인한다.
 
 ## Context and Orientation
 
@@ -44,7 +44,7 @@
 
 ## Validation and Acceptance
 
-Node 24.18.0·pnpm 9.15.0, `pnpm check`·공백 검사와 [P7](../../design-docs/p7-validation.md)의 기존 아홉 fixture/상한을 유지한다. 새 검사는 UTF-8·escape/lone surrogate·숫자/byte 배열·cached subtree/alias·mutable/shallow freeze·작은 예산·accessor/hole/비유한 값과 실패 미동결을 확인한다. 실제 원격 결과를 별도로 기록한다.
+Node 24.18.0·pnpm 9.15.0, `pnpm check`·공백 검사와 [P7](../../design-docs/p7-validation.md)의 기존 아홉 fixture/상한을 유지한다. 새 검사는 UTF-8·escape/lone surrogate·숫자/byte 배열·cached subtree/alias·mutable/shallow freeze·작은 예산·accessor/hole/비유한 값과 실패 미동결을 확인한다. 원격 CI는 Ubuntu 24.04·같은 Node/pnpm/브라우저에서 Node 570·문서 50·UI 314·native DB 14·응답성 9를 통과했다. legacy 1 MiB 저장 2462ms/3000ms, native stack 10k 최대 task 164ms/250ms, 605동작 undo/redo 80/84ms였다. fixture·지원 경계·시간/크기 상한을 유지했다. 앞선 실패/로컬 결과와 각각 구분하며 다른 기기의 보증으로 해석하지 않는다.
 
 ## Idempotence and Recovery
 
@@ -52,7 +52,7 @@ Node 24.18.0·pnpm 9.15.0, `pnpm check`·공백 검사와 [P7](../../design-docs
 
 ## Artifacts and Notes
 
-로그: 최종 로컬 `/private/tmp/authoring-ci-fix-check.log`, `/private/tmp/authoring-ci-failed.log`, `/private/tmp/authoring-ci-second.log`, `/private/tmp/authoring-performance-repeat.log`. 원격 trace는 해당 Actions artifact에 남는다.
+로그: 보완 원격 `/private/tmp/authoring-fix-ci.log`, 최종 로컬 `/private/tmp/authoring-ci-fix-check.log`, `/private/tmp/authoring-ci-failed.log`, `/private/tmp/authoring-ci-second.log`, `/private/tmp/authoring-performance-repeat.log`. 원격 trace는 해당 Actions artifact에 남는다.
 
 ## Interfaces and Dependencies
 

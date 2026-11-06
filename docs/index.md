@@ -47,7 +47,7 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 ## 선택 문서
 
-작성 기능의 [원격 CI 후속 검증](exec-plans/active/20261107-stack-authoring-ci-validation.md)을 진행 중이다. 기존 기준을 유지하며 가져오기 준비 상태와 큰 자료의 중복 크기 계산을 보완한다.
+작성 기능의 [원격 CI 후속 검증](exec-plans/completed/20261107-stack-authoring-ci-validation.md)을 완료했다. 가져오기 준비 상태와 큰 자료의 중복 크기 계산을 보완하고 기존 기준의 전체 로컬/원격 검사를 통과했다.
 
 [새 스택 작성·되돌리기·설정 폼](exec-plans/completed/20261107-stack-authoring-workflow.md)을 구현·검증했다. 생성 검토와 첫 메시지/검증, 초안별 유한 편집 이력과 포트/타이머/초기값 폼의 현재 계약은 [V1-022~024](product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)를 따른다.
 

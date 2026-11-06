@@ -4,6 +4,6 @@
 
 | 계획 | 상태 | 목적 | 의존·차단 조건 |
 | --- | --- | --- | --- |
-| [작성 기능 CI 검증과 저장 비용](20261107-stack-authoring-ci-validation.md) | In Progress | 원격 검증 실패 보완·정확한 byte 크기 재사용 | 기존 fixture/시간/byte·저장 계약 유지 |
+| 없음 | - | - | - |
 
 완료된 작업은 [완료 목록](../completed/index.md)에서 확인한다.
