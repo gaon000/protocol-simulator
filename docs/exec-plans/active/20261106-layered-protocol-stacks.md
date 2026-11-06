@@ -1,11 +1,11 @@
 # 계층 연결 프로토콜 스택 단계별 구현 계획
 
-상태: Ready
+상태: In Progress
 종료일: 미종료
 기준일: 2026-11-06
-구현 상태: 계획 작성 완료, 애플리케이션 구현 미착수. 사용자 요청은 설계 문서와 구현 계획 작성이다.
+구현 상태: 설계 문서를 master로 병합·푸시한 뒤 S1 모델·검사·바이트 자료 계약과 로컬 검증을 완료했다. S2~S5는 미착수다.
 
-[ExecPlan 운영 규칙](../index.md)을 따른다. 기능의 계약은 [계층 연결 설계](../../design-docs/layered-stack-v2.md)가 소유한다. Ready는 다음 구현 요청에서 S1을 시작할 준비가 됐다는 뜻이며 구현·기능 검증 완료를 뜻하지 않는다.
+[ExecPlan 운영 규칙](../index.md)을 따른다. 기능의 계약은 [계층 연결 설계](../../design-docs/layered-stack-v2.md), S1의 실제 JSON/API는 [모델·검사 계약](../../design-docs/s1-stack-models.md)이 소유한다. 전체 스택 실행·저장·화면 완료와 S1 완료를 구분한다.
 
 ## Purpose / Big Picture
 
@@ -17,13 +17,14 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 
 - [x] 2026-11-06: clean master `76194c8`에서 현재 모델·엔진·환경·저장·관찰 도구와 작업 규칙 확인. `codex/layered-stack-design`에서 문서화.
 - [x] 2026-11-06: 합의한 서비스 포트/단일 scheduler/호환성 설계와 S1~S5의 범위·선행 조건·완료 기준 작성.
-- [ ] S1 — 스택/포트/바이트 모델·검사·불변 자료 계약.
+- [x] 2026-11-06: 설계 commit `a5925a8`을 master로 fast-forward하고 origin/master에 push 완료. `codex/s1-stack-models-validation`에서 S1 구현.
+- [x] 2026-11-06 S1 — 스택/포트/바이트 모델·검사·불변 자료 계약. 별도 v2 domain 모듈·59개 신규 Node 검사와 S2 진입 API 문서.
 - [ ] S2 — 공유 규칙 코어·스택 scheduler/router와 실행 수명.
 - [ ] S3 — ReliableStreamLite와 실제 계층 연결·장애 검증.
 - [ ] S4 — 저장 v2·legacy 호환·재생과 관찰/검증 도구 확장.
 - [ ] S5 — 스택 구성 화면·응용 예제·전체/브라우저/응답성 검증.
 
-각 S단계는 구현 요청 이후 시작하고 관련 source·계약 문서·의미 있는 검증을 같은 작업 단위로 완료한다. 오늘 문서 작성이 끝나도 이 구현 계획은 active/Ready로 유지한다.
+각 S단계는 구현 요청 이후 시작하고 관련 source·계약 문서·의미 있는 검증을 같은 작업 단위로 완료한다. S1 이후에도 이 구현 계획은 active/In Progress로 유지한다.
 
 ## Surprises & Discoveries
 
@@ -33,6 +34,7 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - TCP 연결 예제는 ESTABLISHED에서 finish한다. 기존 Stop-and-wait는 문자열·단방향 예제다. 두 예제를 완성된 양방향 스트림 provider로 간주하지 않는다.
 - 기존 엔진은 자원 한도로 전이 trace가 기록되기 전에 일부 view 상태가 바뀔 수 있다. 스택 모드의 예약/반영 정책을 별도 버전으로 검증하고 legacy trace 의미는 보존한다.
 - 현재 저장소에는 v1 코어/브라우저/응답성 기준이 있다. 기존 완료 계획의 검사 수는 과거 증거이며 스택의 검증 실적이 아니다.
+- S1 fixture에서 protocol.messages와 packet schema.messages가 같은 배열을 참조하면 structuredClone도 그 내부 alias를 유지한다. 스키마 불일치 검사는 별도 사본을 사용해 실제 JSON 입력과 같은 조건으로 검증한다.
 
 ## Decision Log
 
@@ -41,11 +43,13 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - 2026-11-06: 첫 provider는 initially-ready ReliableStreamLite이며 별도 예제로 제공한다. HTTP는 이 provider의 서비스로 연결하고 전체 TCP 데이터 모델은 후속이다.
 - 2026-11-06: v2 형식/엔진을 명시하고 legacy 자료와 실행 경로를 보존한다. DB 전환은 원자적 upgrade·원본 보관·구형 writer 차단·CAS와 복구를 포함한다.
 - 2026-11-06: 기존 전역 10k/16 MiB 및 workspace 64 MiB 기준을 계층별 배수로 늘리지 않는다. 새 payload/버퍼 한도는 설계에 기록한 초기값으로 구현·실측한다.
-- 2026-11-06: 문서 작성만 수행한다. 새 production dependency·실제 연결·배포는 현재 작업에 포함하지 않는다.
+- 2026-11-06 설계 단계: 문서만 작성했다. 이후 사용자 요청으로 S1 구현을 시작했다. 새 production dependency·실제 연결·배포는 포함하지 않는다.
+- 2026-11-06 S1: 기존 v1 union/reader/코덱을 바꾸지 않고 별도 v2 domain 모듈을 추가했다. adapter는 source 전체를 보존하며 기존 전송 정의에 provides를 발명하지 않는다.
+- 2026-11-06 S1: bytes 서비스는 원시 byte 수, 논리 packet/메시지는 base64를 포함한 JSON 크기로 메시지 예산을 검사한다. artifact 예산은 trace와 실제 직렬화 payload를 함께 센다. 0-byte 블록도 pending+trace 개수 한도로 제한한다.
 
 ## Outcomes & Retrospective
 
-설계 문서와 단계별 구현 계획을 작성했다. 기능은 아직 구현/검증하지 않았으며, 구현 결과와 실제 로컬·원격 검사 근거는 단계별로 추가한다. 문서 검증 결과는 아래 Validation and Acceptance에 기록한다.
+S1의 네 인스턴스·typed 포트·정확한 revision/endpoint·peer wire·시나리오 검사와 bytes 표현식, 소유 snapshot/payload/trace 자료를 구현하고 로컬 검증했다. 기존 v1 실행 경로와 App/workspace/DB는 변경하지 않았다. 실제 공유 scheduler·신뢰성 provider·저장/UI의 검증은 S2~S5에 남아 있다.
 
 ## Context and Orientation
 
@@ -61,7 +65,7 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 | [커버리지](../../../src/application/suite-coverage.ts), [비교](../../../src/application/run-comparison.ts), [중단점](../../../src/application/breakpoints.ts) | 현재 participant 타깃과 한도/버전 경계 |
 | [작업 공간](../../../src/ui/App.tsx) | 편집·실행 세대·history cursor·공유 선택·모든 보기 연결 |
 
-신규 파일 경로는 아래의 구현 후보이며 아직 존재하는 모듈로 표현하지 않는다. 실제 코드를 추가할 단계에서 폴더별 AGENTS·구조 원칙을 다시 확인한다.
+S1의 실제 신규 경로는 [S1 계약](../../design-docs/s1-stack-models.md)과 [구조 지도](../../../ARCHITECTURE.md)에 등록했다. S2~S5 경로는 아래의 구현 후보이며 아직 존재하는 모듈로 표현하지 않는다.
 
 ## Plan of Work
 
@@ -150,6 +154,14 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 
 문서 작성 검증(2026-11-06): `pnpm check:docs`에서 Markdown 41개와 내부 경로/앵커 검사가 통과했다. `git diff --check`와 신규 파일을 포함한 `git diff --cached --check`도 통과했다. 애플리케이션 source 변경이 없어 코어/E2E/응답성 검사는 실행하지 않았으며, 구현 단계의 테스트는 아직 수행하지 않았다.
 
+S1 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
+
+- `pnpm check` 통과: lint/format/type, 당시 Node 402개, 문서 42개, build, Chromium/Firefox 244개, 기존 응답성 5개. UI/기존 엔진에 스택 경로를 연결하지 않았으며 이 브라우저 결과는 v1 회귀 증거다.
+- 최종 domain 점검에서 guarded explicit-ignore·JSON 대입·리터럴 필드/타이머 검사와 잘못된 큰 graph의 조기 거부를 보완했다. 이후 전체 Node 403개(신규 S1 59개)와 정적/문서 검사를 다시 통과했다. App/기존 번들 경로는 변경하지 않았다.
+- 신규 검사는 정상 네 endpoint/별도 client/server, strict 포트/타입/스키마·revision·중복/없는 참조·순환/끊김·기대 조건, 빈/1 MiB/잘못된 bytes·range/depth/size·낮춘 예산, 원본/snapshot/handle 격리, v1 JSON/HTTP adapter와 기존 transport 거부, 물리/논리 예산·원자적 실패·부분 trace 보존/직렬화를 포함한다.
+- 첫 스키마 불일치 fixture가 내부 공유 배열을 함께 수정해 예상과 달리 일치했다. packet schema를 별도 소유 사본으로 만든 뒤 검사 의도를 확인했다. 테스트 명령을 이어 실행할 때 PATH 지정이 첫 명령에만 적용된 오류는 고정 Node 경로를 각 명령에 적용해 수정했다.
+- 로컬 로그: `/private/tmp/protocol-s1-check.log`, `/private/tmp/protocol-s1-node-final.log`. 실제 스택 실행/신뢰성·DB upgrade·스택 UI·스택 최대 크기 브라우저 실측은 아직 수행하지 않았다.
+
 ## Idempotence and Recovery
 
 모든 변경은 feature branch에서 기존 사용자 변경을 보존한다. S1~S3의 미완성 모델/엔진을 App·기존 저장 형식에 노출하지 않는다. 단계별 verified commit으로 이어가며 실패한 단계에서는 이전 실행/자료를 보존하고 다음 단계를 공개하지 않는다.
@@ -167,4 +179,4 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 
 ## Interfaces and Dependencies
 
-제안된 변경은 stack 모델/bytes/서비스·scheduler/runtime·v2 snapshot/trace/workspace/bundle/DB와 모든 endpoint 관찰 도구다. 기존 v1 자료·프로토콜 의미와 실행 경로를 보존한다. 현재 문서 작업은 애플리케이션 source·패키지·DB·외부 서비스를 변경하지 않는다. 신규 production dependency는 계획하지 않으며 필요해지면 기존 승인 규칙을 적용한다.
+전체 계획은 stack 모델/bytes/서비스·scheduler/runtime·v2 snapshot/trace/workspace/bundle/DB와 모든 endpoint 관찰 도구에 걸친다. S1은 domain 모듈과 Node fixture/검사만 추가하고 기존 v1 자료·프로토콜 의미와 실행 경로를 보존한다. App·패키지·DB·외부 서비스는 변경하지 않는다. 신규 production dependency는 추가하지 않았으며 필요해지면 기존 승인 규칙을 적용한다.

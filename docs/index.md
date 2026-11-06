@@ -43,7 +43,7 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [두 실행 결과 나란히 비교](exec-plans/completed/20261105-side-by-side-run-comparison.md)를 구현·검증했다. 당시 설정·결과·관찰 차이와 양쪽의 실제 기록 위치를 연결한다. 기준은 [V1-019](product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다.
 
-후속 [계층 연결 프로토콜 스택 설계](design-docs/layered-stack-v2.md)를 합의·문서화했다. 현재 단일 계층 실행과 구분되는 미구현 설계이며, [S1~S5 구현 계획](exec-plans/active/20261106-layered-protocol-stacks.md)은 Ready다. 서비스 포트·네 인스턴스의 단일 가상 시계, 사용자 정의 스트림 provider와 legacy 저장/관찰 호환성을 단계별로 검증한다.
+후속 [계층 연결 프로토콜 스택 설계](design-docs/layered-stack-v2.md)의 [S1 모델·검사·바이트 자료 계약](design-docs/s1-stack-models.md)을 구현했다. [S1~S5 구현 계획](exec-plans/active/20261106-layered-protocol-stacks.md)은 In Progress다. 네 인스턴스의 실제 실행·사용자 정의 스트림 provider·legacy 저장/관찰·화면 연결은 후속이며 현재 사용자 실행은 단일 계층이다.
 
 ## 선택 문서
 

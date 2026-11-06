@@ -12,7 +12,7 @@
 
 두 실행 비교는 [V1-019](docs/product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다. frozen 기록의 설정/결과·관찰을 나란히 표시하고 실행별 ID를 공유 인과관계로 간주하지 않는다. 순서 보존/유한 대응·비교 한도와 부분 관찰을 명시하며 각 쪽의 실제 cursor로 재생한다.
 
-계층 연결 모드는 [후속 설계](docs/design-docs/layered-stack-v2.md)와 [S1~S5 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다. 설계 합의·문서화 단계이며 현재 미구현이다. 구현 시 서비스/바이트 타입·stable endpoint·단일 가상 시계와 legacy 실행/저장 호환성을 유지하고 현재 v1 계약과 구분한다.
+계층 연결 모드는 [후속 설계](docs/design-docs/layered-stack-v2.md)와 [S1~S5 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다. [S1 모델·검사](docs/design-docs/s1-stack-models.md)는 구현했으며 실행·화면·DB 연결은 후속이다. 서비스/바이트 타입·stable endpoint·단일 가상 시계와 legacy 실행/저장 호환성을 유지하고 현재 v1 계약과 구분한다. 바이트는 store 소유 handle과 record-local artifacts로 다루며 clearLive 뒤 committed 자료를 보존한다.
 
 초기 대상 사용자: 프로토콜의 구조·흐름을 이해하거나 자기 프로토콜을 설계·검증하려는 개발자와 학습자.
 
