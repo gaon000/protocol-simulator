@@ -34,12 +34,12 @@ export type StackWorkerCommand =
   | { readonly type: 'register'; readonly record: SavedStackRun }
   | {
       readonly type: 'history-step';
-      readonly recordId: string;
+      readonly recordKey: string;
       readonly cursor: number;
       readonly settings: StackDebugSettings;
     }
   | { readonly type: 'forget'; readonly id: string }
-  | { readonly type: 'panel'; readonly recordId: string; readonly query: StackPanelQuery }
+  | { readonly type: 'panel'; readonly recordKey: string; readonly query: StackPanelQuery }
   | {
       readonly type: 'compare';
       readonly left: string;
@@ -48,13 +48,13 @@ export type StackWorkerCommand =
     }
   | {
       readonly type: 'case-changes';
-      readonly records: readonly SavedStackRun[];
+      readonly recordKeys: readonly string[];
       readonly before: string;
       readonly after: string;
     }
   | {
       readonly type: 'coverage';
-      readonly records: readonly SavedStackRun[];
+      readonly recordKeys: readonly string[];
       readonly groupId: string;
       readonly page: number;
       readonly endpoint: string;
@@ -76,6 +76,7 @@ export type StackWorkerReply =
       readonly id: number;
       readonly value?: unknown;
       readonly error?: string;
+      readonly code?: 'record-missing';
     }
   | {
       readonly type: 'view';
@@ -93,3 +94,18 @@ export type StackWorkerReply =
       readonly done: boolean;
       readonly record?: SavedStackRun;
     };
+
+/** Index one immutable observation inside the private worker; this key never establishes causal correspondence. */
+export function stackObservationKey(id: string, view: StackView): string {
+  return JSON.stringify([
+    id,
+    view.runId,
+    view.snapshot.engineVersion,
+    view.snapshot.randomAlgorithm,
+    view.status,
+    view.timeMs,
+    view.processedOperations,
+    view.pendingOperations,
+    view.events.length,
+  ]);
+}

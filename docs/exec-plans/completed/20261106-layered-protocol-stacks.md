@@ -3,7 +3,7 @@
 상태: Completed
 종료일: 2026-11-06
 기준일: 2026-11-06
-구현 상태: S1~S5 구현과 전체 로컬 검증 완료. 단일 계층/스택 화면과 기본 v2 저장 경로를 연결했다.
+구현 상태: S1~S5 구현·최종 로컬 검증 완료. 원격 CI에서 드러난 성능 회귀를 보완하고 기존 임곗값으로 전체 검사를 통과했다.
 
 [ExecPlan 운영 규칙](../index.md)을 따른다. 기능의 계약은 [계층 연결 설계](../../design-docs/layered-stack-v2.md), S1의 실제 JSON/API는 [모델·검사 계약](../../design-docs/s1-stack-models.md)이 소유한다. 전체 스택 실행·저장·화면 완료와 S1 완료를 구분한다.
 
@@ -26,9 +26,9 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - [x] 2026-11-06: S3 commit `3bbff87` master 반영과 [CI](https://github.com/gaon000/protocol-simulator/actions/runs/42159078902) 통과. `codex/s4-stack-persistence-observation`에서 S4 구현.
 - [x] 2026-11-06 S4 — 저장 v2·legacy 호환/복구·네 endpoint의 재생/관찰·중단점/회귀/비교 API. 신규 Node 34개와 Chromium/Firefox native DB 14개·전체 로컬 검사 통과.
 - [x] 2026-11-06: S4 commit `7672b27` master 반영과 [CI](https://github.com/gaon000/protocol-simulator/actions/runs/42168174730) 통과. `codex/s5-stack-workspace`에서 S5 구현.
-- [x] 2026-11-06 S5 — 스택 작성/실행/분석·중단점/자동 재생·사례/커버리지/비교 화면, 기본 v2 저장/검사 worker와 전체 검증 완료. 신규 Node 17개·UI 26개·스택 정량 3개.
+- [x] 2026-11-06 S5 — 스택 작성/실행/분석·중단점/자동 재생·사례/커버리지/비교 화면, 기본 v2 저장/검사 worker와 전체 검증 완료. 신규 Node 21개·UI 26개·스택 정량 3개.
 
-각 S단계는 구현 요청 이후 시작하고 관련 source·계약 문서·의미 있는 검증을 같은 작업 단위로 완료한다. 각 단계의 이력을 보존하며 최종 정량 검증을 통과하고 이 계획을 Completed로 이동했다.
+각 S단계는 구현 요청 이후 시작하고 관련 source·계약 문서·의미 있는 검증을 같은 작업 단위로 완료했다. 각 단계와 CI 실패/보완의 이력을 보존하고 동일 기준으로 최종 로컬 검증한 뒤 Completed로 이동했다. 전달한 최종 commit의 원격 CI는 별도로 확인한다.
 
 ## Surprises & Discoveries
 
@@ -74,7 +74,7 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 
 ## Outcomes & Retrospective
 
-S1~S5 구현과 전체 로컬 검증을 완료했다. 네 endpoint와 단일 가상 시계의 실제 계층 연결, ReliableStreamLite와 제한된 응용 예제, 작성/실행/관찰/회귀/비교 화면과 기본 v2 로컬 저장을 연결했다. 단일 계층의 실행 의미와 기존 자료를 보존한다. 실행·저장 검사를 worker로 분리해 대형 자료의 화면 응답성을 지켰으며 실제 서버/기기·전체 TCP/HTTP 표준 적합성·배포는 포함하지 않았다. 원격 CI는 정확한 최종 commit에서 별도로 확인한다.
+S1~S5를 구현하고 CI에서 재현된 성능 회귀를 보완한 뒤 최종 로컬 검증을 통과했다. 네 endpoint와 단일 가상 시계의 실제 계층 연결, ReliableStreamLite와 제한된 응용 예제, 작성/실행/관찰/회귀/비교 화면과 기본 v2 로컬 저장을 연결했다. 단일 계층의 실행 의미와 기존 자료를 보존한다. 실행·저장 검사를 worker로 분리해 대형 자료의 화면 응답성을 지켰으며 실제 서버/기기·전체 TCP/HTTP 표준 적합성·배포는 포함하지 않았다. 원격 CI는 정확한 최종 commit에서 별도로 확인한다.
 
 ## Context and Orientation
 
@@ -214,7 +214,7 @@ S4 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 
 S5 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 
-- 최종 `pnpm check` 통과: lint/format/type·Node 516개(신규 17개)·Markdown 46개·build·Chromium/Firefox UI 270개(신규 26개)·native DB API 14개·1-worker 응답성 8개(기존 5개+신규 스택 3개). 로그는 `/private/tmp/s5-check4.log`다.
+- 최초 로컬 `pnpm check` 통과: lint/format/type·Node 516개(신규 17개)·Markdown 46개·build·Chromium/Firefox UI 270개(신규 26개)·native DB API 14개·1-worker 응답성 8개(기존 5개+신규 스택 3개). 로그는 `/private/tmp/s5-check4.log`다. 이후 CI 실패와 최종 재검증은 아래에 따로 기록했다.
 - 두 브라우저의 1440/768/390px·키보드와 실제 화면을 확인했다. 정상/첫 ACK 손실/제한된 HTTP GET·POST·분할·전체 손실 작성과 실행, 진단 초점·prefix/회차/설명, 실제 중단점 정지/계속·기록 자동 재생, 실행 중 편집/부분 checkpoint·모드 전환, 문법/필수 구조가 미완성인 JSON의 저장/복원/수정·v1 원본 보존/구형 writer 차단·v2 bundle 왕복·quota/abort/CAS 복구를 검사했다. UI 캡처는 Playwright 결과에 남겼으며 1440/390px를 직접 확인했다.
 - 정확한 10000개 trace는 실제 네 인스턴스 scheduler의 타이머 규칙으로 생성한다. 1 MiB 앱 프레임은 실제 ReliableStreamLite의 16개 조각과 ACK로 전달한다. 20사례는 화면에서 실제 worker 엔진을 실행해 12020개 관찰을 만들고 저장/커버리지/비교/초기 cursor로 이동했다. 조작한 trace는 사용하지 않았다. 스택 두 단일 fixture는 20개 활성 중단점을 포함한다.
 
@@ -245,3 +245,16 @@ S5 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 ## Interfaces and Dependencies
 
 전체 계획은 stack 모델/bytes/서비스·scheduler/runtime·v2 snapshot/trace/workspace/bundle/DB와 모든 endpoint 관찰 도구에 걸친다. S1~S4는 별도 실행/provider·v2 저장/관찰 API와 Node/native 브라우저 검사를 구현한다. S4의 package script는 새 native API E2E를 전체 check에 포함한다. App/기본 adapter·외부 서비스·production dependency는 변경하지 않았다.
+
+
+S5 원격 재검증(2026-11-06): [commit 36495a2의 CI](https://github.com/gaon000/protocol-simulator/actions/runs/42178836821)는 코어 516·UI 270·native DB 14를 통과했지만 기존 1 MiB 저장 대기, 스택 1 MiB 13416ms 실행, 20사례 조회 최대 task 290ms가 실패했다. 해당 플랫폼의 실제 실패로 처리하며 상한/fixture를 완화하지 않는다. Node CPU profile에서 deserializeBytes의 문자열 generic iterator가 지배적인 비용이었고, 이미 worker가 만든 기록을 메인으로 받았다가 다시 전부 보내는 경로와 중복 JSON 구조 검사를 확인했다. 직접 바이트 복사·검증된 불변 JSON의 정확한 subtree 예산 cache·분리된 관찰 버전 key/64개 worker cache와 실제 source 재등록으로 보강했다.
+
+
+S5 최종 재검증(2026-11-06, 동일 macOS·Node·pnpm):
+
+- `/private/tmp/s5-check-final.log`의 전체 `pnpm check`가 lint/format/type·Node 520개·Markdown 46개·build·Chromium/Firefox UI 270개·native DB 14개·응답성 8개를 통과했다. fixture와 임곗값을 유지했다.
+- 직접 바이트 복사, 검증된 불변 JSON의 정확한 예산 재사용, 버전별 관찰 조회/최근 64개 캐시, 최근 두 검증본에 대한 불변 행 증분 전송을 적용했다. 기준본 폐기 시 전체 재검사와 mutable 자료·변경 행·invalid index/값 거부, tighter budget·alias·cycle를 코어에서 검증했다. DB에서 새로 읽은 자료의 JSON/의미·CAS 검사는 유지한다.
+- 스택 10000 trace는 실행 1878ms·저장 71ms·선택 226ms·history 64ms·필터 p95 37ms·rAF p95 33.3ms·최대 task 58ms였다. 스택 1 MiB는 실행 1327ms·저장 43ms·선택 230ms·history 64ms·필터 p95 18ms·rAF p95 16.7ms·최대 task 0ms였다.
+- 실제 20사례/12020 trace는 실행 879ms·저장 834ms·커버리지 80ms·선택 71ms·비교 44ms·최대 task 64ms였다. 기존 legacy 1 MiB 저장은 1372ms였고, 기존 20사례/200k trace 48.5MB 검사도 통과했다. 표시 상한과 두 1 MiB/두 10k 비교 fixture를 유지했다.
+- 최종 회귀 중 Firefox의 초기 DB 복원에서 예제 목록이 접히면서 클릭 좌표가 움직이는 경계를 확인했다. 로딩 중 작업 영역을 inert로 잠그고 탭을 비활성화했다. 실제 저장 worker 로딩을 지연시킨 복원 검사와 양 브라우저 전체 검사를 통과했다.
+- 빌드는 main chunk 705.70 kB(gzip 207.58 kB)의 크기 advisory를 남긴다. 위 응답성 결과는 해당 로컬 환경의 측정이며 원격 CI·다른 기기 보증이나 배포 증거가 아니다. 원격 전달 결과는 정확한 commit의 CI로 별도 확인한다.

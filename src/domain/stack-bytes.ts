@@ -71,10 +71,10 @@ export function deserializeBytes(
 ): ValidationResult<Uint8Array> {
   const parsed = parseBytesValue(value, maxBytes);
   if (!parsed.success) return parsed;
-  return {
-    success: true,
-    value: Uint8Array.from(atob(parsed.value.data), (char) => char.charCodeAt(0)),
-  };
+  const binary = atob(parsed.value.data);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+  return { success: true, value: bytes };
 }
 
 /** Immutable byte owner. Every outward byte view is a copy; freezing a typed array is unnecessary. */

@@ -95,14 +95,12 @@ export function StackExperiments({
   const comparisonResult = useStackQuery<StackComparisonModel>(comparisonKey, async () => {
     if (!comparisonKey) throw new Error('비교할 기록이 없습니다.');
     const key = comparisonKey;
-    await key.client.register(key.left);
-    await key.client.register(key.right);
-    return key.client.request({
+    return key.client.inspect<StackComparisonModel>([key.left, key.right], (keys) => ({
       type: 'compare',
-      left: key.left.id,
-      right: key.right.id,
+      left: keys[0] ?? '',
+      right: keys[1] ?? '',
       page: key.page,
-    });
+    }));
   });
   const groups = [
     ...new Map(
@@ -132,14 +130,14 @@ export function StackExperiments({
   );
   const coverageResult = useStackQuery<StackCoverageModel>(coverageKey, async () => {
     if (!coverageKey) throw new Error('회귀 기록이 없습니다.');
-    return coverageKey.client.request({
+    return coverageKey.client.inspect<StackCoverageModel>(coverageKey.records, (recordKeys) => ({
       type: 'coverage',
-      records: coverageKey.records,
+      recordKeys,
       groupId: coverageKey.groupId,
       page: coverageKey.page,
       endpoint: coverageKey.endpoint,
       unobservedOnly: coverageKey.unobservedOnly,
-    });
+    }));
   });
   const coverage = coverageResult ?? { value: undefined, error: undefined };
   const comparison = comparisonResult ?? { value: undefined, error: undefined };
@@ -157,12 +155,15 @@ export function StackExperiments({
     readonly { id: string; label: string; status: string; leftId?: string; rightId?: string }[]
   >(changesKey, async () => {
     if (!changesKey) throw new Error('이전 묶음이 없습니다.');
-    return changesKey.client.request({
+    const relevant = changesKey.records.filter(
+      (r) => r.series?.id === changesKey.before || r.series?.id === changesKey.after,
+    );
+    return changesKey.client.inspect(relevant, (recordKeys) => ({
       type: 'case-changes',
-      records: changesKey.records,
+      recordKeys,
       before: changesKey.before,
       after: changesKey.after,
-    });
+    }));
   });
   const suite = draft?.suite;
   function updateSuite(change: (suite: StackSuite) => StackSuite) {

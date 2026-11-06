@@ -19,11 +19,12 @@ import {
 } from './stack-panel-model.ts';
 import { primeOwnedStackRecord } from './stack-replay.ts';
 import { createStackSeriesSession } from './stack-series.ts';
-import type {
-  StackRunMeta,
-  StackWorkerCommand,
-  StackWorkerReply,
-  StackWorkerRequest,
+import {
+  stackObservationKey,
+  type StackRunMeta,
+  type StackWorkerCommand,
+  type StackWorkerReply,
+  type StackWorkerRequest,
 } from './stack-worker-protocol.ts';
 
 const scope = globalThis as unknown as {
@@ -40,14 +41,24 @@ let series: ReturnType<typeof createStackSeriesSession> | undefined;
 let seriesTimer: ReturnType<typeof setTimeout> | undefined;
 let awaitingSeriesAck: number | undefined;
 const records = new Map<string, SavedStackRun>();
+class MissingRecord extends Error {}
 function register(record: SavedStackRun) {
   const owned = freezeOwned(record);
   primeOwnedStackRecord(owned);
-  records.set(owned.id, owned);
+  const key = stackObservationKey(owned.id, owned.view);
+  records.delete(key);
+  records.set(key, owned);
+  while (records.size > 64) {
+    const oldest = records.keys().next().value;
+    if (oldest !== undefined) records.delete(oldest);
+  }
+  return key;
 }
 function record(id: string) {
   const value = records.get(id);
-  if (!value) throw new Error('기록 준비가 필요합니다.');
+  if (!value) throw new MissingRecord('기록 준비가 필요합니다.');
+  records.delete(id);
+  records.set(id, value);
   return value;
 }
 function clearRun() {
@@ -168,10 +179,9 @@ function handle(command: StackWorkerCommand): unknown {
       return true;
     }
     case 'register':
-      register(command.record);
-      return true;
+      return register(command.record);
     case 'history-step': {
-      const saved = record(command.recordId);
+      const saved = record(command.recordKey);
       const cursor = Math.max(0, Math.min(saved.view.events.length + 1, command.cursor));
       const event = saved.view.events[cursor];
       const compiled = compileStackBreakpoints(saved.view.snapshot, command.settings);
@@ -189,13 +199,13 @@ function handle(command: StackWorkerCommand): unknown {
       records.delete(command.id);
       return true;
     case 'panel':
-      return buildStackPanelModel(record(command.recordId), command.query);
+      return buildStackPanelModel(record(command.recordKey), command.query);
     case 'compare':
       return buildStackComparisonModel(record(command.left), record(command.right), command.page);
     case 'case-changes': {
-      command.records.forEach(register);
-      const before = command.records.filter((r) => r.series?.id === command.before);
-      const after = command.records.filter((r) => r.series?.id === command.after);
+      const rows = command.recordKeys.map(record);
+      const before = rows.filter((r) => r.series?.id === command.before);
+      const after = rows.filter((r) => r.series?.id === command.after);
       const manifest = after[0]?.series?.manifest ?? [];
       return manifest.slice(0, 20).map((member) => {
         const find = (rows: readonly SavedStackRun[]) =>
@@ -212,9 +222,8 @@ function handle(command: StackWorkerCommand): unknown {
       });
     }
     case 'coverage':
-      command.records.forEach(register);
       return buildStackCoverageModel(
-        command.records,
+        command.recordKeys.map(record),
         command.groupId,
         command.page,
         command.endpoint,
@@ -262,6 +271,7 @@ scope.onmessage = (event) => {
       type: 'response',
       id: request.id,
       error: error instanceof Error ? error.message : String(error),
+      ...(error instanceof MissingRecord ? { code: 'record-missing' as const } : {}),
     });
   }
 };

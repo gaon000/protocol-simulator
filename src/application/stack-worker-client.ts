@@ -1,9 +1,19 @@
 import type { SavedStackRun } from '../domain/workspace-v2-model.ts';
-import type {
-  StackWorkerCommand,
-  StackWorkerReply,
-  StackWorkerRequest,
+import type { StackView } from '../domain/stack-runtime-model.ts';
+import {
+  stackObservationKey,
+  type StackWorkerCommand,
+  type StackWorkerReply,
+  type StackWorkerRequest,
 } from './stack-worker-protocol.ts';
+
+class WorkerFailure extends Error {
+  readonly code: string | undefined;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
 
 /** Fence worker requests and reject outstanding work on unmount instead of applying stale run callbacks. */
 export class StackWorkerClient {
@@ -14,7 +24,8 @@ export class StackWorkerClient {
   >();
   #next = 0;
   #closed = false;
-  readonly #registered = new WeakMap<SavedStackRun, Promise<unknown>>();
+  readonly #registered = new WeakMap<SavedStackRun, Promise<string>>();
+  readonly #published = new WeakMap<StackView, string>();
   onEvent: (event: Exclude<StackWorkerReply, { type: 'response' }>) => void = () => {};
   onError: (message: string) => void = () => {};
   constructor(
@@ -25,12 +36,19 @@ export class StackWorkerClient {
       const reply = event.data;
       if (this.#closed) return;
       if (reply.type !== 'response') {
+        if (reply.type === 'view')
+          this.#published.set(reply.view, stackObservationKey(reply.meta.id, reply.view));
+        if (reply.type === 'series-progress' && reply.record)
+          this.#registered.set(
+            reply.record,
+            Promise.resolve(stackObservationKey(reply.record.id, reply.record.view)),
+          );
         this.onEvent(reply);
         return;
       }
       const pending = this.#pending.get(reply.id);
       this.#pending.delete(reply.id);
-      if (reply.error) pending?.reject(new Error(reply.error));
+      if (reply.error) pending?.reject(new WorkerFailure(reply.error, reply.code));
       else pending?.resolve(reply.value);
     };
     worker.onerror = () => {
@@ -55,18 +73,42 @@ export class StackWorkerClient {
     });
   }
   /** Transfer each immutable observation once; later bounded queries reuse worker-owned records. */
-  async register(record: SavedStackRun): Promise<void> {
+  async register(record: SavedStackRun): Promise<string> {
     let pending = this.#registered.get(record);
     if (!pending) {
-      pending = this.request({ type: 'register', record });
+      const key = stackObservationKey(record.id, record.view);
+      pending =
+        this.#published.get(record.view) === key
+          ? Promise.resolve(key)
+          : this.request<string>({ type: 'register', record });
       this.#registered.set(record, pending);
     }
-    await pending;
+    return await pending;
+  }
+  /** Retry evicted immutable observations once, transferring records separately to keep the UI responsive. */
+  async inspect<T>(
+    records: readonly SavedStackRun[],
+    command: (keys: readonly string[]) => StackWorkerCommand,
+  ): Promise<T> {
+    const keys: string[] = [];
+    for (const record of records) keys.push(await this.register(record));
+    try {
+      return await this.request<T>(command(keys));
+    } catch (error) {
+      if (!(error instanceof WorkerFailure) || error.code !== 'record-missing') throw error;
+      for (const record of records) {
+        this.#registered.delete(record);
+        this.#published.delete(record.view);
+        await this.register(record);
+      }
+      return await this.request<T>(command(keys));
+    }
   }
   /** Release an archived cache entry while allowing an existing memory view to register again later. */
   async forget(record: SavedStackRun): Promise<void> {
     this.#registered.delete(record);
-    await this.request({ type: 'forget', id: record.id });
+    this.#published.delete(record.view);
+    await this.request({ type: 'forget', id: stackObservationKey(record.id, record.view) });
   }
   /** Release the worker and fence all responses from the previous editor generation. */
   close(): void {

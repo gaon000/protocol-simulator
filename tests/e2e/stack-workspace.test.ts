@@ -98,7 +98,25 @@ test('v2 default storage retains both modes, unfinished JSON, original snapshots
   const firstJson = page.locator('.stack-editor textarea').first();
   await firstJson.fill('{');
   await save(page);
+  let releaseRead = () => {};
+  const readGate = new Promise<void>((resolve) => {
+    releaseRead = resolve;
+  });
+  await page.route('**/workspace-storage-worker-*.js', async (route) => {
+    await readGate;
+    await route.continue();
+  });
   await page.reload();
+  try {
+    await expect(page.getByText('로컬 작업 공간을 불러오는 중…', { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: '스택 작업' })
+        .getByRole('button', { name: '편집', exact: true }),
+    ).toBeDisabled();
+  } finally {
+    releaseRead();
+  }
   await expect(page.getByRole('heading', { name: '프로토콜 스택 작업 공간' })).toBeVisible();
   await tab(page, '편집');
   await page.getByRole('tab', { name: '프로토콜 정의', exact: true }).click();

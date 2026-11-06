@@ -123,8 +123,9 @@ export function WorkspaceRoot() {
         </button>
         <span className='mode-hint'>하나의 로컬 작업 공간 · 실제 서버/기기 연결 없음</span>
       </nav>
+      {!state.ready && <p role='status'>로컬 작업 공간을 불러오는 중…</p>}
       {switching && <p role='status'>진행 중인 기록을 저장하고 작업 모드를 바꾸는 중…</p>}
-      <div inert={switching} aria-busy={switching}>
+      <div inert={switching || !state.ready} aria-busy={switching || !state.ready}>
         {mode === 'legacy' ? <App /> : <StackWorkspace state={state} host={host} />}
       </div>
     </WorkspaceContext>

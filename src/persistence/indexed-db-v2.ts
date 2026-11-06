@@ -1,3 +1,5 @@
+import { parseOwnedJsonData } from '../domain/model-validation.ts';
+import { WORKSPACE_POLICY } from '../domain/workspace-model.ts';
 import type { WorkspaceV2 } from '../domain/workspace-v2-model.ts';
 import {
   parseWorkspaceV2,
@@ -117,8 +119,19 @@ export function createIndexedDbV2Storage(
                 'invalid',
                 'v2 저장 영역의 형식이 달라 덮어쓰지 않았습니다.',
               );
-            const parsed =
-              existing.result === undefined ? undefined : parseWorkspaceV2Envelope(existing.result);
+            let parsed: ReturnType<typeof parseWorkspaceV2Envelope> | undefined;
+            if (existing.result !== undefined) {
+              const json = parseOwnedJsonData(existing.result, {
+                maxNodes: WORKSPACE_POLICY.maxJsonNodes,
+                maxDepth: 132,
+              });
+              if (!json.success)
+                throw new StorageFailure(
+                  'invalid',
+                  '저장 자료의 JSON 형식이 달라 원본을 유지했습니다.',
+                );
+              parsed = parseWorkspaceV2Envelope(json.value);
+            }
             if (parsed && !parsed.success)
               throw new StorageFailure(
                 'invalid',

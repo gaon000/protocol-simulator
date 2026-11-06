@@ -1,11 +1,26 @@
 import type { WorkspaceV2 } from '../domain/workspace-v2-model.ts';
 import { parseWorkspaceV2, parseWorkspaceV2Envelope } from '../domain/workspace-v2-validation.ts';
+import { parseOwnedJsonData } from '../domain/model-validation.ts';
+import { WORKSPACE_POLICY } from '../domain/workspace-model.ts';
 import { freezeOwned } from '../domain/immutable-data.ts';
+import { restoreWorkspace } from './workspace-transfer.ts';
 import { createIndexedDbV2Storage } from './indexed-db-v2.ts';
 import { StorageFailure } from './storage-port.ts';
 
 const port = createIndexedDbV2Storage();
 const validated = new Map<number, WorkspaceV2>();
+const writable = new Set<number>();
+function remember(id: number, data: WorkspaceV2, canWrite: boolean) {
+  validated.set(id, data);
+  if (canWrite) writable.add(id);
+  while (validated.size > 2) {
+    const oldest = validated.keys().next().value;
+    if (oldest !== undefined) {
+      validated.delete(oldest);
+      writable.delete(oldest);
+    }
+  }
+}
 const scope = globalThis as unknown as {
   onmessage: (
     event: MessageEvent<{
@@ -14,6 +29,7 @@ const scope = globalThis as unknown as {
       data?: unknown;
       revision?: number | null;
       token?: number;
+      baseToken?: number;
     }>,
   ) => void;
   postMessage: (value: unknown) => void;
@@ -31,32 +47,50 @@ scope.onmessage = async ({ data: request }) => {
       case 'write':
         {
           const data = request.token === undefined ? request.data : validated.get(request.token);
-          if (!data) throw new StorageFailure('invalid', '저장 자료를 다시 검사하세요.');
+          if (!data || (request.token !== undefined && !writable.has(request.token)))
+            throw new StorageFailure('invalid', '저장 자료를 다시 검사하세요.');
           try {
             value = await port.write(data as WorkspaceV2, request.revision ?? null);
           } finally {
-            if (request.token !== undefined) validated.delete(request.token);
+            if (request.token !== undefined) writable.delete(request.token);
           }
         }
         break;
       case 'validate': {
-        const data = freezeOwned(request.data);
-        const result = parseWorkspaceV2(data);
-        if (result.success) {
-          validated.set(request.id, result.value);
-          while (validated.size > 2) {
-            const key = validated.keys().next().value;
-            if (key !== undefined) validated.delete(key);
+        let candidate: unknown = request.data;
+        if (request.baseToken !== undefined) {
+          const base = validated.get(request.baseToken);
+          if (!base) {
+            value = { success: false, missingBase: true };
+            break;
           }
+          const restored = restoreWorkspace(candidate, base);
+          if (!restored.success) {
+            value = restored;
+            break;
+          }
+          candidate = restored.value;
         }
+        const json = parseOwnedJsonData(candidate, {
+          maxNodes: WORKSPACE_POLICY.maxJsonNodes,
+          maxDepth: 128,
+        });
+        const result = json.success ? parseWorkspaceV2(json.value) : json;
+        if (result.success) remember(request.id, result.value, true);
         value = result.success ? { success: true, token: request.id } : result;
         break;
       }
       case 'envelope': {
-        const result = parseWorkspaceV2Envelope(request.data);
+        const json = parseOwnedJsonData(request.data, {
+          maxNodes: WORKSPACE_POLICY.maxJsonNodes,
+          maxDepth: 132,
+        });
+        const result = json.success ? parseWorkspaceV2Envelope(json.value) : json;
+        if (result.success) remember(request.id, freezeOwned(result.value.data), false);
         value = result.success
           ? {
               success: true,
+              token: request.id,
               ...(request.data &&
               typeof request.data === 'object' &&
               'schemaVersion' in request.data &&

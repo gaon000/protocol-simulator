@@ -87,12 +87,16 @@ export function StackRunPanel({
     let current = true;
     const timer = setTimeout(async () => {
       try {
-        await client.register(record);
-        const next = await client.request<{
+        const next = await client.inspect<{
           cursor: number;
           eventId?: string;
           stop?: StackBreakpointStop;
-        }>({ type: 'history-step', recordId: record.id, cursor, settings });
+        }>([record], (keys) => ({
+          type: 'history-step',
+          recordKey: keys[0] ?? '',
+          cursor,
+          settings,
+        }));
         if (!current) return;
         if (next.eventId) select(next.eventId, next.cursor);
         else setCursor(next.cursor);
@@ -185,8 +189,11 @@ export function StackRunPanel({
   );
   const result = useStackQuery<StackPanelModel>(key, async () => {
     if (!key) throw new Error('기록이 없습니다.');
-    await key.client.register(key.record);
-    return key.client.request({ type: 'panel', recordId: key.record.id, query: key.query });
+    return key.client.inspect<StackPanelModel>([key.record], (keys) => ({
+      type: 'panel',
+      recordKey: keys[0] ?? '',
+      query: key.query,
+    }));
   });
   const model = result?.value;
   function choose(id: string, next: number) {

@@ -1,3 +1,4 @@
+import { freezeOwned, isOwnedImmutable } from './immutable-data.ts';
 import { createRunSnapshot, EXECUTION_POLICY, type JsonValue } from './execution-contract.ts';
 import { httpSchemaDiagnostics } from './http-schema.ts';
 import type {
@@ -109,14 +110,20 @@ export class Reader {
   }
 }
 
+type JsonShape = { nodes: number; depth: number };
+const jsonShapes = new WeakMap<object, JsonShape>();
+
 function inspectJson(
   value: unknown,
   reader: Reader,
   limits = { maxNodes: 100_000, maxDepth: 64 },
+  captured?: Map<object, JsonShape>,
 ): void {
   const ancestors = new Set<object>();
   let count = 0;
-  function visit(item: unknown, parentPath: string, depth: number, key?: string | number): void {
+  function visit(item: unknown, parentPath: string, depth: number, key?: string | number): number {
+    const before = count;
+    const diagnosticsBefore = reader.diagnostics.length;
     count++;
     if (count > limits.maxNodes) {
       if (count === limits.maxNodes + 1)
@@ -125,7 +132,7 @@ function inspectJson(
           'json-limit',
           'JSON node limit exceeded',
         );
-      return;
+      return 0;
     }
     if (depth > limits.maxDepth) {
       reader.issue(
@@ -133,18 +140,18 @@ function inspectJson(
         'json-depth',
         'JSON depth limit exceeded',
       );
-      return;
+      return 0;
     }
-    if (item === null || typeof item === 'string' || typeof item === 'boolean') return;
-    if (typeof item === 'number' && Number.isFinite(item)) return;
+    if (item === null || typeof item === 'string' || typeof item === 'boolean') return 0;
+    if (typeof item === 'number' && Number.isFinite(item)) return 0;
     const path = key === undefined ? parentPath : pointer(parentPath, key);
     if (typeof item !== 'object' || item === null) {
       reader.issue(path, 'json-value', 'Expected finite JSON data');
-      return;
+      return 0;
     }
     if (ancestors.has(item)) {
       reader.issue(path, 'json-cycle', 'Cyclic data is not JSON');
-      return;
+      return 0;
     }
     if (
       !Array.isArray(item) &&
@@ -152,10 +159,20 @@ function inspectJson(
       Object.getPrototypeOf(item) !== null
     ) {
       reader.issue(path, 'json-object', 'Expected a plain JSON object');
-      return;
+      return 0;
     }
+    const cached = isOwnedImmutable(item) ? jsonShapes.get(item) : undefined;
+    if (
+      cached &&
+      before + cached.nodes <= limits.maxNodes &&
+      depth + cached.depth <= limits.maxDepth
+    ) {
+      count = before + cached.nodes;
+      return cached.depth;
+    }
+    let relativeDepth = 0;
     ancestors.add(item);
-    if (Reflect.ownKeys(item).some((key) => typeof key === 'symbol')) {
+    if (Object.getOwnPropertySymbols(item).length) {
       reader.issue(path, 'json-property', 'JSON cannot contain symbol properties');
     }
     if (Array.isArray(item)) {
@@ -174,7 +191,11 @@ function inspectJson(
             'json-value',
             'JSON arrays require plain values without holes or accessors',
           );
-        else visit(descriptor.value, path, depth + 1, index);
+        else
+          relativeDepth = Math.max(
+            relativeDepth,
+            1 + visit(descriptor.value, path, depth + 1, index),
+          );
       }
     } else {
       for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(item))) {
@@ -182,11 +203,21 @@ function inspectJson(
           reader.issue(pointer(path, key), 'json-accessor', 'JSON cannot contain accessors');
         else if (!descriptor.enumerable)
           reader.issue(pointer(path, key), 'json-property', 'JSON properties must be enumerable');
-        else visit(descriptor.value, path, depth + 1, key);
+        else
+          relativeDepth = Math.max(
+            relativeDepth,
+            1 + visit(descriptor.value, path, depth + 1, key),
+          );
         if (count > limits.maxNodes) break;
       }
     }
     ancestors.delete(item);
+    if (reader.diagnostics.length === diagnosticsBefore) {
+      const shape = { nodes: count - before, depth: relativeDepth };
+      if (isOwnedImmutable(item)) jsonShapes.set(item, shape);
+      captured?.set(item, shape);
+    }
+    return relativeDepth;
   }
   visit(value, '', 0);
 }
@@ -199,6 +230,20 @@ export function parseJsonData(
   const reader = new Reader();
   inspectJson(value, reader, limits);
   return reader.result(value as JsonValue);
+}
+
+/** Validate exclusively owned detached data before freezing it; retain exact subtree budgets for subsequent readers. */
+export function parseOwnedJsonData(
+  value: unknown,
+  limits = { maxNodes: 100_000, maxDepth: 64 },
+): ValidationResult<JsonValue> {
+  const reader = new Reader();
+  const shapes = new Map<object, JsonShape>();
+  inspectJson(value, reader, limits, shapes);
+  if (reader.diagnostics.length) return { success: false, diagnostics: reader.diagnostics };
+  const result = freezeOwned(value as JsonValue);
+  for (const [object, shape] of shapes) jsonShapes.set(object, shape);
+  return { success: true, value: result };
 }
 
 function inspectExpression(value: unknown, path: string, r: Reader): void {

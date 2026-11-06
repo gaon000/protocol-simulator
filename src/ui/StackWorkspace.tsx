@@ -493,6 +493,7 @@ export function StackWorkspace({
             <button
               type='button'
               key={name}
+              disabled={!state.ready}
               aria-current={tab === name ? 'page' : undefined}
               onClick={() => setTab(name)}
             >

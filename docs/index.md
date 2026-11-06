@@ -43,7 +43,7 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [두 실행 결과 나란히 비교](exec-plans/completed/20261105-side-by-side-run-comparison.md)를 구현·검증했다. 당시 설정·결과·관찰 차이와 양쪽의 실제 기록 위치를 연결한다. 기준은 [V1-019](product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다.
 
-후속 [계층 연결 설계](design-docs/layered-stack-v2.md)의 S1~S3 코어/provider·[S4 저장/관찰 API](design-docs/s4-stack-persistence-observation.md)를 구현했다. [S1~S5 구현 계획](exec-plans/completed/20261106-layered-protocol-stacks.md)은 Completed다. [S5 화면·기본 저장 흐름](design-docs/s5-stack-workspace.md)까지 연결했으며 지원 브라우저·응답성의 최종 검증을 완료했다.
+후속 [계층 연결 설계](design-docs/layered-stack-v2.md)의 S1~S3 코어/provider·[S4 저장/관찰 API](design-docs/s4-stack-persistence-observation.md)를 구현했다. [S1~S5 구현 계획](exec-plans/completed/20261106-layered-protocol-stacks.md)은 Completed다. [S5 화면·기본 저장 흐름](design-docs/s5-stack-workspace.md)까지 연결했고 원격 CI의 성능 회귀 보완 후 전체 로컬 검사를 통과했다.
 
 ## 선택 문서
 

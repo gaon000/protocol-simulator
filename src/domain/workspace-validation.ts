@@ -1,3 +1,4 @@
+import { isOwnedImmutable } from './immutable-data.ts';
 import { EXECUTION_POLICY } from './execution-contract.ts';
 import { valueAt } from './json-pointer.ts';
 import {
@@ -200,7 +201,10 @@ function inspectDiagnostic(value: unknown, path: string, r: Reader) {
   if (!item) return;
   for (const key of ['path', 'code', 'message']) r.text(item[key], `${path}/${key}`);
 }
+const checkedViews = new WeakSet<object>();
 function inspectView(value: unknown, path: string, r: Reader) {
+  if (isOwnedImmutable(value) && checkedViews.has(value as object)) return;
+  const diagnosticsBefore = r.diagnostics.length;
   const view = strictObject(
     value,
     path,
@@ -415,6 +419,8 @@ function inspectView(value: unknown, path: string, r: Reader) {
       'expectation-count',
       'Recorded checks differ from snapshot expectations',
     );
+  if (r.diagnostics.length === diagnosticsBefore && isOwnedImmutable(value))
+    checkedViews.add(value as object);
 }
 
 function inspectBatch(value: unknown, view: unknown, path: string, r: Reader) {

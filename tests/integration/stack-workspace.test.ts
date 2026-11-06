@@ -358,3 +358,188 @@ test('lazy JSON paths retain exact finite-value, accessor, depth and repeated-al
   assert.deepEqual(path({ a: array }), [['/a/0', 'json-value']]);
   assert.equal(reads, 0);
 });
+
+test('owned JSON cache preserves tighter node/depth limits, counts aliases twice and never freezes invalid graphs', async () => {
+  const { parseJsonData, parseOwnedJsonData } = await import(
+    '../../src/domain/model-validation.ts'
+  );
+  const { isOwnedImmutable } = await import('../../src/domain/immutable-data.ts');
+  const shared = [1, 2];
+  const value = [shared, shared];
+  assert.equal(parseOwnedJsonData(value).success, true);
+  assert.equal(isOwnedImmutable(shared), true);
+  assert.equal(parseJsonData(value, { maxNodes: 7, maxDepth: 2 }).success, true);
+  const short = parseJsonData(value, { maxNodes: 6, maxDepth: 2 });
+  assert.ok(!short.success);
+  assert.deepEqual(
+    short.diagnostics.map((d) => [d.path, d.code]),
+    [['/1/1', 'json-limit']],
+  );
+  const deep = parseJsonData(value, { maxNodes: 10, maxDepth: 1 });
+  assert.ok(!deep.success);
+  assert.equal(deep.diagnostics[0]?.path, '/0/0');
+  const cyclic: Record<string, unknown> = {};
+  cyclic.self = cyclic;
+  assert.equal(parseOwnedJsonData(cyclic).success, false);
+  assert.equal(Object.isFrozen(cyclic), false);
+  const mutable = { a: 1 };
+  assert.equal(parseJsonData(mutable).success, true);
+  Object.assign(mutable, { a: Infinity });
+  assert.equal(parseJsonData(mutable).success, false);
+});
+
+test('worker observation keys keep two frozen checkpoints separate and retry an evicted record without sending published views again', async () => {
+  const { stackObservationKey } = await import('../../src/application/stack-worker-protocol.ts');
+  const simulator = engine();
+  const older = captureStackRun(simulator.step(), 'owner', 1, 'same_record');
+  const newer = captureStackRun(simulator.step(), 'owner', 1, 'same_record');
+  const registry = new Map<string, typeof older>();
+  let transfers = 0;
+  const fake = {
+    onmessage: null,
+    onerror: null,
+    terminate: () => {},
+    postMessage: (request: {
+      id: number;
+      command: import('../../src/application/stack-worker-protocol.ts').StackWorkerCommand;
+    }) => {
+      const command = request.command;
+      let value: unknown;
+      let missing = false;
+      if (command.type === 'register') {
+        transfers++;
+        value = stackObservationKey(command.record.id, command.record.view);
+        registry.set(String(value), command.record);
+      } else if (command.type === 'history-step') {
+        const record = registry.get(command.recordKey);
+        missing = !record;
+        value = record?.view.events.length;
+      } else if (command.type === 'forget') {
+        registry.delete(command.id);
+        value = true;
+      }
+      fake.onmessage?.({
+        data: missing
+          ? { type: 'response', id: request.id, error: 'evicted', code: 'record-missing' }
+          : { type: 'response', id: request.id, value },
+      } as MessageEvent);
+    },
+  } as unknown as Worker;
+  const client = new StackWorkerClient(fake);
+  for (const record of [older, newer]) {
+    const key = stackObservationKey(record.id, record.view);
+    registry.set(key, record);
+    fake.onmessage?.({
+      data: {
+        type: 'view',
+        meta: {
+          id: record.id,
+          runId: record.view.runId,
+          experimentId: 'owner',
+          draftVersion: 1,
+          createdAt: record.createdAt,
+        },
+        view: record.view,
+        running: false,
+        checkpoint: true,
+      },
+    } as MessageEvent);
+  }
+  const read = (record: typeof older) =>
+    client.inspect<number>([record], (keys) => ({
+      type: 'history-step',
+      recordKey: keys[0] ?? '',
+      cursor: 0,
+      settings: { enabled: false, points: [] },
+    }));
+  assert.notEqual(
+    stackObservationKey(older.id, older.view),
+    stackObservationKey(newer.id, newer.view),
+  );
+  assert.equal(await read(older), older.view.events.length);
+  assert.equal(await read(newer), newer.view.events.length);
+  assert.equal(transfers, 0);
+  registry.clear();
+  assert.equal(await read(older), older.view.events.length);
+  assert.equal(transfers, 1);
+  client.close();
+});
+
+test('incremental workspace transfer restores exact immutable rows while still rejecting invalid references and changed data', async () => {
+  const { freezeOwned } = await import('../../src/domain/immutable-data.ts');
+  const { parseWorkspaceV2 } = await import('../../src/domain/workspace-v2-validation.ts');
+  const { compactWorkspace, restoreWorkspace } = await import(
+    '../../src/persistence/workspace-transfer.ts'
+  );
+  const source = createWorkspaceV2(createWorkspace(createPingPongExperiment()));
+  const record = captureStackRun(engine().run(), 'owner', 1);
+  const base = freezeOwned({ ...source, stack: { ...source.stack, runs: [record] } });
+  const changed = { ...record, id: 'second' };
+  const next = { ...base, stack: { ...base.stack, runs: [record, changed] } };
+  const compact = compactWorkspace(next, base);
+  const restored = restoreWorkspace(compact, base);
+  assert.ok(restored.success);
+  const value = restored.value as WorkspaceV2;
+  assert.equal(value.stack.runs[0], record);
+  assert.equal(value.stack.runs[1], changed);
+  assert.equal(parseWorkspaceV2(value).success, true);
+  for (const index of [-1, 0.5, 1, '0']) {
+    assert.equal(
+      restoreWorkspace(
+        {
+          ...next,
+          legacy: { ...next.legacy, runs: [] },
+          stack: { ...next.stack, runs: [{ index }] },
+        },
+        base,
+      ).success,
+      false,
+    );
+  }
+  const invalid = restoreWorkspace(
+    {
+      ...next,
+      legacy: { ...next.legacy, runs: [] },
+      stack: { ...next.stack, runs: [{ value: { ...changed, draftVersion: -1 } }] },
+    },
+    base,
+  );
+  assert.ok(invalid.success);
+  assert.equal(parseWorkspaceV2(invalid.value).success, false);
+  assert.equal(base.stack.runs.length, 1);
+});
+
+test('save worker falls back to full validation when its immutable transfer base was evicted', async () => {
+  const { createWorkerStorage } = await import('../../src/persistence/worker-storage.ts');
+  const sent: { id: number; type: string; data?: unknown; baseToken?: number }[] = [];
+  const fake = {
+    onmessage: null,
+    onerror: null,
+    terminate: () => {},
+    postMessage: (message: (typeof sent)[number]) => {
+      sent.push(message);
+      fake.onmessage?.({
+        data: {
+          id: message.id,
+          value:
+            message.baseToken === undefined
+              ? { success: true, token: message.id }
+              : { success: false, missingBase: true },
+        },
+      } as MessageEvent);
+    },
+  } as unknown as Worker;
+  const port = createWorkerStorage(() => fake);
+  const first = await port.validation.workspace(
+    createWorkspaceV2(createWorkspace(createPingPongExperiment())),
+  );
+  assert.ok(first.success);
+  const next = { ...first.value, stack: { ...first.value.stack, activeDraftId: null } };
+  const second = await port.validation.workspace(next);
+  assert.ok(second.success);
+  assert.equal(sent.length, 3);
+  assert.equal(sent[1]?.baseToken, sent[0]?.id);
+  assert.equal(sent[2]?.baseToken, undefined);
+  assert.deepEqual(sent[2]?.data, next);
+  port.close();
+});
