@@ -2,6 +2,7 @@ import { isOwnedImmutable } from './immutable-data.ts';
 import { EXECUTION_POLICY } from './execution-contract.ts';
 import { valueAt } from './json-pointer.ts';
 import {
+  jsonByteLength,
   parseExperiment,
   parseExperimentDraft,
   parseJsonData,
@@ -553,7 +554,7 @@ export function parseWorkspaceData(value: unknown): ValidationResult<WorkspaceDa
     maxDepth: WORKSPACE_POLICY.maxJsonDepth,
   });
   if (!json.success) return json;
-  if (new TextEncoder().encode(JSON.stringify(value)).length > WORKSPACE_POLICY.maxBytes)
+  if (jsonByteLength(json.value) > WORKSPACE_POLICY.maxBytes)
     return fail('workspace-size', 'Workspace exceeds the 64 MiB limit');
   const r = new Reader();
   const workspace = strictObject(

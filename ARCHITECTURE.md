@@ -34,6 +34,7 @@
 | [src/application/batch-experiments.ts](src/application/batch-experiments.ts), [src/ui/BatchExperiments.tsx](src/ui/BatchExperiments.tsx), [useBatchExperiments.ts](src/ui/useBatchExperiments.ts) | 같은 seed 목록의 조건 조합·독립 엔진/유한 scheduler·실제 결과 집계와 기존 history 연결. SavedRun의 optional batch metadata로 보존 |
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |
+| [src/domain/model-validation.ts](src/domain/model-validation.ts)의 소유 JSON metadata | 검증 후 깊게 동결한 자료의 정확한 node/depth·compact UTF-8 길이. 일반 mutable 자료의 검사/크기 계산과 fresh DB 검사를 생략하지 않음 |
 | [src/domain/stack-model.ts](src/domain/stack-model.ts), [stack-validation.ts](src/domain/stack-validation.ts), [stack-protocol-validation.ts](src/domain/stack-protocol-validation.ts) | S1 v2 정의·서비스 포트·네 인스턴스/참조·wire 호환성·시나리오·불변 snapshot과 draft reader, 명시적 v1 앱 adapter. 별도 실행/저장 API와 S5 작업 공간에 연결 |
 | [src/domain/stack-bytes.ts](src/domain/stack-bytes.ts), [stack-expressions.ts](src/domain/stack-expressions.ts), [stack-payloads.ts](src/domain/stack-payloads.ts) | canonical 바이트·유한 표현식, run별 private payload/handle·global/owner 예산·불변 trace artifacts |
 | [src/application/create-stack-simulation.ts](src/application/create-stack-simulation.ts), [src/domain/stack-runtime-model.ts](src/domain/stack-runtime-model.ts) | 독립 스택 생성/snapshot 재실행·session fence와 endpoint별 view/기대 판정 |

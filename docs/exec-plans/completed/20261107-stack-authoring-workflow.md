@@ -74,3 +74,7 @@
 ## Interfaces and Dependencies
 
 생성/이력/선언 폼 API를 추가하고 기존 편집 callback을 사용한다. production dependency·엔진/저장 schema는 변경하지 않는다.
+
+## 원격 검증 후속
+
+전달 `237492a`의 원격 CI에서 기존 성능 두 경계와 다음 실행의 기존 Firefox 가져오기 준비 대기가 실패했다. 위 로컬 결과와 구분하며 실제 실패·보완·최종 검증은 [CI 후속 계획](../active/20261107-stack-authoring-ci-validation.md)에 기록한다.

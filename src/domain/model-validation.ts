@@ -110,8 +110,15 @@ export class Reader {
   }
 }
 
-type JsonShape = { nodes: number; depth: number };
+type JsonShape = { nodes: number; depth: number; bytes?: number };
 const jsonShapes = new WeakMap<object, JsonShape>();
+const jsonEncoder = new TextEncoder();
+
+/** Count exact serialized UTF-8 bytes after finite-JSON validation, reusing only deeply owned checked data. */
+export function jsonByteLength(value: JsonValue): number {
+  const cached = isOwnedImmutable(value) ? jsonShapes.get(value as object)?.bytes : undefined;
+  return cached ?? jsonEncoder.encode(JSON.stringify(value)).length;
+}
 
 function inspectJson(
   value: unknown,
@@ -121,8 +128,18 @@ function inspectJson(
 ): void {
   const ancestors = new Set<object>();
   let count = 0;
+  let serializedBytes = 0;
+  const strings = captured ? new Map<string, number>() : undefined;
+  function stringBytes(value: string): number {
+    const known = strings?.get(value);
+    if (known !== undefined) return known;
+    const bytes = jsonEncoder.encode(JSON.stringify(value)).length;
+    if (strings && strings.size < 1024) strings.set(value, bytes);
+    return bytes;
+  }
   function visit(item: unknown, parentPath: string, depth: number, key?: string | number): number {
     const before = count;
+    const bytesBefore = serializedBytes;
     const diagnosticsBefore = reader.diagnostics.length;
     count++;
     if (count > limits.maxNodes) {
@@ -142,8 +159,24 @@ function inspectJson(
       );
       return 0;
     }
-    if (item === null || typeof item === 'string' || typeof item === 'boolean') return 0;
-    if (typeof item === 'number' && Number.isFinite(item)) return 0;
+    if (item === null || typeof item === 'string' || typeof item === 'boolean') {
+      if (captured)
+        serializedBytes +=
+          item === null ? 4 : typeof item === 'boolean' ? (item ? 4 : 5) : stringBytes(item);
+      return 0;
+    }
+    if (typeof item === 'number' && Number.isFinite(item)) {
+      if (captured)
+        serializedBytes +=
+          Number.isInteger(item) && item >= 0 && item <= 255
+            ? item < 10
+              ? 1
+              : item < 100
+                ? 2
+                : 3
+            : String(item).length;
+      return 0;
+    }
     const path = key === undefined ? parentPath : pointer(parentPath, key);
     if (typeof item !== 'object' || item === null) {
       reader.issue(path, 'json-value', 'Expected finite JSON data');
@@ -154,9 +187,9 @@ function inspectJson(
       return 0;
     }
     if (
-      !Array.isArray(item) &&
-      Object.getPrototypeOf(item) !== Object.prototype &&
-      Object.getPrototypeOf(item) !== null
+      Array.isArray(item)
+        ? Object.getPrototypeOf(item) !== Array.prototype
+        : Object.getPrototypeOf(item) !== Object.prototype && Object.getPrototypeOf(item) !== null
     ) {
       reader.issue(path, 'json-object', 'Expected a plain JSON object');
       return 0;
@@ -164,10 +197,12 @@ function inspectJson(
     const cached = isOwnedImmutable(item) ? jsonShapes.get(item) : undefined;
     if (
       cached &&
+      (!captured || cached.bytes !== undefined) &&
       before + cached.nodes <= limits.maxNodes &&
       depth + cached.depth <= limits.maxDepth
     ) {
       count = before + cached.nodes;
+      if (captured) serializedBytes += cached.bytes ?? 0;
       return cached.depth;
     }
     let relativeDepth = 0;
@@ -176,8 +211,9 @@ function inspectJson(
       reader.issue(path, 'json-property', 'JSON cannot contain symbol properties');
     }
     if (Array.isArray(item)) {
-      for (const key of Object.keys(item))
-        if (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= item.length)
+      if (captured) serializedBytes += 2 + Math.max(0, item.length - 1);
+      for (const key of Object.getOwnPropertyNames(item))
+        if (key !== 'length' && (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= item.length))
           reader.issue(
             pointer(path, key),
             'json-property',
@@ -198,22 +234,30 @@ function inspectJson(
           );
       }
     } else {
+      if (captured) serializedBytes += 2;
+      let members = 0;
       for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(item))) {
         if (!('value' in descriptor))
           reader.issue(pointer(path, key), 'json-accessor', 'JSON cannot contain accessors');
         else if (!descriptor.enumerable)
           reader.issue(pointer(path, key), 'json-property', 'JSON properties must be enumerable');
-        else
+        else {
+          if (captured) serializedBytes += stringBytes(key) + 1 + (members++ ? 1 : 0);
           relativeDepth = Math.max(
             relativeDepth,
             1 + visit(descriptor.value, path, depth + 1, key),
           );
+        }
         if (count > limits.maxNodes) break;
       }
     }
     ancestors.delete(item);
     if (reader.diagnostics.length === diagnosticsBefore) {
-      const shape = { nodes: count - before, depth: relativeDepth };
+      const shape: JsonShape = {
+        nodes: count - before,
+        depth: relativeDepth,
+        ...(captured ? { bytes: serializedBytes - bytesBefore } : {}),
+      };
       if (isOwnedImmutable(item)) jsonShapes.set(item, shape);
       captured?.set(item, shape);
     }

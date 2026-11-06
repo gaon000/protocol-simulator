@@ -1,6 +1,6 @@
 import { isOwnedImmutable } from './immutable-data.ts';
 import { valueAt } from './json-pointer.ts';
-import { parseJsonData, Reader } from './model-validation.ts';
+import { jsonByteLength, parseJsonData, Reader } from './model-validation.ts';
 import type { ValidationResult } from './protocol-model.ts';
 import type { StackExperiment } from './stack-model.ts';
 import { parseStackView } from './stack-record.ts';
@@ -161,7 +161,7 @@ export function parseWorkspaceV2(value: unknown): ValidationResult<WorkspaceV2> 
     maxNodes: WORKSPACE_POLICY.maxJsonNodes,
   });
   if (!json.success) return json;
-  if (new TextEncoder().encode(JSON.stringify(value)).length > WORKSPACE_POLICY.maxBytes)
+  if (jsonByteLength(json.value) > WORKSPACE_POLICY.maxBytes)
     return failure('workspace-size', 'Workspace exceeds 64 MiB');
   const r = new Reader();
   const node = r.object(value, '', ['schemaVersion', 'mode', 'legacy', 'stack']);
