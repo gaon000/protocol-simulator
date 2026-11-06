@@ -3,7 +3,7 @@
 상태: In Progress
 종료일: 미종료
 기준일: 2026-11-06
-구현 상태: S1/S2를 master에 반영했고 S3 ReliableStreamLite·실제 계층 연결 예제와 전체 로컬 검증을 완료했다. S4/S5는 미착수다.
+구현 상태: S1~S3를 master에 반영했다. S4 v2 저장/복구·endpoint 관찰 API와 전체 로컬 검증을 완료했다. 화면/기본 DB 전환은 S5다.
 
 [ExecPlan 운영 규칙](../index.md)을 따른다. 기능의 계약은 [계층 연결 설계](../../design-docs/layered-stack-v2.md), S1의 실제 JSON/API는 [모델·검사 계약](../../design-docs/s1-stack-models.md)이 소유한다. 전체 스택 실행·저장·화면 완료와 S1 완료를 구분한다.
 
@@ -23,7 +23,8 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - [x] 2026-11-06 S2 — 공유 후보 검사/환경 결정·네 runtime·단일 scheduler/router·forkable codec·예약/commit·세대별 수명. 신규 35개 Node 검사와 S2 계약 문서.
 - [x] 2026-11-06: S2 최종 commit `88ba047` master 반영과 [CI](https://github.com/gaon000/protocol-simulator/actions/runs/42154827680) 통과. `codex/s3-reliable-stream-lite`에서 S3 구현.
 - [x] 2026-11-06 S3 — ReliableStreamLite와 실제 계층 연결·장애 검증. 신규 Node 27개·예제 5개와 전체 로컬 회귀 검사 통과.
-- [ ] S4 — 저장 v2·legacy 호환·재생과 관찰/검증 도구 확장.
+- [x] 2026-11-06: S3 commit `3bbff87` master 반영과 [CI](https://github.com/gaon000/protocol-simulator/actions/runs/42159078902) 통과. `codex/s4-stack-persistence-observation`에서 S4 구현.
+- [x] 2026-11-06 S4 — 저장 v2·legacy 호환/복구·네 endpoint의 재생/관찰·중단점/회귀/비교 API. 신규 Node 34개와 Chromium/Firefox native DB 14개·전체 로컬 검사 통과.
 - [ ] S5 — 스택 구성 화면·응용 예제·전체/브라우저/응답성 검증.
 
 각 S단계는 구현 요청 이후 시작하고 관련 source·계약 문서·의미 있는 검증을 같은 작업 단위로 완료한다. S1 이후에도 이 구현 계획은 active/In Progress로 유지한다.
@@ -41,6 +42,9 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - 기존 코덱은 closure 상태를 소유한다. v1 push 결과를 바꾸지 않고 fork/bufferedBytes/pushTracked를 추가해 partial UTF-8/HTTP header·body를 격리하고 실제 frame 크기로 source 범위를 소비한다.
 - ReliableStreamLite의 seq는 TCP 바이트 순번과 달리 DATA 조각마다 하나 증가한다. write 경계를 보존하지 않고 FIFO에 쌓인 여러 write를 한 조각으로 보낼 수 있다. pending 전체와 offset을 유지해 매 ACK마다 큰 남은 버퍼를 새 값으로 복사하지 않는다.
 - 1바이트 DATA 예제는 왕복마다 가상 시간이 지나 기존 500ms 앱 기한 안에 HTTP 교환이 끝나지 않는다. 해당 새 예제 사본만 deadline 15000ms/observation 16000ms로 명시하고 기존 v1 HTTP 예제는 유지한다.
+- S4에서 변수 100개를 유지하는 실제 10000-event 기록은 16 MiB 안에 있어도 기존 reader의 500k JSON node 제한에 걸렸다. 읽기 node 예산을 직렬화 byte 상한에서 유도하고 trace/artifact/payload의 기존 hard limit은 유지했다.
+- 회귀 사례 하나가 첫 64작업 slice 안에 완료되면 바로 뒤 취소는 추가 cancelled 기록을 만들지 않는다. 부분 취소 검사는 실제 1-byte HTTP 사례를 사용하고 두 경계를 별도로 검사했다.
+- 동일한 byte가 반복되는 원본에서 source 범위를 한 칸 옮겨도 내용만 비교하면 같은 관찰로 잘못 판정했다. 실제 사용자 규칙의 자료로 재현하고 source 창 안의 상대 위치를 비교하도록 보완했다. 여러 가능한 창을 보존하고 계산 한도에서는 limited로 남긴다.
 
 ## Decision Log
 
@@ -59,10 +63,13 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - 2026-11-06 S3: 두 provider의 tx/rx 방향·seq·cache·FIFO·timer를 독립 변수로 두고 사용자 규칙으로만 재전송/중복 억제를 구현했다. ACK는 DATA 방향/현재 seq를 대조하고 미래 DATA에는 ACK/read를 만들지 않는다.
 - 2026-11-06 S3: seq 소진을 실패로 명시하고 번호를 재사용하지 않는다. 실패 때 live pending/queued/cache를 비우되 과거 read/deliver와 기록 자료는 보존한다. 빈 write는 명시적 ignore이며 큐 concat 한도는 limit-reached다.
 - 2026-11-06 S3: 알려진 앱의 새 사본에 StreamFailed·terminal failed 무시, Ping 요청 deliver와 timeout 뒤 늦은 Pong 무시를 명시했다. 일반 조합 함수는 사용자 앱의 규칙을 자동 보충하지 않는다. optional origin/버전 있는 별도 catalog API를 추가했으며 v1 catalog/화면/DB는 변경하지 않았다.
+- 2026-11-06 S4: v1 WorkspaceData를 그대로 포함한 별도 v2 workspace/record/bundle과 opt-in DB2 adapter/controller를 구현했다. 보관 store는 읽기 전용이며 canonical store의 CAS만 갱신한다. 현재 App/기본 v1 adapter의 전환은 S5에서 수행해 미완성 화면에 새 mode를 주입하지 않는다.
+- 2026-11-06 S4: unknown 실행 버전의 알려진 저장 구조는 보관/내보내기만 허용한다. 현재 버전의 관찰 도구는 endpoint·실제 prefix와 선언된 bytes만 읽고 arbitrary JSON identity-shaped 키는 실제 내용으로 보존한다.
+- 2026-11-06 S4: Node API와 별도 개발 서버 4174의 Chromium/Firefox native IndexedDB 검사를 전체 check에 추가했다. v1 빌드 UI E2E와 기존 다섯 응답성 검사는 유지하며 스택 UI/정량 검증은 S5로 구분한다. 신규 production dependency는 없다.
 
 ## Outcomes & Retrospective
 
-S1/S2 위에서 S3의 실제 양방향 ReliableStreamLite·JSON Lines/제한된 HTTP와 첫 ACK 손실 예제 5개를 구현했다. 신규 Node 27개와 전체 회귀 검사를 통과했다. App/workspace/DB는 변경하지 않았으며 저장/관찰/UI 통합은 S4/S5에 남아 있다.
+S1~S3 위에 S4의 v2 저장/복구·네 endpoint의 prefix 재생/관찰·중단점/회귀/커버리지/비교 API와 전체 로컬 검증을 완료했다. 현재 App/기본 v1 DB 경로는 유지하며 화면과 새 기본 저장 경로의 통합은 S5에 남아 있다.
 
 ## Context and Orientation
 
@@ -78,7 +85,7 @@ S1/S2 위에서 S3의 실제 양방향 ReliableStreamLite·JSON Lines/제한된 
 | [커버리지](../../../src/application/suite-coverage.ts), [비교](../../../src/application/run-comparison.ts), [중단점](../../../src/application/breakpoints.ts) | 현재 participant 타깃과 한도/버전 경계 |
 | [작업 공간](../../../src/ui/App.tsx) | 편집·실행 세대·history cursor·공유 선택·모든 보기 연결 |
 
-S1~S3의 실제 신규 경로는 [S1 계약](../../design-docs/s1-stack-models.md)·[S2 실행 계약](../../design-docs/s2-stack-runtime.md)·[S3 provider/예제](../../design-docs/s3-reliable-stream-lite.md)와 [구조 지도](../../../ARCHITECTURE.md)에 등록했다. S4/S5 경로는 아래의 구현 후보이며 아직 존재하는 모듈로 표현하지 않는다.
+S1~S4의 실제 신규 경로는 [S1](../../design-docs/s1-stack-models.md)·[S2](../../design-docs/s2-stack-runtime.md)·[S3](../../design-docs/s3-reliable-stream-lite.md)·[S4 저장/관찰 API](../../design-docs/s4-stack-persistence-observation.md)와 [구조 지도](../../../ARCHITECTURE.md)에 등록했다. S5 경로는 아래의 구현 후보다.
 
 ## Plan of Work
 
@@ -191,9 +198,18 @@ S3 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 - 첫 FIFO overflow fixture의 legacy 기대 조건 빈 배열은 기존 계약상 유효하지 않아 실제 Idle 상태 기대 조건으로 바로잡았다. 기존 Firefox 취소 E2E는 클릭 안정성을 기다리는 사이 묶음이 모두 끝나 버튼이 사라졌다. 브라우저 시계로 실제 부분 실행을 유지한 뒤 다른 탭에서 취소하고 시계를 재개하도록 수정했다. 양 브라우저 각 3회 통과 후 전체 검사를 통과했다. 제품 실행 속도/스케줄러는 변경하지 않았다.
 - 최종 로그는 `/private/tmp/protocol-s3-check-final.log`다. 실제 외부 통신·전체 TCP/HTTP 표준 적합성·스택 저장/관찰/UI·스택 1 MiB/대형 묶음의 브라우저 응답성은 이 단계에서 구현하거나 검증하지 않았다.
 
+S4 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
+
+- 최종 `pnpm check` 통과: lint/format/type·Node 499개(신규 34개)·Markdown 45개·build·기존 Chromium/Firefox UI 244개·신규 native DB API 14개·기존 1-worker 응답성 5개. App/기본 v1 adapter와 기존 응답성 상한은 변경하지 않았다.
+- 실제 다섯 예제의 snapshot/부분 기록·초기/중간/최종 cursor·네 endpoint 상태/변수/타이머/포트와 prefix/artifacts·엄격한 경로/원인/전후 연속성·unknown 버전·미완성 정의/raw·v1/v2 bundle/충돌 remap·고아 기록 retry·공유 용량과 controller quota/CAS 복구를 검사했다.
+- 관찰 도구는 실제 JSON/HTTP/packet/서비스 bytes·직접 trigger/단락/순차 대입 대조·부분 진단/참고 관찰·없는 endpoint·인과/행/byte 한도·live 중단점/합쳐 읽기/계속 trace 동등성·debugger 오류·paired 환경/seed·회귀 source/suite/case 판정·커버리지 누락/제외·유한 실행 대응과 반복 bytes의 source 상대 위치 차이를 검사했다. 실제 dense 10000-event/100변수 및 12500개 초과 byte block의 기록도 기존 hard limit 아래에서 읽었다.
+- native 두 브라우저는 v1 원본과 revision 보존·DB2 upgrade/invalid/quota/abort rollback·blocked pending abort/재시도·실제 versionchange 자동 close·구형 writer/더 새로운 DB fencing·두 탭 CAS·변조 payload 거부·controller 메모리/저장 복구, cancelled 자료와 실제 1 MiB 프레임의 save/reload 일치를 통과했다. quota/abort는 native API를 감싸 주입하며 실제 디스크 고장/여유 공간 소진 검증은 아니다.
+- 초기 fixture의 취소 시점/필드 입력은 실제 모델의 완료·필드 상한/송신 동작에 맞춰 조정했다. byte-source 위치 회귀를 수정한 뒤 S4 코어 34개와 최종 전체 check를 다시 통과했다. 최종 로그는 `/private/tmp/protocol-s4-check-release.log`다.
+- 이 단계의 native API 브라우저 검사는 개발 서버 4174를 사용한다. 실제 사용자 스택 화면·기본 DB 전환, 스택 10k/1 MiB/대형 suite의 UI 정량 실측은 S5에서 수행하며 위의 v1 응답성 회귀와 구분한다. 실제 서버/기기·전체 TCP/HTTP·배포는 포함하지 않았다.
+
 ## Idempotence and Recovery
 
-모든 변경은 feature branch에서 기존 사용자 변경을 보존한다. S1~S3의 미완성 모델/엔진을 App·기존 저장 형식에 노출하지 않는다. 단계별 verified commit으로 이어가며 실패한 단계에서는 이전 실행/자료를 보존하고 다음 단계를 공개하지 않는다.
+모든 변경은 feature branch에서 기존 사용자 변경을 보존한다. S1~S4의 별도 모델/엔진/저장·관찰 API를 미완성 App에 주입하지 않는다. 기본 DB와 새 화면 전환은 S5에서 수행한다. 단계별 verified commit으로 이어가며 실패한 단계에서는 이전 실행/자료를 보존한다.
 
 실행은 snapshot 불변·session generation으로 격리한다. 취소/reset은 live 버퍼를 해제하되 보존 record가 참조하는 RunArtifacts는 유지한다. 저장은 migration/import staging과 transaction/CAS 실패 시 이전 commit을 유지한다. 성공한 DB upgrade의 복구는 새 reader가 legacy 보관본을 읽거나 명시적으로 내보내는 방식이며 자동 downgrade/삭제가 아니다. 유효하지 않은 새 초안/파일은 이미 실행 중인 snapshot·저장본을 파괴하지 않는다.
 
@@ -208,4 +224,4 @@ S3 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 
 ## Interfaces and Dependencies
 
-전체 계획은 stack 모델/bytes/서비스·scheduler/runtime·v2 snapshot/trace/workspace/bundle/DB와 모든 endpoint 관찰 도구에 걸친다. S1~S3는 DOM 없는 실행 경로·실제 provider/응용 예제·Node 검사와 공유 가능한 코덱/순수 검사·환경 결정 경계를 구현한다. App·패키지·DB·외부 서비스는 변경하지 않는다. 신규 production dependency는 추가하지 않았으며 필요해지면 기존 승인 규칙을 적용한다.
+전체 계획은 stack 모델/bytes/서비스·scheduler/runtime·v2 snapshot/trace/workspace/bundle/DB와 모든 endpoint 관찰 도구에 걸친다. S1~S4는 별도 실행/provider·v2 저장/관찰 API와 Node/native 브라우저 검사를 구현한다. S4의 package script는 새 native API E2E를 전체 check에 포함한다. App/기본 adapter·외부 서비스·production dependency는 변경하지 않았다.

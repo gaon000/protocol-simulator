@@ -913,7 +913,11 @@ export class StackScheduler {
       };
     });
   }
-  /** Return a detached immutable view; payload ranges remain scoped to its own artifacts. */
+  /** Read committed immutable artifacts without copying runtime states for a debugger observer. */
+  readArtifacts(): import('../domain/stack-model.ts').RunArtifacts {
+    return this.#data.store.capture().artifacts;
+  }
+  /** Return a detached immutable view with all runtime instances. */
   view(): StackView {
     const data = this.#data.store.capture();
     return freezeOwned({

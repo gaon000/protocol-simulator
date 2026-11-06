@@ -2,7 +2,12 @@ import type { JsonValue } from './execution-contract.ts';
 import { httpSchemaDiagnostics } from './http-schema.ts';
 import { freezeOwned } from './immutable-data.ts';
 import { pointerToken } from './json-pointer.ts';
-import { parseJsonData, parseProtocolDefinition, Reader } from './model-validation.ts';
+import {
+  parseJsonData,
+  parseProtocolDefinition,
+  parseProtocolDefinitionDraft,
+  Reader,
+} from './model-validation.ts';
 import type { ProtocolDefinition, ValidationResult } from './protocol-model.ts';
 import { parseBytesValue } from './stack-bytes.ts';
 import { checkStackExpression, type ExpressionTypes, stackValueType } from './stack-expressions.ts';
@@ -613,9 +618,17 @@ export function adaptLegacyApplication(
   value: unknown,
   portId = 'lower',
 ): ValidationResult<LegacyStackApplication> {
-  const parsed = parseProtocolDefinition(value);
+  return adaptApplication(value, portId, true);
+}
+
+function adaptApplication(
+  value: unknown,
+  portId: string,
+  executable: boolean,
+): ValidationResult<LegacyStackApplication> {
+  const parsed = executable ? parseProtocolDefinition(value) : parseProtocolDefinitionDraft(value);
   if (!parsed.success) return parsed;
-  const r = new Reader();
+  const r = new Reader(!executable);
   r.text(portId, '/requires/id', true);
   if (parsed.value.layer !== 'application' || parsed.value.codec === 'logical-packet')
     r.issue(
@@ -647,9 +660,18 @@ export function adaptLegacyApplication(
 
 /** Parse native stack definitions or their explicit legacy application wrapper; v1 readers stay strict. */
 export function parseStackProtocol(value: unknown): ValidationResult<StackProtocol> {
+  return readProtocol(value, true);
+}
+
+/** Read unfinished native/legacy definitions for storage without admitting invalid rules to a snapshot. */
+export function parseStackProtocolDraft(value: unknown): ValidationResult<StackProtocol> {
+  return readProtocol(value, false);
+}
+
+function readProtocol(value: unknown, executable: boolean): ValidationResult<StackProtocol> {
   const json = parseJsonData(value);
   if (!json.success) return json;
-  const r = new Reader();
+  const r = new Reader(!executable);
   if (new TextEncoder().encode(JSON.stringify(value)).length > STACK_POLICY.maxArtifactBytes) {
     r.issue('/', 'model-size', 'Definition exceeds the JSON size limit');
     return { success: false, diagnostics: r.diagnostics };
@@ -671,11 +693,12 @@ export function parseStackProtocol(value: unknown): ValidationResult<StackProtoc
       'requires',
     ]);
     r.choice(node.adapterVersion, '/adapterVersion', [STACK_POLICY.adapterVersion]);
-    const source = adaptLegacyApplication(
+    const source = adaptApplication(
       node.source,
       typeof (node.requires as ServicePort | undefined)?.id === 'string'
         ? (node.requires as ServicePort).id
         : 'lower',
+      executable,
     );
     append(r, '/source', source);
     if (
@@ -738,7 +761,7 @@ export function parseStackProtocol(value: unknown): ValidationResult<StackProtoc
     if (timer) r.text(timer.id, `${path}/id`, true);
   });
   r.array(node.rules, '/rules', (item, path) => ruleShape(item, path, r), 1);
-  if (!r.diagnostics.length) protocolSemantics(value as NativeStackProtocol, r);
+  if (!r.diagnostics.length && executable) protocolSemantics(value as NativeStackProtocol, r);
   return r.result(value as NativeStackProtocol);
 }
 

@@ -15,6 +15,7 @@ import {
 import {
   compatibleStackServices,
   parseStackProtocol,
+  parseStackProtocolDraft,
   providedStackPort,
   sameWireMessages,
   validateStackMessage,
@@ -405,9 +406,18 @@ function semantics(experiment: StackExperiment, r: Reader): void {
 
 /** Validate self-contained stack topology, exact versions, port/wire types, and endpoint scenarios. */
 export function parseStackExperiment(value: unknown): ValidationResult<StackExperiment> {
+  return readExperiment(value, true);
+}
+
+/** Preserve structurally valid unfinished topology drafts without admitting them to execution. */
+export function parseStackExperimentDraft(value: unknown): ValidationResult<StackExperiment> {
+  return readExperiment(value, false);
+}
+
+function readExperiment(value: unknown, executable: boolean): ValidationResult<StackExperiment> {
   const json = parseJsonData(value);
   if (!json.success) return json;
-  const r = new Reader();
+  const r = new Reader(!executable);
   if (new TextEncoder().encode(JSON.stringify(value)).length > STACK_POLICY.maxArtifactBytes) {
     r.issue('/', 'model-size', 'Stack JSON exceeds the serialized size limit');
     return { success: false, diagnostics: r.diagnostics };
@@ -442,7 +452,8 @@ export function parseStackExperiment(value: unknown): ValidationResult<StackExpe
   r.array(
     node.definitions,
     '/definitions',
-    (item, path) => append(r, path, parseStackProtocol(item)),
+    (item, path) =>
+      append(r, path, executable ? parseStackProtocol(item) : parseStackProtocolDraft(item)),
     1,
   );
   const nodes = r.object(node.nodes, '/nodes', ['A', 'B']);
@@ -480,7 +491,7 @@ export function parseStackExperiment(value: unknown): ValidationResult<StackExpe
   if (limits)
     for (const [key, maximum] of Object.entries(defaultStackLimits()))
       r.number(limits[key], `/limits/${key}`, 1, maximum);
-  if (!r.diagnostics.length) semantics(value as StackExperiment, r);
+  if (!r.diagnostics.length && executable) semantics(value as StackExperiment, r);
   return r.result(value as StackExperiment);
 }
 

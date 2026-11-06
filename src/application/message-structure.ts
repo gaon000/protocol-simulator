@@ -386,12 +386,7 @@ export function buildMessageStructure(
   if (!bytes) return result;
   if (event.kind !== 'send')
     return { ...result, status: 'raw', note: '이 이벤트의 원시 바이트만 표시합니다.' };
-  const layout =
-    protocol.codec === 'http-1.1'
-      ? httpLayout(bytes, definition)
-      : protocol.codec === 'json-lines' || protocol.codec === 'json-datagram'
-        ? jsonLayout(bytes, definition, values, protocol.codec === 'json-lines')
-        : rawLayout(bytes, '이 코덱의 byte 구획은 정의되어 있지 않습니다.');
+  const layout = inspectMessageByteLayout(protocol.codec, definition, values, bytes);
   const { ranges, ...presentation } = layout;
   return {
     ...result,
@@ -400,6 +395,20 @@ export function buildMessageStructure(
     note: `${layout.note}${definition.fields.length > STRUCTURE_POLICY.fields ? ' 최대 128개 필드만 표시합니다.' : ''}`,
     fields: fields.map((field) => ({ ...field, range: ranges.get(field.definition.id) })),
   };
+}
+
+/** Analyze only supplied actual message bytes, sharing the same bounded HTTP/JSON layout in both modes. */
+export function inspectMessageByteLayout(
+  codec: string,
+  definition: import('../domain/protocol-model.ts').MessageDefinition,
+  values: import('../domain/protocol-model.ts').ProtocolMessage['values'],
+  bytes: readonly number[],
+) {
+  return codec === 'http-1.1'
+    ? httpLayout(bytes, definition)
+    : codec === 'json-lines' || codec === 'json-datagram'
+      ? jsonLayout(bytes, definition, values, codec === 'json-lines')
+      : rawLayout(bytes, '이 코덱의 byte 구획은 정의되어 있지 않습니다.');
 }
 
 /** Read one bounded hex/ASCII window by reference, retaining offsets in the actual event. */

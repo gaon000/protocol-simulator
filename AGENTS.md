@@ -12,7 +12,7 @@
 
 두 실행 비교는 [V1-019](docs/product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다. frozen 기록의 설정/결과·관찰을 나란히 표시하고 실행별 ID를 공유 인과관계로 간주하지 않는다. 순서 보존/유한 대응·비교 한도와 부분 관찰을 명시하며 각 쪽의 실제 cursor로 재생한다.
 
-계층 연결 모드는 [후속 설계](docs/design-docs/layered-stack-v2.md)와 [S1~S5 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다. [S1 모델·검사](docs/design-docs/s1-stack-models.md)·[S2 실행 코어](docs/design-docs/s2-stack-runtime.md)·[S3 ReliableStreamLite](docs/design-docs/s3-reliable-stream-lite.md)를 구현했으며 저장/관찰·화면 연결은 후속이다. 단일 clock/queue·원자적 예약/반영·실제 byte 기여 범위를 보존한다. Lite는 TCP가 아니며 방향별 DATA 하나·write 간 이어지는 seq·기대 DATA만 read·중복 재ACK·미래 무시·유한 재시도를 규칙으로 구현한다. legacy 실행/저장과 현재 v1 사용자 화면을 구분하며 clearLive 뒤 committed 자료를 보존한다.
+계층 연결 모드는 [후속 설계](docs/design-docs/layered-stack-v2.md)와 [S1~S5 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다. [S1 모델](docs/design-docs/s1-stack-models.md)·[S2 실행](docs/design-docs/s2-stack-runtime.md)·[S3 ReliableStreamLite](docs/design-docs/s3-reliable-stream-lite.md)·[S4 저장/관찰 API](docs/design-docs/s4-stack-persistence-observation.md)를 구현했다. 현재 v1 화면/기본 DB의 전환은 S5다. v2 upgrade는 v1 store를 보관하고 단일 canonical store의 CAS를 사용하며 blocked 뒤 pending upgrade도 취소한다. endpoint·snapshot/prefix·직접 원인·record-local bytes를 보존하고 unknown 실행 버전/계산 한도를 명시한다. Lite는 TCP가 아니며 단일 clock/queue·원자적 반영·write 간 seq·기대 DATA만 read·중복 재ACK·유한 재시도와 clearLive 뒤 committed 자료를 유지한다.
 
 초기 대상 사용자: 프로토콜의 구조·흐름을 이해하거나 자기 프로토콜을 설계·검증하려는 개발자와 학습자.
 

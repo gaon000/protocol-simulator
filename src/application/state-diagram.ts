@@ -51,7 +51,12 @@ function page(value: number | undefined, total: number, size: number) {
 
 /** Build a bounded graph page without rewriting invalid drafts or choosing ambiguous state IDs. */
 export function buildStateDiagram(
-  protocol: ProtocolDefinition,
+  protocol: Pick<ProtocolDefinition, 'states' | 'initialStateId'> & {
+    readonly rules: readonly Pick<
+      ProtocolDefinition['rules'][number],
+      'id' | 'fromStateId' | 'nextStateId'
+    >[];
+  },
   options: {
     readonly statePage?: number;
     readonly rulePage?: number;

@@ -719,11 +719,24 @@ function inspectProtocolSemantics(protocol: ProtocolDefinition, path: string, r:
 
 /** Parse and validate a complete protocol definition, returning JSON-pointer diagnostics. */
 export function parseProtocolDefinition(value: unknown): ValidationResult<ProtocolDefinition> {
-  const r = new Reader();
+  return readProtocolDefinition(value, true);
+}
+
+/** Preserve a structurally valid protocol draft while deferring reference/type semantics to execution checks. */
+export function parseProtocolDefinitionDraft(value: unknown): ValidationResult<ProtocolDefinition> {
+  return readProtocolDefinition(value, false);
+}
+
+function readProtocolDefinition(
+  value: unknown,
+  executable: boolean,
+): ValidationResult<ProtocolDefinition> {
+  const r = new Reader(!executable);
   inspectJson(value, r);
   if (r.diagnostics.length) return { success: false, diagnostics: r.diagnostics };
   inspectProtocol(value, '', r);
-  if (!r.diagnostics.length) inspectProtocolSemantics(value as ProtocolDefinition, '', r);
+  if (!r.diagnostics.length && executable)
+    inspectProtocolSemantics(value as ProtocolDefinition, '', r);
   return r.result(value as ProtocolDefinition);
 }
 

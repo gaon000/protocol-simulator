@@ -43,7 +43,7 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [두 실행 결과 나란히 비교](exec-plans/completed/20261105-side-by-side-run-comparison.md)를 구현·검증했다. 당시 설정·결과·관찰 차이와 양쪽의 실제 기록 위치를 연결한다. 기준은 [V1-019](product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다.
 
-후속 [계층 연결 프로토콜 스택 설계](design-docs/layered-stack-v2.md)의 [S1 모델/바이트](design-docs/s1-stack-models.md)·[S2 실행 코어](design-docs/s2-stack-runtime.md)·[S3 ReliableStreamLite/응용 예제](design-docs/s3-reliable-stream-lite.md)를 구현했다. [S1~S5 구현 계획](exec-plans/active/20261106-layered-protocol-stacks.md)은 In Progress다. legacy 저장/관찰·화면 연결은 후속이며 현재 사용자 화면은 단일 계층이다.
+후속 [계층 연결 설계](design-docs/layered-stack-v2.md)의 S1~S3 코어/provider·[S4 저장/관찰 API](design-docs/s4-stack-persistence-observation.md)를 구현했다. [S1~S5 구현 계획](exec-plans/active/20261106-layered-protocol-stacks.md)은 In Progress다. 화면/기본 DB 연결은 S5이며 현재 사용자 화면은 단일 계층이다.
 
 ## 선택 문서
 

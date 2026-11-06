@@ -243,8 +243,8 @@ export type StackExperiment = {
 export type StackSnapshot = {
   readonly schemaVersion: 2;
   readonly mode: 'stack';
-  readonly engineVersion: typeof STACK_POLICY.engineVersion;
-  readonly randomAlgorithm: typeof STACK_POLICY.randomAlgorithm;
+  readonly engineVersion: string;
+  readonly randomAlgorithm: string;
   readonly configuration: StackExperiment;
 };
 export type PayloadRange = {

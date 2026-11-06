@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 상태: [S1 모델·검사·바이트](s1-stack-models.md)·[S2 공유 runtime/scheduler/router](s2-stack-runtime.md)·[S3 ReliableStreamLite/응용 예제](s3-reliable-stream-lite.md)를 구현했다. 화면·workspace/DB·관찰 도구 연결은 미구현이며 현재 사용자 화면은 v1 단일 계층 모델이다.
+구현 상태: [S1 모델·검사·바이트](s1-stack-models.md)·[S2 실행 코어](s2-stack-runtime.md)·[S3 ReliableStreamLite](s3-reliable-stream-lite.md)·[S4 저장/관찰 API](s4-stack-persistence-observation.md)를 구현했다. 현재 사용자 화면은 v1 단일 계층이며 기본 DB 경로와 스택 UI의 연결은 S5다.
 
 ## 문제와 목표
 

@@ -50,8 +50,9 @@ Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim�
 | 문서 검사 | `pnpm check:docs` |
 | 빌드 | `pnpm build` — 타입 검사 후 Vite 빌드 |
 | 브라우저 E2E | `pnpm test:e2e` — 빌드 후 Chromium/Firefox 테스트 |
+| 스택 native API E2E | `pnpm test:stack:e2e` — 전용 Vite 개발 서버 4174의 실제 v2 DB API·Chromium/Firefox. 스택 사용자 화면 검증은 S5 |
 | 응답성 검사 | `pnpm test:performance` — 빌드 후 1-worker Chromium의 실제 10k/1 MiB fixture |
-| 전체 검사 | `pnpm check` — lint·포맷·타입·Node 테스트·문서·빌드·E2E·응답성 |
+| 전체 검사 | `pnpm check` — lint·포맷·타입·Node 테스트·문서·빌드·기존 E2E·스택 native API E2E·응답성 |
 | 추적된 변경 공백 검사 | `git diff --check` — 새 파일은 별도 검사 필요 |
 
 `pnpm test`는 `tests/unit/*.test.ts`와 `tests/integration/*.test.ts`를 Node의 TypeScript type stripping으로 실행한다. 이 실행은 타입 검사를 대신하지 않는다. `tests/types/strictness.ts`의 음성 fixture는 strict 옵션이 완화되면 `@ts-expect-error` 불일치로 타입 검사에 실패하게 한다.

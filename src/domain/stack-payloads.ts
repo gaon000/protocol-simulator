@@ -41,10 +41,16 @@ export function parseRunArtifacts(
 ): ValidationResult<RunArtifacts> {
   const parsedLimits = parseStackLimits(limits);
   if (!parsedLimits.success) return parsedLimits;
-  const json = parseJsonData(value);
+  const json = parseJsonData(value, { maxDepth: 64, maxNodes: limits.maxArtifactBytes });
   if (!json.success) return json;
-  const refsJson = parseJsonData(references);
+  const refsJson = parseJsonData(references, { maxDepth: 64, maxNodes: limits.maxArtifactBytes });
   if (!refsJson.success) return refsJson;
+  if (jsonSize(references) > limits.maxArtifactBytes)
+    return failure(
+      '/references',
+      'artifact-limit',
+      'Serialized references exceed the record budget',
+    );
   const r = new Reader();
   if (jsonSize(value) > limits.maxArtifactBytes)
     return failure('/', 'artifact-limit', 'Serialized artifacts exceed the trace/payload limit');
@@ -123,7 +129,8 @@ function traceBatch(
 ): ValidationResult<readonly StackTrace[]> {
   const parsedLimits = parseStackLimits(limits);
   if (!parsedLimits.success) return parsedLimits;
-  const json = parseJsonData(value, { maxDepth: 64, maxNodes: 500_000 });
+  // A valid dense 10k trace may exceed 500k nodes; serialized bytes remain the hard global bound.
+  const json = parseJsonData(value, { maxDepth: 64, maxNodes: limits.maxArtifactBytes });
   if (!json.success) return json;
   const r = new Reader();
   if (!Array.isArray(value)) return failure('/', 'array', 'Expected trace events');

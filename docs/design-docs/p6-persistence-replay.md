@@ -4,6 +4,8 @@
 기준일: 2026-10-30
 구현 범위: 같은 브라우저 origin의 초안·실험 사본·실행 기록 저장, 자급적인 JSON bundle, 읽기 전용 기록 탐색과 명시적 snapshot 재실행. 서버 저장·계정·동기화·실제 통신은 포함하지 않는다.
 
+이 문서는 현재 v1 사용자 화면/기본 adapter의 계약이다. 계층 연결 모드의 별도 v2 DB/복구·관찰 API는 [S4](s4-stack-persistence-observation.md)에 구현했으며 화면/기본 저장 경로 전환은 S5에서 연결한다.
+
 ## 저장 선택과 성공 경계
 
 native IndexedDB를 사용한다. localStorage의 동기식 문자열 쓰기 대신 비동기 구조화 데이터와 원자적 readwrite transaction이 필요하고, 별도 라이브러리가 요구되지 않는다. 신규 production dependency는 없다. IndexedDB의 transaction 원자성은 [W3C IndexedDB](https://www.w3.org/TR/IndexedDB/)와 [MDN transaction](https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction)을 기준으로 검토했다.

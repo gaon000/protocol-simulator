@@ -4,6 +4,6 @@
 
 | 계획 | 상태 | 목적 | 의존·차단 조건 |
 | --- | --- | --- | --- |
-| [계층 연결 프로토콜 스택](20261106-layered-protocol-stacks.md) | In Progress | S1 모델/검사 → S2 runtime → S3 provider → S4 저장/관찰 → S5 화면/검증 | S1/S2 반영·S3 provider/응용 예제와 전체 로컬 검증 완료. S4/S5 저장/관찰·화면은 후속 |
+| [계층 연결 프로토콜 스택](20261106-layered-protocol-stacks.md) | In Progress | S1 모델/검사 → S2 runtime → S3 provider → S4 저장/관찰 → S5 화면/검증 | S1~S3 반영·S4 v2 저장/관찰 API와 전체 로컬 검사 완료. 화면/기본 DB 전환은 S5 |
 
 완료된 작업은 [완료 목록](../completed/index.md)에서 확인한다.
