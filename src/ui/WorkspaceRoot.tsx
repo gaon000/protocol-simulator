@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createLegacyWorkspaceFacade } from '../application/legacy-workspace-facade.ts';
 import { createWorkspace } from '../application/workspace-operations.ts';
+import { createStackEditHistory } from '../application/stack-edit-history.ts';
 import { createWorkspaceV2Controller } from '../application/workspace-v2-controller.ts';
 import {
   createWorkspaceV2,
@@ -16,6 +17,7 @@ import { WorkspaceContext, type WorkspaceHost } from './useWorkspace.ts';
 
 /** Share one v2 save queue across the legacy and stacked editors; preserve a checkpoint before switching. */
 export function WorkspaceRoot() {
+  const [stackEdits] = useState(() => createStackEditHistory());
   const [port] = useState(() => createWorkerStorage());
   const [full] = useState(() =>
     createWorkspaceV2Controller(
@@ -40,7 +42,15 @@ export function WorkspaceRoot() {
       if (leave.current === callback) leave.current = undefined;
     };
   }, []);
-  useEffect(() => full.subscribe(() => setState(full.view())), [full]);
+  useEffect(
+    () =>
+      full.subscribe(() => {
+        const next = full.view();
+        stackEdits.reconcile(next.data.stack.drafts);
+        setState(next);
+      }),
+    [full, stackEdits],
+  );
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (closeTimer.current !== undefined) clearTimeout(closeTimer.current);
@@ -126,7 +136,11 @@ export function WorkspaceRoot() {
       {!state.ready && <p role='status'>로컬 작업 공간을 불러오는 중…</p>}
       {switching && <p role='status'>진행 중인 기록을 저장하고 작업 모드를 바꾸는 중…</p>}
       <div inert={switching || !state.ready} aria-busy={switching || !state.ready}>
-        {mode === 'legacy' ? <App /> : <StackWorkspace state={state} host={host} />}
+        {mode === 'legacy' ? (
+          <App />
+        ) : (
+          <StackWorkspace state={state} host={host} edits={stackEdits} />
+        )}
       </div>
     </WorkspaceContext>
   );

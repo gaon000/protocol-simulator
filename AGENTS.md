@@ -32,6 +32,8 @@
 
 스택 규칙 폼은 [V1-021](docs/product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)을 따른다. 기존 native/legacy 문법과 exact 정의 revision을 사용하고 미완성 값·JSON의 원래 경로를 보존한다. 리스트와 하위 raw를 함께 이동하며 실행 snapshot을 수정하지 않는다. 트리/목록/JSON 한도와 기존 실행 진단을 유지한다.
 
+새 스택 작성·편집 이력·선언 설정은 [V1-022~024](docs/product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)와 [작성 흐름 계획](docs/exec-plans/completed/20261107-stack-authoring-workflow.md)을 따른다. 생성 검토/취소와 canonical 추가를 구분한다. undo/redo는 config/raw만 새 정의 revision과 정확한 참조로 복원하고 suite/과거 실행을 덮어쓰지 않는다. 외부 교체·이력 한도·부모 raw·입력 컨트롤의 기본 키를 보존한다.
+
 ## 먼저 읽을 문서
 
 - [문서 지도](docs/index.md): 작업에 필요한 문서 찾기.

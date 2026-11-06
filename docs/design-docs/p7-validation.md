@@ -53,6 +53,8 @@ workflow 파일 존재·로컬 검사·원격 job 결과는 별도 증거다. �
 
 ## S5 계층 연결 확장
 
+[새 스택 작성과 편집 이력](../product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)은 같은 두 브라우저/세 viewport와 native 저장으로 생성→첫 실행, 취소/빈 구성/공유 용량, undo/redo의 raw·분기·모드/키보드·snapshot 보존과 선언 폼을 검사한다. 기존 605개 동작 fixture에 되돌리기/다시 하기 각각 500ms 미만을 추가하며 아홉 fixture의 기존 상한은 유지한다. 실제 결과는 [작성 흐름 계획](../exec-plans/completed/20261107-stack-authoring-workflow.md)에 기록한다.
+
 [규칙 폼](../product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)은 실제 605개 동작을 가진 유효 정의로 규칙 열기/동작 이동 각각 500ms 미만, 폼 DOM 32768자 미만, 목록 10개 표시와 저장 원본 605개 보존을 별도 검사한다. 중첩 조건/바이트 트리와 미완성 raw·JSON 왕복, 진단 초점·키보드·1440/768/390px는 두 브라우저에서 검사한다. 기존 여덟 응답성 fixture와 모든 상한을 유지하며 결과는 [작성 계획](../exec-plans/completed/20261106-stack-rule-forms.md)에 기록한다.
 
 [메시지 이동 경로](../product-specs/protocol-simulator-v1.md#v1-020-메시지의-계층별-이동-경로)는 기존 스택 10k/1 MiB fixture에 열기/구간 변경 500ms·bounded DOM 32768자·관찰/필드 20개 페이지·256-byte 창을 추가해 검사한다. 10k 타이머 fixture에 응용 송신이 없으면 미지원/미관찰 표시를 확인하며 byte 경로를 만들지 않는다. 기록 위치/키보드 초점·1440/768/390px·저장/새로고침과 당시 source 사용은 두 브라우저에서 검증한다. 기존 실행/저장/filter/rAF/longtask 상한과 다섯 legacy fixture를 유지한다. 실제 결과는 [작업 계획](../exec-plans/completed/20261106-stack-message-journey.md)을 따른다.

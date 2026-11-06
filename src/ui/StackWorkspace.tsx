@@ -5,7 +5,8 @@ import {
   synchronizeStackMessages,
 } from '../application/edit-stack.ts';
 import { compileStackBreakpoints } from '../application/stack-breakpoints.ts';
-import { editStackRuleList } from '../application/stack-rule-authoring.ts';
+import { editStackList } from '../application/edit-stack-list.ts';
+import type { StackEditHistory } from '../application/stack-edit-history.ts';
 import { StackWorkerClient } from '../application/stack-worker-client.ts';
 import type {
   StackDebugSettings,
@@ -31,16 +32,20 @@ import { StackEditor } from './StackEditor.tsx';
 import { StackExperiments } from './StackExperiments.tsx';
 import { StackRunPanel } from './StackRunPanel.tsx';
 import { StoragePanel } from './StoragePanel.tsx';
+import { NewStackWizard } from './NewStackWizard.tsx';
 import type { WorkspaceHost } from './useWorkspace.ts';
 
 /** Compose a real stacked editor, isolated worker sessions and shared v2 persistence. */
 export function StackWorkspace({
   state,
   host,
+  edits,
 }: {
   state: ReturnType<WorkspaceHost['full']['view']>;
   host: WorkspaceHost;
+  edits: StackEditHistory;
 }) {
+  const [creating, setCreating] = useState(false);
   const [tab, setTab] = useState('실행');
   const [notice, setNotice] = useState('');
   const [workerReady, setWorkerReady] = useState(false);
@@ -64,6 +69,7 @@ export function StackWorkspace({
   const seriesRef = useRef<typeof series>(undefined);
   const blockedSeries = useRef<string | undefined>(undefined);
   const draft = state.data.stack.drafts.find((d) => d.id === state.data.stack.activeDraftId);
+  const editHistory = draft ? edits.view(draft) : { undo: 0, redo: 0, limited: false };
   const record = historyId ? state.data.stack.runs.find((r) => r.id === historyId) : live;
   const debugOwner = record?.experimentId ?? draft?.id ?? '';
   const settings = debugForms[debugOwner] ?? { enabled: true, points: [] };
@@ -239,21 +245,43 @@ export function StackWorkspace({
       await stopAll();
     }),
   );
-  function updateDraft(change: (draft: StackDraft) => StackDraft) {
+  function updateDraft(change: (draft: StackDraft) => StackDraft, group?: string) {
     if (!draft) return;
     const id = draft.id;
     host.full.update((data) => {
       const before = data.stack.drafts.find((d) => d.id === id);
       if (!before) return data;
-      const next = change(before);
+      const next = freezeOwned(change(before));
       if (next === before) return data;
+      edits.record(before, next, group);
       return {
         ...data,
         stack: { ...data.stack, drafts: data.stack.drafts.map((d) => (d.id === id ? next : d)) },
       };
     });
   }
-  async function edit(path: string, value: JsonValue | undefined) {
+  function travel(direction: 'undo' | 'redo') {
+    if (!draft) return;
+    generation.current++;
+    void control('pause');
+    host.full.update((data) => {
+      const before = data.stack.drafts.find((d) => d.id === draft.id);
+      const next = before && edits.travel(before, direction);
+      if (!next) return data;
+      return {
+        ...data,
+        stack: {
+          ...data.stack,
+          drafts: data.stack.drafts.map((d) => (d.id === next.id ? next : d)),
+        },
+      };
+    });
+  }
+  async function edit(
+    path: string,
+    value: JsonValue | undefined,
+    group = value !== undefined && (value === null || typeof value !== 'object') ? path : undefined,
+  ) {
     generation.current++;
     void control('pause');
     updateDraft((d) => {
@@ -265,7 +293,7 @@ export function StackWorkspace({
         version: d.version + 1,
         updatedAt: Date.now(),
       };
-    });
+    }, group);
   }
   async function json(path: string, text: string) {
     generation.current++;
@@ -278,18 +306,21 @@ export function StackWorkspace({
         parseStackExperimentDraft(editStackExperiment(draft.configuration, path, parsed.value))
           .success
       ) {
-        await edit(path, parsed.value);
+        await edit(path, parsed.value, path);
         return;
       }
     } catch {
       /* Preserve unfinished editor text. */
     }
-    updateDraft((d) => ({
-      ...d,
-      raw: { ...d.raw, [path]: text },
-      version: d.version + 1,
-      updatedAt: Date.now(),
-    }));
+    updateDraft(
+      (d) => ({
+        ...d,
+        raw: { ...d.raw, [path]: text },
+        version: d.version + 1,
+        updatedAt: Date.now(),
+      }),
+      path,
+    );
   }
   async function start(mode: 'run' | 'step', saved?: SavedStackRun) {
     const ticket = ++generation.current;
@@ -369,6 +400,39 @@ export function StackWorkspace({
     liveRef.current = undefined;
     setTab('편집');
   }
+  async function addNewStack(configuration: StackExperiment): Promise<string | undefined> {
+    const next = createStackDraft({ ...configuration, id: workspaceId('stack_experiment') });
+    const proposed = (data: typeof state.data) => ({
+      ...data,
+      stack: { ...data.stack, activeDraftId: next.id, drafts: [...data.stack.drafts, next] },
+    });
+    const capacity = (data: typeof state.data) =>
+      data.stack.drafts.length + data.legacy.drafts.length >= WORKSPACE_POLICY.maxDrafts
+        ? '공유 초안 100개 한도입니다.'
+        : new TextEncoder().encode(JSON.stringify(proposed(data))).length >
+            WORKSPACE_POLICY.maxBytes
+          ? '공유 저장 64 MiB 한도입니다. 현재 자료를 유지했습니다.'
+          : undefined;
+    const preflight = capacity(host.full.view().data);
+    if (preflight) return preflight;
+    const ticket = ++generation.current;
+    await stopAll();
+    if (ticket !== generation.current) return '작업이 바뀌었습니다. 구성을 다시 확인하세요.';
+    let error: string | undefined;
+    host.full.update((data) => {
+      error = capacity(data);
+      return error ? data : proposed(data);
+    });
+    if (error) return error;
+    setCreating(false);
+    setHistoryId(undefined);
+    setLive(undefined);
+    liveRef.current = undefined;
+    setTab('편집');
+    setNotice('새 스택을 만들었습니다. 프로토콜 정의와 입력·기대 조건을 확인하세요.');
+    requestAnimationFrame(() => document.getElementById('stack-main')?.focus());
+    return undefined;
+  }
   async function openHistory(id: string, position?: number) {
     generation.current++;
     await control('pause');
@@ -416,10 +480,42 @@ export function StackWorkspace({
         onLegacyExport={host.exportLegacy}
         onBackupExport={host.exportBackup}
       />
-      <main id='stack-main' tabIndex={-1} className='stack-main'>
+      <main
+        id='stack-main'
+        tabIndex={-1}
+        className='stack-main'
+        onKeyDown={(event) => {
+          if (
+            tab !== '편집' ||
+            creating ||
+            !(event.metaKey || event.ctrlKey) ||
+            event.altKey ||
+            (event.target instanceof Element &&
+              event.target.closest('input,textarea,select,[contenteditable="true"]'))
+          )
+            return;
+          const key = event.key.toLowerCase();
+          const direction =
+            key === 'z'
+              ? event.shiftKey
+                ? 'redo'
+                : 'undo'
+              : key === 'y' && !event.metaKey
+                ? 'redo'
+                : undefined;
+          if (direction && (direction === 'undo' ? editHistory.undo : editHistory.redo)) {
+            event.preventDefault();
+            travel(direction);
+          }
+        }}
+      >
         <h1>프로토콜 스택 작업 공간</h1>
         <p>A/B의 응용·전송 인스턴스를 연결하고 하위 패킷 장애가 앱에 미치는 영향을 관찰합니다.</p>
         {notice && <p role='status'>{notice}</p>}
+        <button type='button' disabled={!state.ready || creating} onClick={() => setCreating(true)}>
+          새 프로토콜 만들기
+        </button>
+        {creating && <NewStackWizard create={addNewStack} cancel={() => setCreating(false)} />}
         <details className='stack-library' open={!draft}>
           <summary>스택 예제와 저장한 자료</summary>
           <div className='stack-example-grid'>
@@ -508,6 +604,27 @@ export function StackWorkspace({
             </button>
           ))}
         </nav>
+        {tab === '편집' && draft && (
+          <section className='stack-edit-tools' aria-label='스택 편집 이력'>
+            <button type='button' disabled={!editHistory.undo} onClick={() => travel('undo')}>
+              편집 되돌리기
+            </button>
+            <button type='button' disabled={!editHistory.redo} onClick={() => travel('redo')}>
+              편집 다시 하기
+            </button>
+            <span>
+              되돌리기 {editHistory.undo}개 · 다시 하기 {editHistory.redo}개
+            </span>
+            <small>
+              현재 탭의 초안 설정·미완성 입력만 복원합니다. 최대 50개·전체 8 MiB이며 새로고침하면
+              이력은 초기화됩니다. 텍스트 입력 밖에서 Ctrl/Cmd+Z, Ctrl+Y 또는 Cmd+Shift+Z를 사용할
+              수 있습니다.
+            </small>
+            {editHistory.limited && (
+              <p role='status'>이력 한도로 오래된 편집을 정리했습니다. 현재 초안은 유지됩니다.</p>
+            )}
+          </section>
+        )}
         <section className='run-controls' aria-label='스택 실행 제어'>
           <button
             type='button'
@@ -611,7 +728,7 @@ export function StackWorkspace({
             list={(path, operation) => {
               generation.current++;
               void control('pause');
-              updateDraft((d) => editStackRuleList(d, path, operation));
+              updateDraft((d) => editStackList(d, path, operation));
             }}
             synchronize={async (protocol) => {
               await control('pause');

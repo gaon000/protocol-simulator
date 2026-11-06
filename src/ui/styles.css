@@ -1918,3 +1918,30 @@ pre {
   color: #52687b;
   margin-block: 0.3rem;
 }
+
+.stack-edit-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border: 1px solid #b4c9da;
+  margin-block: 0.7rem;
+}
+.stack-edit-tools small {
+  flex-basis: 100%;
+}
+.new-stack-wizard,
+.stack-port-form {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.new-stack-wizard input,
+.new-stack-wizard select,
+.stack-port-form input,
+.stack-port-form select {
+  max-width: 100%;
+}
+.new-stack-wizard dd {
+  margin-inline-start: 1rem;
+}

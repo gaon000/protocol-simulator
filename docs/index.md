@@ -47,6 +47,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 ## 선택 문서
 
+[새 스택 작성·되돌리기·설정 폼](exec-plans/completed/20261107-stack-authoring-workflow.md)을 구현·검증했다. 생성 검토와 첫 메시지/검증, 초안별 유한 편집 이력과 포트/타이머/초기값 폼의 현재 계약은 [V1-022~024](product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)를 따른다.
+
 스택의 [규칙 폼 편집](product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)을 구현·검증했다. 이벤트·조건·값 표현식·동작 목록의 작성과 JSON/저장 왕복 검증은 [작업 계획](exec-plans/completed/20261106-stack-rule-forms.md)을 따른다.
 
 스택의 [메시지 이동 경로](product-specs/protocol-simulator-v1.md#v1-020-메시지의-계층별-이동-경로)를 구현하고 전체 로컬 검증을 통과했다. 실제 byte 출처에 따른 네 단계·필드/byte 강조·기록 연결과 검증 근거는 [작업 계획](exec-plans/completed/20261106-stack-message-journey.md)을 따른다.

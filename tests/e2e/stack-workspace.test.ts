@@ -95,7 +95,8 @@ test('v2 default storage retains both modes, unfinished JSON, original snapshots
   const before = await stored(page);
   await tab(page, '편집');
   await page.getByRole('tab', { name: '프로토콜 정의', exact: true }).click();
-  const firstJson = page.locator('.stack-editor textarea').first();
+  await page.locator('summary').filter({ hasText: 'requires 포트 JSON 편집' }).click();
+  const firstJson = page.getByRole('textbox', { name: 'requires 포트 계약 JSON', exact: true });
   await firstJson.fill('{');
   await save(page);
   let releaseRead = () => {};
@@ -120,7 +121,9 @@ test('v2 default storage retains both modes, unfinished JSON, original snapshots
   await expect(page.getByRole('heading', { name: '프로토콜 스택 작업 공간' })).toBeVisible();
   await tab(page, '편집');
   await page.getByRole('tab', { name: '프로토콜 정의', exact: true }).click();
-  await expect(page.locator('.stack-editor textarea').first()).toHaveValue('{');
+  await expect(
+    page.getByRole('textbox', { name: '미완성 설정 JSON 수정', exact: true }),
+  ).toHaveValue('{');
   await expect(page.getByRole('button', { name: '새 스택 전체 실행', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '단일 계층', exact: true }).click();
   await page.locator('[data-path="/label"]').fill('함께 저장한 단일 계층');
@@ -400,9 +403,12 @@ test('shape-invalid JSON keeps the last renderable configuration and survives na
 }) => {
   await stack(page, 'stack_ping_pong');
   await page.getByRole('tab', { name: '프로토콜 정의', exact: true }).click();
-  const input = page.locator('[data-stack-path="/definitions/0/requires"]');
+  await page.locator('summary').filter({ hasText: 'requires 포트 JSON 편집' }).click();
+  const input = page.getByRole('textbox', { name: 'requires 포트 계약 JSON', exact: true });
   await input.fill('{}');
-  await expect(input).toHaveValue('{}');
+  await expect(
+    page.getByRole('textbox', { name: '미완성 설정 JSON 수정', exact: true }),
+  ).toHaveValue('{}');
   await expect(page.getByRole('button', { name: '새 스택 전체 실행', exact: true })).toBeDisabled();
   await save(page);
   const data = (await stored(page)).data.stack.drafts[0];
@@ -410,10 +416,12 @@ test('shape-invalid JSON keeps the last renderable configuration and survives na
   await page.reload();
   await tab(page, '편집');
   await page.getByRole('tab', { name: '프로토콜 정의', exact: true }).click();
-  await expect(page.locator('[data-stack-path="/definitions/0/requires"]')).toHaveValue('{}');
+  await expect(
+    page.getByRole('textbox', { name: '미완성 설정 JSON 수정', exact: true }),
+  ).toHaveValue('{}');
   if (!data?.configuration.definitions[0]) throw new Error('Missing definition');
   await page
-    .locator('[data-stack-path="/definitions/0/requires"]')
+    .getByRole('textbox', { name: '미완성 설정 JSON 수정', exact: true })
     .fill(JSON.stringify(data.configuration.definitions[0].requires));
   await expect(page.getByRole('button', { name: '새 스택 전체 실행', exact: true })).toBeEnabled();
   await run(page);

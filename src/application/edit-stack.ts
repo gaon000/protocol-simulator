@@ -37,11 +37,16 @@ export function editStackExperiment(
     const after = result.definitions[Number(match[1])];
     if (before && after) {
       const revised = after as { id: string; revision: number };
-      revised.revision = before.revision + 1;
       if (after.mode === 'legacy-application') {
         if (path.endsWith('/source/id')) revised.id = after.source.id;
-        Object.assign(after.source, { id: revised.id, revision: revised.revision });
       }
+      revised.revision =
+        input.definitions.reduce(
+          (maximum, p) => (p.id === revised.id ? Math.max(maximum, p.revision) : maximum),
+          before.revision,
+        ) + 1;
+      if (after.mode === 'legacy-application')
+        Object.assign(after.source, { id: revised.id, revision: revised.revision });
       for (const node of Object.values(result.nodes))
         for (const instance of node.instances)
           if (

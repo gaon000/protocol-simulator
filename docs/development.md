@@ -79,6 +79,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
+새 스택 생성·초안 undo/redo·선언 폼은 [V1-022~024](product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)를 따른다. 코어는 두 전송/빈·첫 메시지 실행·identity/참조·raw/그룹/분기/한도·외부 교체와 저장 실패를 확인한다. 두 브라우저는 생성 검토/취소·공유 용량·모드/키보드·native 복원·포트/타이머/초기값과 페이지 진단을 확인하며 기존 605동작 fixture에 undo/redo의 500ms 기준을 추가한다. 이력 자체는 IndexedDB에 저장하지 않는다.
+
 스택 규칙 폼은 [V1-021](product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)을 따른다. 코어는 exact 이벤트 범위·지원 문법·순차 대입의 실행 결과·raw 원자적 이동과 큰/unknown 트리를 검사한다. 두 브라우저는 실제 작성/실행·snapshot 격리·native 저장/복원·중첩 byte/JSON 왕복·오류 초점과 키보드/viewport를 검사한다. 605개 실제 동작의 별도 작성 응답성 fixture와 기존 여덟 fixture를 순차 실행한다.
 
 두 실행 비교는 [V1-019](product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다. Node는 catalog 재실행·실행별 ID 무시·정상/ACK 손실/중복·시각 차이·revision/기대 변경·부분/없음/null/0/false·모순/구버전·각 cursor·wire 한도/참조·두 10k 관찰 보존을 검사한다. Chromium/Firefox는 변수/첫 차이/대응 전이→선택 쪽 설명 재생·회귀 쌍 진입·좌우 교환·부분·native 저장/초안 격리·20행/390px/키보드·구버전/다른 ID·선택 삭제를 검사한다. 별도 두 10k/두 1 MiB fixture에서 열기/선택/페이지 500ms·DOM 32768자를 검사하고 기존 응답성 3개의 상한을 유지한다.

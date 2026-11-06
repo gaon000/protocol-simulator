@@ -1,18 +1,11 @@
+import { StackValueInput } from './StackValueInput.tsx';
 import type { StackCondition, StackExpression, StackValueType } from '../domain/stack-model.ts';
 import { valueAt } from '../domain/json-pointer.ts';
 import { stackObject } from '../domain/stack-record.ts';
-import { deserializeBytes, parseBytesValue, serializeBytes } from '../domain/stack-bytes.ts';
-import {
-  ruleCondition,
-  ruleExpression,
-  ruleLiteral,
-  RULE_FORM_POLICY,
-} from '../application/stack-rule-authoring.ts';
+import { ruleCondition, ruleExpression } from '../application/stack-rule-authoring.ts';
 import {
   RuleBoundary,
   RuleChoice,
-  ruleControlId,
-  RuleJson,
   RuleListPager,
   RuleReference,
   RuleTreeFallback,
@@ -21,148 +14,14 @@ import {
 
 function Literal({ path }: { path: string }) {
   const editor = useRuleEditor();
-  const value = valueAt(editor.draft.configuration, path);
-  const raw = editor.draft.raw[path];
-  const byteValue = editor.context.native && parseBytesValue(value).success;
-  const type =
-    value === null
-      ? 'null'
-      : byteValue
-        ? 'bytes'
-        : typeof value === 'string'
-          ? 'string'
-          : typeof value === 'boolean'
-            ? 'boolean'
-            : typeof value === 'number' && Number.isSafeInteger(value)
-              ? 'integer'
-              : 'json';
   return (
-    <div className='rule-literal'>
-      <RuleChoice
-        path={`${path}/$type`}
-        label='리터럴 자료형'
-        value={type}
-        options={[
-          'string',
-          'integer',
-          'boolean',
-          'null',
-          'json',
-          ...(editor.context.native ? ['bytes'] : []),
-        ].map((value) => ({
-          value,
-          label:
-            {
-              string: '문자열',
-              integer: '정수',
-              boolean: '참/거짓',
-              null: 'null',
-              json: 'JSON 값',
-              bytes: '바이트 (hex)',
-            }[value] ?? value,
-        }))}
-        change={(kind) =>
-          editor.edit(path, kind === 'null' ? null : ruleLiteral(kind as StackValueType))
-        }
-      />
-      {raw &&
-      !(type === 'integer' && raw.startsWith('number:')) &&
-      !(type === 'bytes' && raw.startsWith('hex:')) ? (
-        <RuleJson path={path} label='미완성 리터럴 JSON' />
-      ) : type === 'string' ? (
-        typeof value === 'string' && value.length <= RULE_FORM_POLICY.jsonChars ? (
-          <label className='control' htmlFor={ruleControlId(path)}>
-            <span>문자열 값</span>
-            <input
-              id={ruleControlId(path)}
-              data-rule-path={path}
-              value={String(value)}
-              onChange={(e) => editor.edit(path, e.target.value)}
-            />
-          </label>
-        ) : (
-          <RuleTreeFallback path={path} />
-        )
-      ) : type === 'integer' ? (
-        <label className='control' htmlFor={ruleControlId(path)}>
-          <span>정수 값</span>
-          <input
-            id={ruleControlId(path)}
-            data-rule-path={path}
-            inputMode='numeric'
-            value={raw?.startsWith('number:') ? raw.slice(7) : String(value)}
-            aria-invalid={raw !== undefined || undefined}
-            maxLength={128}
-            onChange={(e) => {
-              const text = e.target.value;
-              if (/^-?(0|[1-9]\d*)$/.test(text) && Number.isSafeInteger(Number(text)))
-                editor.edit(path, Number(text));
-              else editor.json(path, `number:${text}`);
-            }}
-          />
-        </label>
-      ) : type === 'boolean' ? (
-        <RuleChoice
-          path={path}
-          label='참/거짓 값'
-          value={String(value)}
-          options={[
-            { value: 'true', label: '참 (true)' },
-            { value: 'false', label: '거짓 (false)' },
-          ]}
-          change={(next) => editor.edit(path, next === 'true')}
-        />
-      ) : type === 'bytes' ? (
-        <HexLiteral path={path} />
-      ) : type === 'null' ? (
-        <RuleJson path={path} label='JSON 리터럴 값' />
-      ) : value === undefined ? (
-        <button type='button' onClick={() => editor.edit(path, null)}>
-          JSON 값 추가
-        </button>
-      ) : (
-        <RuleJson path={path} label='JSON 리터럴 값' />
-      )}
-    </div>
-  );
-}
-function HexLiteral({ path }: { path: string }) {
-  const editor = useRuleEditor();
-  const value = valueAt(editor.draft.configuration, path);
-  const raw = editor.draft.raw[path];
-  const bytes = deserializeBytes(value, RULE_FORM_POLICY.hexChars / 2);
-  if (!bytes.success)
-    return (
-      <>
-        <p>큰 byte 값 또는 잘못된 byte 태그입니다. 원본을 유지합니다.</p>
-        <RuleTreeFallback path={path} />
-      </>
-    );
-  const text = raw?.startsWith('hex:')
-    ? raw.slice(4)
-    : Array.from(bytes.value, (b) => b.toString(16).padStart(2, '0')).join('');
-  return (
-    <label className='control' htmlFor={ruleControlId(path)}>
-      <span>바이트 값 (hex · 최대 4096 bytes)</span>
-      <textarea
-        id={ruleControlId(path)}
-        data-rule-path={path}
-        rows={3}
-        value={text}
-        maxLength={RULE_FORM_POLICY.hexChars}
-        aria-invalid={raw !== undefined || undefined}
-        onChange={(e) => {
-          const text = e.target.value;
-          const hex = text.replace(/\s/g, '');
-          if (/^(?:[0-9a-fA-F]{2})*$/.test(hex)) {
-            const result = new Uint8Array(hex.length / 2);
-            for (let i = 0; i < result.length; i++)
-              result[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-            editor.edit(path, serializeBytes(result));
-          } else editor.json(path, `hex:${text}`);
-        }}
-      />
-    </label>
+    <StackValueInput
+      draft={editor.draft}
+      edit={editor.edit}
+      json={editor.json}
+      path={path}
+      native={editor.context.native}
+    />
   );
 }
 

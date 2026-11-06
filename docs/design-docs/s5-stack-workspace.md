@@ -19,6 +19,8 @@
 
 규칙의 이벤트·조건·동작은 [V1-021](../product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)의 선택 폼으로 작성한다. 기존 JSON과 같은 경로를 편집하고, 동작/하위 분기의 순서 변경은 pending raw까지 함께 이동한다. 현재 이벤트의 값 범위와 native/기존 응용 문법을 구분하며 미완성 상위 JSON을 폼으로 덮어쓰지 않는다. 상세 표시 한도와 검증 근거는 [작성 계획](../exec-plans/completed/20261106-stack-rule-forms.md)을 따른다.
 
+후속 [새 작성 흐름](../product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)은 별도 검토 후 native 응용 정의와 명시적 전송 시작점을 추가한다. `WorkspaceRoot`의 탭별 이력은 config/raw만 보관하고 canonical controller에 소유한 불변 draft를 전달한다. 복원은 같은 ID의 여러 revision을 구분하는 새 identity로 참조를 함께 갱신한다. 일반 편집도 같은 ID의 최대 revision을 넘어 증가한다. 포트·변수/타이머·scalar/byte 초기값 폼은 기존 JSON/raw와 같은 경로를 사용한다. 저장 schema와 worker 실행 계약은 유지하며 상세 정책·검증은 [작성 계획](../exec-plans/completed/20261107-stack-authoring-workflow.md)이 소유한다.
+
 ## 실행과 관찰
 
 `StackWorkerClient`와 module worker가 실제 네 runtime을 소유한다. 전체/한 단계/정지/계속/취소는 runId로 격리한다. 새 실행은 정의·환경·입력/기대 조건을 고정하고 history 재실행은 선택한 저장 snapshot을 사용한다. worker가 실패하면 마지막 수신 관찰과 저장 자료를 유지한다. 실행 worker와 저장 worker는 다른 수명을 가진다.

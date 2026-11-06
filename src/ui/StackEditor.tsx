@@ -8,6 +8,7 @@ import { stackObject, stackProtocolAt, stackTarget } from '../domain/stack-recor
 import type { StackDraft } from '../domain/workspace-v2-model.ts';
 import type { RuleListEdit } from '../application/stack-rule-authoring.ts';
 import { StackRuleForm } from './StackRuleForm.tsx';
+import { StackPortForm, StackDeclarations } from './StackDefinitionForms.tsx';
 
 type Editor = {
   draft: StackDraft;
@@ -414,7 +415,14 @@ export function StackEditor({
                   />
                 )}
                 <Section path={`${base}/requires`} title={`요구 서비스 · ${protocol.requires.id}`}>
-                  <Json path={`${base}/requires`} label='requires 포트 계약 JSON' />
+                  <StackPortForm
+                    draft={draft}
+                    edit={edit}
+                    json={json}
+                    path={`${base}/requires`}
+                    port={protocol.requires}
+                    protocol={protocol}
+                  />
                 </Section>
                 {protocol.mode === 'stack-protocol' && (
                   <Section path={`${base}/provides`} title='제공 서비스'>
@@ -439,7 +447,14 @@ export function StackEditor({
                       {protocol.provides ? '제공 포트 삭제' : '스트림 제공 포트 추가'}
                     </button>
                     {protocol.provides && (
-                      <Json path={`${base}/provides`} label='provides 포트 계약 JSON' />
+                      <StackPortForm
+                        draft={draft}
+                        edit={edit}
+                        json={json}
+                        path={`${base}/provides`}
+                        port={protocol.provides}
+                        protocol={protocol}
+                      />
                     )}
                   </Section>
                 )}
@@ -550,49 +565,16 @@ export function StackEditor({
                       </button>
                     )}
                 </Section>
-                <Section path={`${prefix}/variables`} title='변수'>
-                  {body.variables.slice(0, 20).map((v, index) => (
-                    <div className='stack-card' key={index}>
-                      <Field
-                        path={`${prefix}/variables/${index}/id`}
-                        label={`변수 ${index + 1} ID`}
-                      />
-                      <Field
-                        path={`${prefix}/variables/${index}/type`}
-                        label='변수 타입'
-                        options={
-                          protocol.mode === 'stack-protocol'
-                            ? ['integer', 'string', 'boolean', 'json', 'bytes']
-                            : ['integer', 'string', 'boolean', 'json']
-                        }
-                      />
-                      <Json
-                        path={`${prefix}/variables/${index}/initial`}
-                        label={`${v.id} 초기값 JSON`}
-                      />
-                      <button
-                        type='button'
-                        onClick={() => edit(`${prefix}/variables/${index}`, undefined)}
-                      >
-                        변수 삭제 · {v.id}
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type='button'
-                    onClick={() =>
-                      edit(`${prefix}/variables`, [
-                        ...body.variables,
-                        { id: unique(body.variables, 'variable'), type: 'integer', initial: 0 },
-                      ])
-                    }
-                  >
-                    변수 추가
-                  </button>
-                  {body.variables.length > 20 && (
-                    <p>변수 {body.variables.length}개 중 처음 20개를 표시합니다.</p>
-                  )}
-                </Section>
+                <StackDeclarations
+                  key={`${target}:${prefix}:${formFocusVersion}`}
+                  draft={draft}
+                  edit={edit}
+                  json={json}
+                  path={prefix}
+                  protocol={protocol}
+                  list={list}
+                  {...(formFocusPath ? { focusPath: formFocusPath } : {})}
+                />
                 <Section path={`${prefix}/states`} title='상태'>
                   <Field
                     path={`${prefix}/initialStateId`}
@@ -649,9 +631,6 @@ export function StackEditor({
                   >
                     상태 추가
                   </button>
-                </Section>
-                <Section path={`${prefix}/timers`} title='타이머'>
-                  <Json path={`${prefix}/timers`} label='타이머 ID 목록 JSON' />
                 </Section>
                 <Section path={`${prefix}/rules`} title='규칙'>
                   {body.rules
@@ -945,6 +924,21 @@ export function StackEditor({
                 key={index}
                 type='button'
                 onClick={() => {
+                  setFormFocusPath(d.path);
+                  setFormFocusVersion((version) => version + 1);
+                  const definitionMatch = /^\/definitions\/(\d+)(?:\/|$)/.exec(d.path);
+                  if (definitionMatch) {
+                    const definition = configuration.definitions[Number(definitionMatch[1])];
+                    const owner = endpoints.find((endpoint) =>
+                      configuration.nodes[endpoint.participant].instances.some(
+                        (instance) =>
+                          instance.id === endpoint.instanceId &&
+                          instance.definition.id === definition?.id &&
+                          instance.definition.revision === definition?.revision,
+                      ),
+                    );
+                    if (owner) setTarget(stackTarget(owner));
+                  }
                   const match = /^\/definitions\/(\d+)\/(?:source\/)?rules\/(\d+)(?:\/|$)/.exec(
                     d.path,
                   );
@@ -964,8 +958,6 @@ export function StackEditor({
                     setRulePage(Math.floor(rule / 20));
                     setFormIndex(rule);
                     setJsonRule(rule);
-                    setFormFocusPath(d.path);
-                    setFormFocusVersion((version) => version + 1);
                   }
                   setTab(
                     d.path.startsWith('/scenario')

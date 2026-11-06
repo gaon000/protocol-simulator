@@ -37,6 +37,14 @@ test('605 actual actions keep selected-rule authoring bounded and responsive', a
   await form.getByRole('button', { name: '동작 아래로 · 1', exact: true }).click();
   await expect(form.getByRole('button', { name: '동작 편집 · 2', exact: true })).toBeFocused();
   const moveMs = performance.now() - moveBegan;
+  const undoBegan = performance.now();
+  await page.getByRole('button', { name: '편집 되돌리기', exact: true }).click();
+  await expect(form.locator('[data-rule-action="0"]')).toContainText('service-indicate');
+  const undoMs = performance.now() - undoBegan;
+  const redoBegan = performance.now();
+  await page.getByRole('button', { name: '편집 다시 하기', exact: true }).click();
+  await expect(form.locator('[data-rule-action="1"]')).toContainText('service-indicate');
+  const redoMs = performance.now() - redoBegan;
   const chars = await form.evaluate((e) => e.textContent?.length ?? 0);
   await page.getByRole('button', { name: '지금 저장', exact: true }).click();
   await expect(
@@ -64,7 +72,7 @@ test('605 actual actions keep selected-rule authoring bounded and responsive', a
   );
   expect(actions).toHaveLength(605);
   expect(actions[1]).toMatchObject({ kind: 'service-indicate' });
-  const metrics = { actions: actions.length, openMs, moveMs, chars };
+  const metrics = { actions: actions.length, openMs, moveMs, undoMs, redoMs, chars };
   console.log(metrics);
   await info.attach('rule-form-performance.json', {
     body: JSON.stringify(metrics, null, 2),
@@ -72,5 +80,7 @@ test('605 actual actions keep selected-rule authoring bounded and responsive', a
   });
   expect(openMs).toBeLessThan(500);
   expect(moveMs).toBeLessThan(500);
+  expect(undoMs).toBeLessThan(500);
+  expect(redoMs).toBeLessThan(500);
   expect(chars).toBeLessThan(32768);
 });
