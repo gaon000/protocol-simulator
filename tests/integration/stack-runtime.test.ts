@@ -943,3 +943,45 @@ test('editing the source after capture cannot change states, payload bytes, topo
   assert.equal(view.expectations.length, 2);
   assert.ok(view.expectations.every((item) => item.status === 'pass'));
 });
+
+test('retaining payload data in JSON/string variables cannot bypass the shared logical buffer budget', () => {
+  for (const type of ['json', 'string'] as const) {
+    const fixture = stackExperimentFixture();
+    const input = changeStackTransport(
+      { ...fixture, limits: { ...fixture.limits, maxLiveBytes: 512 } },
+      (protocol) => ({
+        ...protocol,
+        variables: [
+          ...protocol.variables,
+          ...Array.from({ length: 8 }, (_, index) => ({
+            id: `held_${index}`,
+            type,
+            initial: type === 'json' ? null : '',
+          })),
+        ],
+        rules: protocol.rules.map((rule) =>
+          rule.id !== 'accept_write'
+            ? rule
+            : {
+                ...rule,
+                actions: Array.from({ length: 8 }, (_, index) => ({
+                  kind: 'assign',
+                  variableId: `held_${index}`,
+                  value: {
+                    kind: 'literal',
+                    value: type === 'json' ? { packet: 'x'.repeat(100) } : 'x'.repeat(100),
+                  },
+                })),
+              },
+        ),
+      }),
+    );
+    const view = engine(input).run();
+    assert.equal(view.status, 'limit-reached');
+    assert.ok(view.diagnostics.some((item) => item.code === 'live-buffer-limit'));
+    assert.equal(view.instances['A/transport']?.variables.held_0, type === 'json' ? null : '');
+    assert.equal(at(view, 'A/transport', 'transition').length, 0);
+    assert.equal(view.usage.liveBytes, 0);
+    assert.equal(parseStackTrace(view.events, view.artifacts).success, true);
+  }
+});

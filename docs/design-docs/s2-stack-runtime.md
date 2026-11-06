@@ -52,7 +52,7 @@ native 정의가 해당 data service-indication 이벤트를 명시적으로 선
 
 native bytes 변수·field/service-payload·slice/concat은 실제 관찰 source와 offset/length를 전달한다. bytes 변수의 성공한 새 대입은 해당 transition에 연결하고, 후속 slice/concat/상위 통지는 그 commit과 실제 기여 범위를 참조한다. codec의 frame byte 수로 수신 fragment를 소비하므로 UTF-8/프레임 분할과 합쳐 읽기에 여러 sourceEventIds가 남는다. authored literal에는 존재하지 않는 수신 원인을 만들지 않는다. provenance 개수도 전역 trace 예산 안에 둔다.
 
-물리 블록 합계와 owner별 논리 길이는 별도다. 논리 packet의 포트 대기는 base64를 포함한 JSON 크기를 센다. setOwner의 선택 logicalBytes는 모든 range 길이 이상이어야 한다. trace 예약은 이미 검사한 prefix를 다시 계산하지 않고 새 이벤트/블록·쉼표의 실제 크기를 더하며, 외부 record reader는 여전히 전체 참조/순서/크기를 검사한다.
+물리 블록 합계와 owner별 논리 길이는 별도다. 논리 packet의 포트 대기는 base64를 포함한 JSON 크기를 센다. 변수에 보관한 문자열은 UTF-8 길이, JSON 객체/배열은 직렬화 길이로 논리 버퍼 예산에 포함해 payload를 JSON 변수에 넣어 한도를 우회하지 못하게 한다. 이를 bytes 타입이나 wire encoding으로 재해석하지는 않는다. setOwner의 선택 logicalBytes는 모든 range 길이 이상이어야 한다. trace 예약은 이미 검사한 prefix를 다시 계산하지 않고 새 이벤트/블록·쉼표의 실제 크기를 더하며, 외부 record reader는 여전히 전체 참조/순서/크기를 검사한다.
 
 clearLive/취소/reset/완료는 pending/codec/provider의 live 소유권을 해제한다. 이미 보존한 trace/artifacts는 유지하며 새로운 실행이나 session reset의 영향을 받지 않는다. 이 자료를 IndexedDB나 v1 bundle로 저장하는 연결은 아직 없다.
 

@@ -20,7 +20,7 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - [x] 2026-11-06: 설계 commit `a5925a8`을 master로 fast-forward하고 origin/master에 push 완료. `codex/s1-stack-models-validation`에서 S1 구현.
 - [x] 2026-11-06 S1 — 스택/포트/바이트 모델·검사·불변 자료 계약. 별도 v2 domain 모듈·59개 신규 Node 검사와 S2 진입 API 문서.
 - [x] 2026-11-06: S1 commit `1df48c7` master 병합·푸시와 [정확한 HEAD CI](https://github.com/gaon000/protocol-simulator/actions/runs/42146718353) 통과. `codex/s2-stack-runtime`에서 S2 구현 착수.
-- [x] 2026-11-06 S2 — 공유 후보 검사/환경 결정·네 runtime·단일 scheduler/router·forkable codec·예약/commit·세대별 수명. 신규 34개 Node 검사와 S2 계약 문서.
+- [x] 2026-11-06 S2 — 공유 후보 검사/환경 결정·네 runtime·단일 scheduler/router·forkable codec·예약/commit·세대별 수명. 신규 35개 Node 검사와 S2 계약 문서.
 - [ ] S3 — ReliableStreamLite와 실제 계층 연결·장애 검증.
 - [ ] S4 — 저장 v2·legacy 호환·재생과 관찰/검증 도구 확장.
 - [ ] S5 — 스택 구성 화면·응용 예제·전체/브라우저/응답성 검증.
@@ -172,9 +172,10 @@ S1 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 S2 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 
 - `pnpm check` 통과: lint/format/type·Node 437개·Markdown 43개·build·Chromium/Firefox 244개·기존 1-worker 응답성 5개. UI/DB에는 스택을 연결하지 않았으며 브라우저 검사는 공유 코덱/기존 v1의 회귀 증거다. 한도/응답성 임곗값은 변경하지 않았다.
-- 신규 34개 검사는 실제 네 인스턴스의 왕복·비재귀 수락/수신·run/step/batch/observer/snapshot 동등성, endpoint/generation별 timer·같은 시각의 추가 로컬 전달과 deadline, UTF-8/JSON/HTTP 경계·합쳐 읽기의 다중 commit/source range, 규칙/한도 rollback·부분 접두부·모델링한 failed/closed·engine-error, 낮춘 global 예산·실제 10000-event 0ms 루프, cancel/reset/callback·immutable 자료·legacy byte-like JSON·native byte/packet 서비스를 포함한다.
+- 신규 35개 검사는 실제 네 인스턴스의 왕복·비재귀 수락/수신·run/step/batch/observer/snapshot 동등성, endpoint/generation별 timer·같은 시각의 추가 로컬 전달과 deadline, UTF-8/JSON/HTTP 경계·합쳐 읽기의 다중 commit/source range, 규칙/한도 rollback·부분 접두부·모델링한 failed/closed·engine-error, 낮춘 global 예산·실제 10000-event 0ms 루프, cancel/reset/callback·immutable 자료·legacy byte-like JSON·native byte/packet 서비스를 포함한다.
 - 변경 전 보관한 아홉 v1 catalog의 전체 view(상태·snapshot·trace·기대 판정)를 변경 후 결과와 deep-equal로 대조해 일치했다. 원본 비교 자료는 `/private/tmp/protocol-s2-v1-baseline.json`, 전체 검사 로그는 `/private/tmp/protocol-s2-check.log`에 있다. 임시 파일을 CI 필수 fixture로 사용하지 않는다.
 - payload reservation rollback 때 임시 handle도 WeakSet에서 폐기하고, 기존 token의 재사용이 새 예약을 닫지 않도록 했다. 고유 ID 재사용/owner 회계 복구·정확한 쉼표/base64 직렬화 증분을 Node에서 검사했다.
+- 최종 자원 점검에서 bytes 변수뿐 아니라 보관한 JSON 객체/배열·문자열도 논리 버퍼 예산에 포함했다. 원본 commit `fc9768e`의 `pnpm check` 이후 이 보완과 회계 우회/rollback 사례를 추가하고 전체 Node 438개·type/lint/format·문서 43개 검사를 다시 통과했다. 로그는 `/private/tmp/protocol-s2-final-node.log`다. 공유 v1 코덱·UI·브라우저 경로는 이 보완에서 변경하지 않았다.
 - 테스트용 forward/split/merge provider와 기존 HTTP 정의를 코어 fixture로 조합했다. 사용자 catalog의 ReliableStreamLite·재전송/ACK 신뢰성, 저장 v2/upgrade·관찰 도구·스택 UI/브라우저 성능은 아직 구현·검증하지 않았다.
 
 ## Idempotence and Recovery

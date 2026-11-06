@@ -246,10 +246,23 @@ export class StackScheduler {
   #syncActor(actor: ProtocolRuntime, fragments: readonly ByteFragment[]): void {
     const key = stackEndpointKey(actor.endpoint);
     const values = this.#data.variables(actor.protocol, actor.variables);
+    const byteVariables = new Set(
+      stackProtocolBody(actor.protocol)
+        .variables.filter((variable) => variable.type === 'bytes')
+        .map((variable) => variable.id),
+    );
+    let retainedBytes = values.ranges.reduce((sum, range) => sum + range.length, 0);
+    for (const [id, value] of Object.entries(actor.variables)) {
+      if (byteVariables.has(id)) continue;
+      if (typeof value === 'string') retainedBytes += new TextEncoder().encode(value).length;
+      else if (value !== null && typeof value === 'object')
+        retainedBytes += new TextEncoder().encode(JSON.stringify(value)).length;
+    }
     stackValue(
       this.#data.store.setOwner(
         { id: `${key}/variables`, kind: 'provider' },
         actor.outcome === 'error' ? [] : values.ranges,
+        actor.outcome === 'error' ? 0 : retainedBytes,
       ),
     );
     stackValue(
