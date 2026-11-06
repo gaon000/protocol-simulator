@@ -34,7 +34,7 @@
 | [src/application/batch-experiments.ts](src/application/batch-experiments.ts), [src/ui/BatchExperiments.tsx](src/ui/BatchExperiments.tsx), [useBatchExperiments.ts](src/ui/useBatchExperiments.ts) | 같은 seed 목록의 조건 조합·독립 엔진/유한 scheduler·실제 결과 집계와 기존 history 연결. SavedRun의 optional batch metadata로 보존 |
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |
-| [src/domain/stack-model.ts](src/domain/stack-model.ts), [stack-validation.ts](src/domain/stack-validation.ts), [stack-protocol-validation.ts](src/domain/stack-protocol-validation.ts) | S1 v2 정의·서비스 포트·네 인스턴스/참조·wire 호환성·시나리오·불변 snapshot과 draft reader, 명시적 v1 앱 adapter. 별도 실행/저장 API에 연결하며 UI는 S5 |
+| [src/domain/stack-model.ts](src/domain/stack-model.ts), [stack-validation.ts](src/domain/stack-validation.ts), [stack-protocol-validation.ts](src/domain/stack-protocol-validation.ts) | S1 v2 정의·서비스 포트·네 인스턴스/참조·wire 호환성·시나리오·불변 snapshot과 draft reader, 명시적 v1 앱 adapter. 별도 실행/저장 API와 S5 작업 공간에 연결 |
 | [src/domain/stack-bytes.ts](src/domain/stack-bytes.ts), [stack-expressions.ts](src/domain/stack-expressions.ts), [stack-payloads.ts](src/domain/stack-payloads.ts) | canonical 바이트·유한 표현식, run별 private payload/handle·global/owner 예산·불변 trace artifacts |
 | [src/application/create-stack-simulation.ts](src/application/create-stack-simulation.ts), [src/domain/stack-runtime-model.ts](src/domain/stack-runtime-model.ts) | 독립 스택 생성/snapshot 재실행·session fence와 endpoint별 view/기대 판정 |
 | [src/engine/protocol-runtime.ts](src/engine/protocol-runtime.ts), [stack-scheduler.ts](src/engine/stack-scheduler.ts), [service-router.ts](src/engine/service-router.ts) | 네 독립 runtime·한 clock/queue·로컬 요청/통지·예약/commit·오류/전체 관찰 수명 |
@@ -42,10 +42,13 @@
 | [src/engine/rule-evaluation.ts](src/engine/rule-evaluation.ts), [src/domain/datagram-policy.ts](src/domain/datagram-policy.ts) | v1/스택 공통 후보 검사·targeted drop/4-draw 순수 결정. v1의 기존 큐/trace 의미는 보존 |
 | [src/examples/reliable-stream-lite.ts](src/examples/reliable-stream-lite.ts), [reliable-stack-examples.ts](src/examples/reliable-stack-examples.ts) | S3의 양방향 DATA/ACK·분할/유한 재전송/중복 제거 규칙과 실제 JSON Lines·제한된 HTTP 스택. 별도 버전 있는 원본/사본 metadata/API |
 | [src/domain/workspace-v2-model.ts](src/domain/workspace-v2-model.ts), [workspace-v2-validation.ts](src/domain/workspace-v2-validation.ts), [stack-record.ts](src/domain/stack-record.ts) | S4의 legacy/stack 구분·공유 workspace 예산·unfinished draft와 strict 실행 기록/직접 원인·범위/연속성 검사 |
-| [src/persistence/indexed-db-v2.ts](src/persistence/indexed-db-v2.ts), [src/application/workspace-v2-controller.ts](src/application/workspace-v2-controller.ts), [workspace-v2-operations.ts](src/application/workspace-v2-operations.ts) | opt-in DB2 atomic upgrade·원본 보관·CAS/실패 복구와 모든 mode bundle/import/remap. 기존 App 기본 adapter 전환은 S5 |
+| [src/persistence/indexed-db-v2.ts](src/persistence/indexed-db-v2.ts), [src/application/workspace-v2-controller.ts](src/application/workspace-v2-controller.ts), [workspace-v2-operations.ts](src/application/workspace-v2-operations.ts) | 기본 DB2 atomic upgrade·원본 보관·CAS/실패 복구와 모든 mode bundle/import/remap. S5 기본 adapter는 worker에서 호출 |
+| [src/ui/WorkspaceRoot.tsx](src/ui/WorkspaceRoot.tsx), [StackWorkspace.tsx](src/ui/StackWorkspace.tsx), [StackEditor.tsx](src/ui/StackEditor.tsx), [StackRunPanel.tsx](src/ui/StackRunPanel.tsx) | 기본 두 모드 진입·checkpoint 전환, exact revision 편집과 endpoint/prefix 공유 선택·그림/설명/구조/진단 |
+| [src/ui/StackDebugger.tsx](src/ui/StackDebugger.tsx), [StackExperiments.tsx](src/ui/StackExperiments.tsx), [src/application/legacy-workspace-facade.ts](src/application/legacy-workspace-facade.ts) | 탭 중단점·사례/반복/회귀·커버리지·독립 실행 비교와 v1 UI의 canonical 투영 |
+| [src/application/stack-worker-client.ts](src/application/stack-worker-client.ts), [stack-ui-worker.ts](src/application/stack-ui-worker.ts), [stack-panel-model.ts](src/application/stack-panel-model.ts), [src/persistence/worker-storage.ts](src/persistence/worker-storage.ts), [workspace-storage-worker.ts](src/persistence/workspace-storage-worker.ts) | typed RPC·세대/늦은 응답 격리, 실제 실행과 bounded 관찰 DTO, 비동기 전체 검사·native DB/CAS와 typed 실패 |
 | [src/application/stack-replay.ts](src/application/stack-replay.ts), [stack-diagrams.ts](src/application/stack-diagrams.ts), [stack-explanation.ts](src/application/stack-explanation.ts), [stack-diagnostics.ts](src/application/stack-diagnostics.ts) | 네 endpoint의 frozen prefix 재생·유한 그림/구조/실제 source 연결·규칙 계산 대조·기대/관찰 진단 API |
 | [src/application/stack-breakpoints.ts](src/application/stack-breakpoints.ts), [stack-series.ts](src/application/stack-series.ts), [stack-coverage.ts](src/application/stack-coverage.ts), [stack-comparison.ts](src/application/stack-comparison.ts) | endpoint 중단점·고정 common source/case 실행·관찰 커버리지·두 기록의 유한 대응. 실제 내용은 [semantic 변환](src/application/stack-semantic-event.ts)으로 비교 |
-| [playwright.stack.config.ts](playwright.stack.config.ts), [tests/stack-e2e/](tests/stack-e2e/persistence-v2.test.ts) | 두 브라우저의 실제 native IndexedDB v2 API 검증. 사용자 스택 UI/정량 성능 검증은 S5 |
+| [playwright.stack.config.ts](playwright.stack.config.ts), [tests/stack-e2e/](tests/stack-e2e/persistence-v2.test.ts) | 두 브라우저의 실제 native IndexedDB v2 API 검증. 사용자 UI는 기본 E2E, 스택 정량 검증은 performance suite에서 별도 검사 |
 | [src/codecs/message-codecs.ts](src/codecs/message-codecs.ts), [http-codec.ts](src/codecs/http-codec.ts) | JSON Lines·JSON datagram·논리 패킷·제한된 HTTP/1.1과 바이트 상한 |
 | [src/domain/http-schema.ts](src/domain/http-schema.ts) | HTTP 필드 binding·헤더·서비스 요구 검사 |
 | [src/engine/simulation.ts](src/engine/simulation.ts), [event-queue.ts](src/engine/event-queue.ts) | 가상 실행·규칙·타이머·기록·결과와 유한 이벤트 큐 |
@@ -81,9 +84,9 @@ UI → application → domain·engine·codecs·environments 의존 방향을 사
 
 ## 계층 연결 후속 설계
 
-현재 사용자 화면은 A/B 각각 프로토콜 하나와 하위 환경으로 구성한다. [계층 연결 설계](docs/design-docs/layered-stack-v2.md)의 S1~S3 실행/provider·[S4 저장/관찰 API](docs/design-docs/s4-stack-persistence-observation.md)를 구현했다. 새 DB 전환·스택 사용자 UI 연결은 S5이며 기존 App/기본 v1 adapter를 유지한다.
+단일 계층 모드와 [S5 스택 작업 공간](docs/design-docs/s5-stack-workspace.md)이 하나의 canonical v2 저장 큐를 공유한다. 스택은 A/B의 응용·전송 네 인스턴스, 포트 binding과 하위 링크를 작성하고 worker에서 실제로 실행한다. 기존 v1 실행 의미는 legacy facade를 통해 보존한다. 최종 검증 상태는 구현 계획을 따른다.
 
-[구현 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)은 S1 모델/검사, S2 실행 코어, S3 사용자 정의 provider, S4 저장/관찰, S5 화면/검증 순서다. 기존 v1 자료·실행 의미와 source/snapshot/prefix 경계를 보존하며 실제 구현이 진행될 때 모듈 지도와 기준 문서를 갱신한다.
+[구현 계획](docs/exec-plans/completed/20261106-layered-protocol-stacks.md)은 S1 모델/검사, S2 실행 코어, S3 사용자 정의 provider, S4 저장/관찰, S5 화면/검증 순서다. 기존 v1 자료·실행 의미와 source/snapshot/prefix 경계를 보존하며 실제 구현이 진행될 때 모듈 지도와 기준 문서를 갱신한다.
 
 ## 변경 관리
 

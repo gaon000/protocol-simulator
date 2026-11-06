@@ -18,6 +18,12 @@ import { parseSavedStackRun } from '../domain/workspace-v2-validation.ts';
 import { StackSemanticLimit, semanticStackEvent } from './stack-semantic-event.ts';
 
 const prepared = new WeakMap<object, SavedStackRun>();
+const projections = new WeakMap<SavedStackRun, Map<number, StackView>>();
+/** Prime a private UI-worker cache only after workspace staging or a native engine capture validated the source. */
+export function primeOwnedStackRecord(record: SavedStackRun): void {
+  if (!isOwnedImmutable(record)) throw new Error('UI record ownership is required');
+  prepared.set(record, record);
+}
 /** Validate once for owned immutable records; mutable external objects are rechecked on every boundary. */
 export function readStackRecord(value: unknown): ValidationResult<SavedStackRun> {
   if (value && typeof value === 'object' && isOwnedImmutable(value)) {
@@ -54,6 +60,8 @@ export function projectStackRecord(
     };
   const cursor = stackCursor(record, position);
   if (cursor === view.events.length + 1) return { success: true, value: view };
+  const cached = projections.get(record)?.get(cursor);
+  if (cached) return { success: true, value: cached };
   type Actor = { -readonly [Key in keyof StackInstanceView]: StackInstanceView[Key] };
   const instances: Record<string, Actor> = {};
   for (const participant of ['A', 'B'] as const)
@@ -88,18 +96,9 @@ export function projectStackRecord(
     if (!actor) continue;
     const data = stackObject(event.data);
     if (event.kind === 'transition') {
-      const protocol = stackProtocolAt(view.snapshot, event.endpoint);
       const after = stackObject(data.after);
-      const variables = { ...stackObject(after.variables) };
-      for (const v of stackProtocolBody(protocol).variables)
-        if (v.type === 'bytes')
-          variables[v.id] = stackRecordedBytes(
-            variables[v.id] as JsonValue,
-            view.artifacts,
-            event.payloads,
-          );
       actor.stateId = String(after.stateId);
-      actor.variables = variables;
+      actor.variables = stackObject(after.variables);
       actor.outcome = data.outcome as StackInstanceView['outcome'];
       actor.timers = structuredClone(data.timers) as unknown as StackInstanceView['timers'];
       actor.ports = structuredClone(data.ports) as StackInstanceView['ports'];
@@ -133,38 +132,47 @@ export function projectStackRecord(
       }));
     }
   }
+  for (const actor of Object.values(instances)) {
+    const values = { ...actor.variables };
+    for (const variable of stackProtocolBody(stackProtocolAt(view.snapshot, actor.endpoint))
+      .variables)
+      if (variable.type === 'bytes' && stackObject(values[variable.id]).kind === 'payload-range')
+        values[variable.id] = stackRecordedBytes(values[variable.id] as JsonValue, view.artifacts);
+    actor.variables = values;
+  }
   const artifacts = {
     ...view.artifacts,
     payloads: view.artifacts.payloads.filter((p) => usedPayloads.has(p.payloadId)),
   };
-  return {
-    success: true,
-    value: freezeOwned({
-      ...view,
-      status: 'paused',
-      timeMs: events.at(-1)?.timeMs ?? 0,
-      processedOperations: 0,
-      pendingOperations: 0,
-      instances,
-      events,
-      artifacts,
-      usage: {
-        uniqueBytes: artifacts.payloads.reduce((n, p) => n + p.bytes.byteLength, 0),
-        liveBytes: 0,
-        traceEvents: events.length,
-        artifactBytes: new TextEncoder().encode(JSON.stringify({ trace: events, artifacts }))
-          .length,
-      },
-      diagnostics: events
-        .filter((e) => e.kind === 'diagnostic')
-        .map((e) => stackObject(e.data) as unknown as StackView['diagnostics'][number]),
-      expectations: view.expectations.map((e) => ({
-        ...e,
-        status: 'undetermined',
-        detail: '기록 재생 중: 저장 시점에서 당시 판정을 표시합니다.',
-      })),
-    }),
-  };
+  const projected: StackView = freezeOwned({
+    ...view,
+    status: 'paused',
+    timeMs: events.at(-1)?.timeMs ?? 0,
+    processedOperations: 0,
+    pendingOperations: 0,
+    instances,
+    events,
+    artifacts,
+    usage: {
+      uniqueBytes: artifacts.payloads.reduce((n, p) => n + p.bytes.byteLength, 0),
+      liveBytes: 0,
+      traceEvents: events.length,
+      artifactBytes: new TextEncoder().encode(JSON.stringify({ trace: events, artifacts })).length,
+    },
+    diagnostics: events
+      .filter((e) => e.kind === 'diagnostic')
+      .map((e) => stackObject(e.data) as unknown as StackView['diagnostics'][number]),
+    expectations: view.expectations.map((e) => ({
+      ...e,
+      status: 'undetermined',
+      detail: '기록 재생 중: 저장 시점에서 당시 판정을 표시합니다.',
+    })),
+  });
+  const cache = projections.get(record) ?? new Map<number, StackView>();
+  if (cache.size >= 4) cache.delete(cache.keys().next().value ?? 0);
+  cache.set(cursor, projected);
+  projections.set(record, cache);
+  return { success: true, value: projected };
 }
 /** Compare actual trace/artifact contents independently of run and payload IDs, retaining partial-prefix semantics. */
 export function compareStackReplay(
@@ -193,10 +201,18 @@ export function compareStackReplay(
     if (error instanceof StackSemanticLimit) return 'limited';
     throw error;
   }
+  const instances = (items: StackView['instances']) =>
+    Object.fromEntries(
+      Object.entries(items).map(([key, value]) => {
+        const { buffers: _buffers, ...withoutBuffers } = value;
+        return [key, record.view.instances[key]?.buffers === undefined ? withoutBuffers : value];
+      }),
+    );
   return same &&
     (partial ||
       (record.view.status === replayed.status &&
-        canonicalStackJson(record.view.instances) === canonicalStackJson(replayed.instances) &&
+        canonicalStackJson(instances(record.view.instances)) ===
+          canonicalStackJson(instances(replayed.instances)) &&
         canonicalStackJson(record.view.expectations) ===
           canonicalStackJson(replayed.expectations) &&
         canonicalStackJson(record.view.diagnostics) === canonicalStackJson(replayed.diagnostics)))

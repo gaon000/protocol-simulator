@@ -1,9 +1,9 @@
 # 계층 연결 프로토콜 스택 단계별 구현 계획
 
-상태: In Progress
-종료일: 미종료
+상태: Completed
+종료일: 2026-11-06
 기준일: 2026-11-06
-구현 상태: S1~S3를 master에 반영했다. S4 v2 저장/복구·endpoint 관찰 API와 전체 로컬 검증을 완료했다. 화면/기본 DB 전환은 S5다.
+구현 상태: S1~S5 구현과 전체 로컬 검증 완료. 단일 계층/스택 화면과 기본 v2 저장 경로를 연결했다.
 
 [ExecPlan 운영 규칙](../index.md)을 따른다. 기능의 계약은 [계층 연결 설계](../../design-docs/layered-stack-v2.md), S1의 실제 JSON/API는 [모델·검사 계약](../../design-docs/s1-stack-models.md)이 소유한다. 전체 스택 실행·저장·화면 완료와 S1 완료를 구분한다.
 
@@ -25,11 +25,16 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - [x] 2026-11-06 S3 — ReliableStreamLite와 실제 계층 연결·장애 검증. 신규 Node 27개·예제 5개와 전체 로컬 회귀 검사 통과.
 - [x] 2026-11-06: S3 commit `3bbff87` master 반영과 [CI](https://github.com/gaon000/protocol-simulator/actions/runs/42159078902) 통과. `codex/s4-stack-persistence-observation`에서 S4 구현.
 - [x] 2026-11-06 S4 — 저장 v2·legacy 호환/복구·네 endpoint의 재생/관찰·중단점/회귀/비교 API. 신규 Node 34개와 Chromium/Firefox native DB 14개·전체 로컬 검사 통과.
-- [ ] S5 — 스택 구성 화면·응용 예제·전체/브라우저/응답성 검증.
+- [x] 2026-11-06: S4 commit `7672b27` master 반영과 [CI](https://github.com/gaon000/protocol-simulator/actions/runs/42168174730) 통과. `codex/s5-stack-workspace`에서 S5 구현.
+- [x] 2026-11-06 S5 — 스택 작성/실행/분석·중단점/자동 재생·사례/커버리지/비교 화면, 기본 v2 저장/검사 worker와 전체 검증 완료. 신규 Node 17개·UI 26개·스택 정량 3개.
 
-각 S단계는 구현 요청 이후 시작하고 관련 source·계약 문서·의미 있는 검증을 같은 작업 단위로 완료한다. S1 이후에도 이 구현 계획은 active/In Progress로 유지한다.
+각 S단계는 구현 요청 이후 시작하고 관련 source·계약 문서·의미 있는 검증을 같은 작업 단위로 완료한다. 각 단계의 이력을 보존하며 최종 정량 검증을 통과하고 이 계획을 Completed로 이동했다.
 
 ## Surprises & Discoveries
+
+- S5 정량 검사에서 기본 저장의 전체 자료 검사가 main thread를 약 684ms 점유했다. 실행 worker에 더해 기본 저장/검사 worker를 분리했고 실제 10k 자료에서 128ms로 줄었다. 기존 native IndexedDB adapter의 strict 검사와 CAS를 그대로 worker에서 호출하며 UI fault injection도 실제 worker의 native API 경계로 옮겼다.
+- 새 모드 메뉴가 기존 skip link보다 먼저 초점을 받는 회귀를 전체 UI 검사에서 발견했다. skip link를 루트의 첫 요소로 옮기고 두 main의 실제 대상으로 연결했다. 모드 전환 완료를 기다리기 전 파일을 선택한 테스트 경계도 실제 표시 모드의 준비 상태로 고쳤다.
+
 
 - 현재 `ExperimentDefinition.protocols`와 `EngineView.participants`는 A/B 하나씩이다. 계층 이름 추가만으로 여러 독립 런타임·시나리오 타깃을 표현할 수 없다.
 - 현재 필드/메시지 값은 scalar 중심이다. 상위 코덱의 실제 바이트를 전송 payload로 넘기려면 bytes 자료형·유한 연산·저장 표현이 필요하다.
@@ -69,7 +74,7 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 
 ## Outcomes & Retrospective
 
-S1~S3 위에 S4의 v2 저장/복구·네 endpoint의 prefix 재생/관찰·중단점/회귀/커버리지/비교 API와 전체 로컬 검증을 완료했다. 현재 App/기본 v1 DB 경로는 유지하며 화면과 새 기본 저장 경로의 통합은 S5에 남아 있다.
+S1~S5 구현과 전체 로컬 검증을 완료했다. 네 endpoint와 단일 가상 시계의 실제 계층 연결, ReliableStreamLite와 제한된 응용 예제, 작성/실행/관찰/회귀/비교 화면과 기본 v2 로컬 저장을 연결했다. 단일 계층의 실행 의미와 기존 자료를 보존한다. 실행·저장 검사를 worker로 분리해 대형 자료의 화면 응답성을 지켰으며 실제 서버/기기·전체 TCP/HTTP 표준 적합성·배포는 포함하지 않았다. 원격 CI는 정확한 최종 commit에서 별도로 확인한다.
 
 ## Context and Orientation
 
@@ -85,7 +90,7 @@ S1~S3 위에 S4의 v2 저장/복구·네 endpoint의 prefix 재생/관찰·중�
 | [커버리지](../../../src/application/suite-coverage.ts), [비교](../../../src/application/run-comparison.ts), [중단점](../../../src/application/breakpoints.ts) | 현재 participant 타깃과 한도/버전 경계 |
 | [작업 공간](../../../src/ui/App.tsx) | 편집·실행 세대·history cursor·공유 선택·모든 보기 연결 |
 
-S1~S4의 실제 신규 경로는 [S1](../../design-docs/s1-stack-models.md)·[S2](../../design-docs/s2-stack-runtime.md)·[S3](../../design-docs/s3-reliable-stream-lite.md)·[S4 저장/관찰 API](../../design-docs/s4-stack-persistence-observation.md)와 [구조 지도](../../../ARCHITECTURE.md)에 등록했다. S5 경로는 아래의 구현 후보다.
+S1~S4의 실제 신규 경로는 [S1](../../design-docs/s1-stack-models.md)·[S2](../../design-docs/s2-stack-runtime.md)·[S3](../../design-docs/s3-reliable-stream-lite.md)·[S4 저장/관찰 API](../../design-docs/s4-stack-persistence-observation.md)와 [구조 지도](../../../ARCHITECTURE.md)에 등록했다. S5의 실제 경로와 저장/화면 계약은 [S5 작업 공간](../../design-docs/s5-stack-workspace.md)에 등록했다.
 
 ## Plan of Work
 
@@ -206,6 +211,21 @@ S4 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 - native 두 브라우저는 v1 원본과 revision 보존·DB2 upgrade/invalid/quota/abort rollback·blocked pending abort/재시도·실제 versionchange 자동 close·구형 writer/더 새로운 DB fencing·두 탭 CAS·변조 payload 거부·controller 메모리/저장 복구, cancelled 자료와 실제 1 MiB 프레임의 save/reload 일치를 통과했다. quota/abort는 native API를 감싸 주입하며 실제 디스크 고장/여유 공간 소진 검증은 아니다.
 - 초기 fixture의 취소 시점/필드 입력은 실제 모델의 완료·필드 상한/송신 동작에 맞춰 조정했다. byte-source 위치 회귀를 수정한 뒤 S4 코어 34개와 최종 전체 check를 다시 통과했다. 최종 로그는 `/private/tmp/protocol-s4-check-release.log`다.
 - 이 단계의 native API 브라우저 검사는 개발 서버 4174를 사용한다. 실제 사용자 스택 화면·기본 DB 전환, 스택 10k/1 MiB/대형 suite의 UI 정량 실측은 S5에서 수행하며 위의 v1 응답성 회귀와 구분한다. 실제 서버/기기·전체 TCP/HTTP·배포는 포함하지 않았다.
+
+S5 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
+
+- 최종 `pnpm check` 통과: lint/format/type·Node 516개(신규 17개)·Markdown 46개·build·Chromium/Firefox UI 270개(신규 26개)·native DB API 14개·1-worker 응답성 8개(기존 5개+신규 스택 3개). 로그는 `/private/tmp/s5-check4.log`다.
+- 두 브라우저의 1440/768/390px·키보드와 실제 화면을 확인했다. 정상/첫 ACK 손실/제한된 HTTP GET·POST·분할·전체 손실 작성과 실행, 진단 초점·prefix/회차/설명, 실제 중단점 정지/계속·기록 자동 재생, 실행 중 편집/부분 checkpoint·모드 전환, 문법/필수 구조가 미완성인 JSON의 저장/복원/수정·v1 원본 보존/구형 writer 차단·v2 bundle 왕복·quota/abort/CAS 복구를 검사했다. UI 캡처는 Playwright 결과에 남겼으며 1440/390px를 직접 확인했다.
+- 정확한 10000개 trace는 실제 네 인스턴스 scheduler의 타이머 규칙으로 생성한다. 1 MiB 앱 프레임은 실제 ReliableStreamLite의 16개 조각과 ACK로 전달한다. 20사례는 화면에서 실제 worker 엔진을 실행해 12020개 관찰을 만들고 저장/커버리지/비교/초기 cursor로 이동했다. 조작한 trace는 사용하지 않았다. 스택 두 단일 fixture는 20개 활성 중단점을 포함한다.
+
+| 스택 실제 fixture | 실행/한도 도달 | 명시 저장 | 관찰 선택·설명 | 필터 p95(60회) | rAF p95 / 최대 long task | 관찰 DOM |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10000 trace | 1910ms | 70ms | 235ms | 43ms | 33.3ms / 98ms | 2398자 |
+| 한 MiB 앱 프레임 | 6848ms | 42ms | 226ms | 19ms | 16.7ms / 0ms | 1847자 |
+| 실제 20사례/12020 trace | 992ms | 836ms | 74ms | 해당 없음 | 16.8ms / 129ms | 비교 9045자 |
+
+- 20사례 커버리지 열기 146ms·두 실행 비교 44ms, 단일 fixture의 history 이동 63/63ms로 500ms 미만이다. 기존 legacy 1 MiB 저장 2377ms와 기존 20사례/200k trace(48.5MB) 검사를 포함해 기존 상한을 유지했다. 수치는 CPU 1배 Chromium 156.0.8078.4의 해당 로컬 실행 결과이며 실제 네트워크 성능을 뜻하지 않는다.
+- 초기 main-thread 저장 검사 684ms·legacy 1 MiB 저장 3380ms와 반복 검증의 3406ms와 skip-link/전환 준비 경계의 실패를 수정한 뒤 동일 기준으로 전체 검사를 통과했다. native 저장 adapter의 엄격한 검사는 유지하고 검증된 불변 자료만 일회용 token으로 재사용한다. 정상 primitive의 JSON 경로 문자열 생성을 늦춰 반복 큰 배열 검사 비용을 줄였고 오류/접근자/깊이/반복 alias의 node 예산과 진단 경로 동등성을 검사했다. quota/abort는 실제 worker IndexedDB API에 주입했으며 실제 디스크 소진/고장 검사는 아니다.
 
 ## Idempotence and Recovery
 

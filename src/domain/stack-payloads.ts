@@ -316,6 +316,10 @@ export class StackPayloadStore {
       artifactBytes: this.#artifactBytes,
     });
   }
+  /** Read logical live ownership without exposing mutable payloads or confusing it with archived artifacts. */
+  ownerBytes(ownerId: string): number {
+    return this.#owners.get(ownerId)?.bytes ?? 0;
+  }
   add(bytes: Uint8Array): ValidationResult<PayloadRange> {
     if (!(bytes instanceof Uint8Array) || bytes.length > this.#limits.maxMessageBytes)
       return failure('/', 'message-limit', 'Payload exceeds the message limit');

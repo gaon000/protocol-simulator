@@ -30,15 +30,19 @@ async function stored(page: Page): Promise<WorkspaceEnvelope> {
   return page.evaluate(
     async () =>
       new Promise<WorkspaceEnvelope>((resolve, reject) => {
-        const request = indexedDB.open('protocol-studio', 1);
+        const request = indexedDB.open('protocol-studio', 2);
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           const db = request.result;
-          const tx = db.transaction('workspace', 'readonly');
-          const get = tx.objectStore('workspace').get('current');
+          const tx = db.transaction('workspace-v2', 'readonly');
+          const get = tx.objectStore('workspace-v2').get('current');
           tx.oncomplete = () => {
             db.close();
-            resolve(get.result as WorkspaceEnvelope);
+            resolve({
+              schemaVersion: 1,
+              revision: get.result.revision,
+              data: get.result.data.legacy,
+            } as WorkspaceEnvelope);
           };
           tx.onabort = () => {
             db.close();

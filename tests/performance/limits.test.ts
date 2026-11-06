@@ -264,14 +264,14 @@ for (const fixture of ['10k', '1MiB'] as const) {
     const persisted = await page.evaluate(
       async () =>
         new Promise<{ events: number; bytes: number }>((resolve, reject) => {
-          const opened = indexedDB.open('protocol-studio', 1);
+          const opened = indexedDB.open('protocol-studio', 2);
           opened.onerror = () => reject(opened.error);
           opened.onsuccess = () => {
             const db = opened.result;
-            const tx = db.transaction('workspace', 'readonly');
-            const request = tx.objectStore('workspace').get('current');
+            const tx = db.transaction('workspace-v2', 'readonly');
+            const request = tx.objectStore('workspace-v2').get('current');
             tx.oncomplete = () => {
-              const view = request.result.data.runs.at(-1).view;
+              const view = request.result.data.legacy.runs.at(-1).view;
               const send = view.events.find((event: { kind: string }) => event.kind === 'send');
               db.close();
               resolve({ events: view.events.length, bytes: send?.data.wire.bytes.length ?? 0 });

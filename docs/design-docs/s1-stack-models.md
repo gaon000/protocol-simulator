@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 범위: domain 모델·검사·소유 자료 도구. 이를 사용하는 실행기/코덱은 [S2](s2-stack-runtime.md), 별도 workspace/IndexedDB·관찰 API는 [S4](s4-stack-persistence-observation.md)에 구현했다. 화면/기본 DB 전환은 S5이며 [전체 설계](layered-stack-v2.md)와 [계획](../exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다.
+구현 범위: domain 모델·검사·소유 자료 도구. 이를 사용하는 실행기/코덱은 [S2](s2-stack-runtime.md), 별도 workspace/IndexedDB·관찰 API는 [S4](s4-stack-persistence-observation.md)에 구현했다. 화면/기본 DB 전환은 S5이며 [전체 설계](layered-stack-v2.md)와 [계획](../exec-plans/completed/20261106-layered-protocol-stacks.md)을 따른다.
 
 ## JSON 형식과 버전
 

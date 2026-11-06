@@ -1,28 +1,24 @@
-import { useEffect, useState } from 'react';
-import { createWorkspaceController } from '../application/workspace-controller.ts';
-import { createWorkspace } from '../application/workspace-operations.ts';
-import { createExampleCopy } from '../examples/catalog.ts';
-import { createIndexedDbStorage } from '../persistence/indexed-db.ts';
+import { createContext, useContext } from 'react';
+import type { createLegacyWorkspaceFacade } from '../application/legacy-workspace-facade.ts';
+import type { createWorkspaceV2Controller } from '../application/workspace-v2-controller.ts';
+import type { ValidationResult } from '../domain/protocol-model.ts';
+import type { WorkspaceV2 } from '../domain/workspace-v2-model.ts';
 
-/** Bind browser storage to React while keeping transactional state and save sequencing outside UI. */
+export type WorkspaceHost = {
+  readonly controller: ReturnType<typeof createLegacyWorkspaceFacade>;
+  readonly full: ReturnType<typeof createWorkspaceV2Controller>;
+  readonly stageImport: (text: string) => ValidationResult<WorkspaceV2>;
+  readonly applyImport: (data: WorkspaceV2) => void;
+  readonly exportBundle: () => ValidationResult<string>;
+  readonly exportLegacy: () => ValidationResult<string>;
+  readonly exportBackup: () => Promise<ValidationResult<string>>;
+  readonly registerLeave: (leave: () => void | Promise<void>) => () => void;
+};
+export const WorkspaceContext = createContext<WorkspaceHost | null>(null);
+
+/** Bind the legacy editor to the shared canonical v2 workspace without opening an old writer. */
 export function useWorkspace() {
-  const [controller] = useState(() =>
-    createWorkspaceController(
-      createIndexedDbStorage(),
-      createWorkspace(createExampleCopy('ping_pong')),
-    ),
-  );
-  const [state, setState] = useState(controller.view);
-  useEffect(() => controller.subscribe(() => setState(controller.view())), [controller]);
-  useEffect(() => {
-    void controller.load();
-  }, [controller]);
-  useEffect(() => {
-    if (!state.ready || state.serial === 0) return;
-    const timeout = window.setTimeout(() => {
-      void controller.save();
-    }, 300);
-    return () => window.clearTimeout(timeout);
-  }, [controller, state.ready, state.serial]);
-  return { ...state, controller };
+  const host = useContext(WorkspaceContext);
+  if (!host) throw new Error('Workspace host is required');
+  return { ...host, ...host.controller.view() };
 }

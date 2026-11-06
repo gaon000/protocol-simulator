@@ -1,4 +1,4 @@
-import { freezeOwned } from '../domain/immutable-data.ts';
+import { freezeOwned, isOwnedImmutable } from '../domain/immutable-data.ts';
 import type { WorkspaceV2 } from '../domain/workspace-v2-model.ts';
 import { parseWorkspaceV2, parseWorkspaceV2Envelope } from '../domain/workspace-v2-validation.ts';
 import { StorageFailure, type VersionedStoragePort } from '../persistence/storage-port.ts';
@@ -12,7 +12,33 @@ import {
 export function createWorkspaceV2Controller(
   port: VersionedStoragePort<WorkspaceV2>,
   initial: WorkspaceV2,
+  validation: {
+    workspace: (
+      data: WorkspaceV2,
+    ) => ReturnType<typeof parseWorkspaceV2> | Promise<ReturnType<typeof parseWorkspaceV2>>;
+    envelope: (
+      data: unknown,
+    ) =>
+      | ReturnType<typeof parseWorkspaceV2Envelope>
+      | Promise<ReturnType<typeof parseWorkspaceV2Envelope>>;
+  } = { workspace: parseWorkspaceV2, envelope: parseWorkspaceV2Envelope },
 ) {
+  const ownRecord = <T>(value: T): T =>
+    isOwnedImmutable(value) ? value : freezeOwned(structuredClone(value));
+  const own = (data: WorkspaceV2): WorkspaceV2 =>
+    freezeOwned({
+      ...data,
+      legacy: {
+        ...data.legacy,
+        drafts: data.legacy.drafts.map(ownRecord),
+        runs: data.legacy.runs.map(ownRecord),
+      },
+      stack: {
+        ...data.stack,
+        drafts: data.stack.drafts.map(ownRecord),
+        runs: data.stack.runs.map(ownRecord),
+      },
+    });
   let state: {
     readonly data: WorkspaceV2;
     readonly ready: boolean;
@@ -20,7 +46,7 @@ export function createWorkspaceV2Controller(
     readonly serial: number;
     readonly error: string;
   } = {
-    data: freezeOwned(structuredClone(initial)),
+    data: own(initial),
     ready: false,
     status: 'loading',
     serial: 0,
@@ -51,14 +77,14 @@ export function createWorkspaceV2Controller(
           writable = true;
           publish({ ready: true, status: 'unsaved', serial: 1 });
         } else {
-          const parsed = parseWorkspaceV2Envelope(stored);
+          const parsed = await validation.envelope(stored);
           if (!parsed.success)
             throw new StorageFailure('invalid', '저장 자료를 검사하지 못해 원본을 유지했습니다.');
           revision = parsed.value.revision;
           writable = true;
           committed = 0;
           publish({
-            data: freezeOwned(structuredClone(parsed.value.data)),
+            data: own(parsed.value.data),
             ready: true,
             status: 'saved',
           });
@@ -74,7 +100,7 @@ export function createWorkspaceV2Controller(
     const data = change(state.data);
     if (data === state.data) return;
     publish({
-      data: freezeOwned(structuredClone(data)),
+      data: own(data),
       serial: state.serial + 1,
       status: !writable || state.status === 'conflict' ? state.status : 'unsaved',
     });
@@ -87,7 +113,7 @@ export function createWorkspaceV2Controller(
         const target = state.data;
         const serial = state.serial;
         try {
-          const parsed = parseWorkspaceV2(target);
+          const parsed = await validation.workspace(target);
           if (!parsed.success)
             throw new StorageFailure(
               'invalid',
@@ -115,7 +141,7 @@ export function createWorkspaceV2Controller(
       const stored = await port.read();
       let data = state.data;
       if (stored !== undefined) {
-        const parsed = parseWorkspaceV2Envelope(stored);
+        const parsed = await validation.envelope(stored);
         if (!parsed.success)
           throw new StorageFailure('invalid', '저장 자료를 읽지 못해 기존 데이터를 유지했습니다.');
         if (!writable || parsed.value.revision !== revision)

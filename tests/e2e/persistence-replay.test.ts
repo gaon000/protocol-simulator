@@ -23,15 +23,19 @@ async function stored(page: Page): Promise<WorkspaceEnvelope> {
   return page.evaluate(
     async () =>
       new Promise<WorkspaceEnvelope>((resolve, reject) => {
-        const request = indexedDB.open('protocol-studio', 1);
+        const request = indexedDB.open('protocol-studio', 2);
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           const database = request.result;
-          const transaction = database.transaction('workspace', 'readonly');
-          const get = transaction.objectStore('workspace').get('current');
+          const transaction = database.transaction('workspace-v2', 'readonly');
+          const get = transaction.objectStore('workspace-v2').get('current');
           transaction.oncomplete = () => {
             database.close();
-            resolve(get.result as WorkspaceEnvelope);
+            resolve({
+              schemaVersion: 1,
+              revision: get.result.revision,
+              data: get.result.data.legacy,
+            } as WorkspaceEnvelope);
           };
           transaction.onabort = () => {
             database.close();
@@ -174,16 +178,35 @@ for (const mode of ['quota', 'abort-after-request-success']) {
   test(`IndexedDB ${mode} keeps the last committed workspace and retries without losing edits`, async ({
     page,
   }) => {
+    await page.route('**/workspace-storage-worker-*.js', async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      await route.fulfill({
+        response,
+        body: `
+        let injectedFailure;
+        globalThis.addEventListener('message', (event) => { injectedFailure = event.data.testFailure; });
+        const nativePut = IDBObjectStore.prototype.put;
+        IDBObjectStore.prototype.put = function(value, key) {
+          if (injectedFailure === 'quota') throw new DOMException('Simulated quota exhaustion', 'QuotaExceededError');
+          const request = nativePut.call(this, value, key);
+          if (injectedFailure === 'abort-after-request-success') request.addEventListener('success', () => this.transaction.abort());
+          return request;
+        };
+      ${body}`,
+      });
+    });
     await page.addInitScript(() => {
-      const put = IDBObjectStore.prototype.put;
-      IDBObjectStore.prototype.put = function (value: unknown, key?: IDBValidKey) {
-        const mode = sessionStorage.getItem('storage-test-failure');
-        if (mode === 'quota')
-          throw new DOMException('Simulated quota exhaustion', 'QuotaExceededError');
-        const request = put.call(this, value, key);
-        if (mode === 'abort-after-request-success')
-          request.addEventListener('success', () => this.transaction.abort());
-        return request;
+      const send = Worker.prototype.postMessage;
+      Worker.prototype.postMessage = function (
+        message: unknown,
+        options?: Transferable[] | StructuredSerializeOptions,
+      ) {
+        const value =
+          message && typeof message === 'object' && 'type' in message && message.type === 'write'
+            ? { ...message, testFailure: sessionStorage.getItem('storage-test-failure') }
+            : message;
+        return Reflect.apply(send, this, options === undefined ? [value] : [value, options]);
       };
     });
     await page.goto('/');

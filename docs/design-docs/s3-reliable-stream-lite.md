@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 범위: [S2 실행 코어](s2-stack-runtime.md)에서 실제 동작하는 사용자 정의 provider·Ping/Pong/제한된 HTTP 예제와 불변 원본/사본 API. [전체 설계](layered-stack-v2.md)와 [구현 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다. 저장/관찰 API는 [S4](s4-stack-persistence-observation.md)에 구현했고 화면 연결은 S5다.
+구현 범위: [S2 실행 코어](s2-stack-runtime.md)에서 실제 동작하는 사용자 정의 provider·Ping/Pong/제한된 HTTP 예제와 불변 원본/사본 API. [전체 설계](layered-stack-v2.md)와 [구현 계획](../exec-plans/completed/20261106-layered-protocol-stacks.md)을 따른다. 저장/관찰 API는 [S4](s4-stack-persistence-observation.md)에 구현했고 화면 연결은 S5다.
 
 ## 프로토콜 정체성과 경계
 

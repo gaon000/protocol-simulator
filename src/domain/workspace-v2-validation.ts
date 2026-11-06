@@ -1,3 +1,4 @@
+import { isOwnedImmutable } from './immutable-data.ts';
 import { valueAt } from './json-pointer.ts';
 import { parseJsonData, Reader } from './model-validation.ts';
 import type { ValidationResult } from './protocol-model.ts';
@@ -150,8 +151,11 @@ export function parseSavedStackRun(value: unknown): ValidationResult<SavedStackR
   }
   return r.result(value as SavedStackRun);
 }
+const validatedWorkspaces = new WeakSet<object>();
 /** Validate both modes under one workspace capacity without converting legacy events to stack events. */
 export function parseWorkspaceV2(value: unknown): ValidationResult<WorkspaceV2> {
+  if (isOwnedImmutable(value) && validatedWorkspaces.has(value as object))
+    return { success: true, value: value as WorkspaceV2 };
   const json = parseJsonData(value, {
     maxDepth: WORKSPACE_POLICY.maxJsonDepth,
     maxNodes: WORKSPACE_POLICY.maxJsonNodes,
@@ -205,12 +209,34 @@ export function parseWorkspaceV2(value: unknown): ValidationResult<WorkspaceV2> 
         }
         try {
           const parsed = JSON.parse(text);
-          if (canonicalStackJson(parsed) !== canonicalStackJson(valueAt(config.value, key)))
+          if (!parseJsonData(parsed).success) continue;
+          if (canonicalStackJson(parsed) !== canonicalStackJson(valueAt(config.value, key))) {
+            const candidate = structuredClone(config.value);
+            const separator = key.lastIndexOf('/');
+            const parent = valueAt(candidate, key.slice(0, separator));
+            const property = key
+              .slice(separator + 1)
+              .replace(/~1/g, '/')
+              .replace(/~0/g, '~');
+            if (
+              parent &&
+              typeof parent === 'object' &&
+              Object.getOwnPropertyDescriptor(parent, property)?.enumerable === true
+            ) {
+              Object.defineProperty(parent, property, {
+                value: parsed,
+                enumerable: true,
+                configurable: true,
+                writable: true,
+              });
+              if (!parseStackExperimentDraft(candidate).success) continue;
+            }
             r.issue(
               `${path}/raw`,
               'draft-raw-mismatch',
               'Valid raw text differs from configuration',
             );
+          }
         } catch {
           /* Preserve unfinished JSON text; execution will remain blocked. */
         }
@@ -280,7 +306,9 @@ export function parseWorkspaceV2(value: unknown): ValidationResult<WorkspaceV2> 
           });
       }
   }
-  return r.result(value as WorkspaceV2);
+  const result = r.result(value as WorkspaceV2);
+  if (result.success && isOwnedImmutable(value)) validatedWorkspaces.add(value as object);
+  return result;
 }
 /** Accept the native v2 envelope or explicitly upgrade a validated legacy envelope in memory. */
 export function parseWorkspaceV2Envelope(value: unknown): ValidationResult<WorkspaceV2Envelope> {

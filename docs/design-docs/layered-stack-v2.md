@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 상태: [S1 모델·검사·바이트](s1-stack-models.md)·[S2 실행 코어](s2-stack-runtime.md)·[S3 ReliableStreamLite](s3-reliable-stream-lite.md)·[S4 저장/관찰 API](s4-stack-persistence-observation.md)를 구현했다. 현재 사용자 화면은 v1 단일 계층이며 기본 DB 경로와 스택 UI의 연결은 S5다.
+구현 상태: [S1 모델·검사·바이트](s1-stack-models.md)·[S2 실행 코어](s2-stack-runtime.md)·[S3 ReliableStreamLite](s3-reliable-stream-lite.md)·[S4 저장/관찰 API](s4-stack-persistence-observation.md)를 구현했다. [S5 화면·기본 저장 흐름](s5-stack-workspace.md)을 연결했다. 두 모드는 canonical v2 저장을 공유하고 스택 실행/분석과 저장/검사는 worker에서 처리한다. 최종 검증 상태는 구현 계획을 따른다.
 
 ## 문제와 목표
 
@@ -10,7 +10,7 @@
 
 목표는 응용 메시지가 바이트로 인코딩되고, 전송 프로토콜의 분할·ACK·재전송·중복 제거를 거쳐 상대 응용에 전달되는 과정을 같은 실행에서 관찰하는 것이다. 서비스 종류·계층 역할·요청/응답 같은 통신 패턴은 별도로 유지한다.
 
-이 문서는 [v1 설계](layered-protocol-v1.md)의 단일 계층 실행을 대체하지 않는 후속 설계다. 작업 순서·진행·실제 검증 결과는 [구현 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)이 소유한다.
+이 문서는 [v1 설계](layered-protocol-v1.md)의 단일 계층 실행을 대체하지 않는 후속 설계다. 작업 순서·진행·실제 검증 결과는 [구현 계획](../exec-plans/completed/20261106-layered-protocol-stacks.md)이 소유한다.
 
 ### 첫 연결 버전의 범위
 

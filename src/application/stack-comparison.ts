@@ -91,12 +91,30 @@ export function compareStackRuns(left: SavedStackRun, right: SavedStackRun, page
     a.expectations as unknown as JsonValue,
     b.expectations as unknown as JsonValue,
   );
-  for (const target of new Set([...Object.keys(a.instances), ...Object.keys(b.instances)]))
-    compareValue(
-      `/instances/${target}`,
-      (a.instances[target] ?? null) as unknown as JsonValue,
-      (b.instances[target] ?? null) as unknown as JsonValue,
-    );
+  for (const target of new Set([...Object.keys(a.instances), ...Object.keys(b.instances)])) {
+    const leftActor = a.instances[target];
+    const rightActor = b.instances[target];
+    if (leftActor && rightActor && !!leftActor.buffers !== !!rightActor.buffers) {
+      const { buffers: leftBuffers, ...leftObserved } = leftActor;
+      const { buffers: rightBuffers, ...rightObserved } = rightActor;
+      compareValue(
+        `/instances/${target}`,
+        leftObserved as unknown as JsonValue,
+        rightObserved as unknown as JsonValue,
+      );
+      differences.push({
+        path: `/instances/${target}/buffers`,
+        relation: 'limited',
+        left: previewJson((leftBuffers ?? null) as unknown as JsonValue),
+        right: previewJson((rightBuffers ?? null) as unknown as JsonValue),
+      });
+    } else
+      compareValue(
+        `/instances/${target}`,
+        (leftActor ?? null) as unknown as JsonValue,
+        (rightActor ?? null) as unknown as JsonValue,
+      );
+  }
   const incompatible =
     stackRecordCompatibility(a.snapshot) ||
     stackRecordCompatibility(b.snapshot) ||

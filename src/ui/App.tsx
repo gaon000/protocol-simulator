@@ -31,7 +31,6 @@ import {
   captureRun,
   createDraftRecord,
   definitionDeletionReason,
-  stageBundle,
   workspaceId,
 } from '../application/workspace-operations.ts';
 import type { JsonValue } from '../domain/execution-contract.ts';
@@ -427,6 +426,7 @@ export function App() {
     setStartErrors([]);
     setSelected(undefined);
   }
+  useEffect(() => storage.registerLeave(reset));
   function replace(next: ExperimentDefinition) {
     if (storage.data.drafts.length >= WORKSPACE_POLICY.maxDrafts) {
       setNotice('초안 100개 한도입니다. 먼저 불필요한 초안을 삭제하세요.');
@@ -505,14 +505,14 @@ export function App() {
     setNotice('초안을 삭제했습니다. 과거 실행 기록은 유지했습니다.');
   }
   async function importBundle(text: string): Promise<string | undefined> {
-    const staged = stageBundle(text, storage.controller.view().data);
+    const staged = storage.stageImport(text);
     if (!staged.success) return `${staged.diagnostics[0]?.code}: ${staged.diagnostics[0]?.message}`;
     reset();
     resetSelection();
     // Cancelling an unfinished live run writes its last checkpoint. Merge against that latest data.
-    const latest = stageBundle(text, storage.controller.view().data);
+    const latest = storage.stageImport(text);
     if (!latest.success) return latest.diagnostics[0]?.message ?? '가져오기 실패';
-    storage.controller.update(() => latest.value);
+    storage.applyImport(latest.value);
     setLibrary(false);
     setViewId('configuration');
     setNotice('검증한 bundle을 적용했습니다. 충돌한 항목은 새 사본으로 추가했습니다.');
@@ -770,9 +770,6 @@ export function App() {
   return (
     <EditorContext value={{ draft, diagnostics, raw, edit, editJson }}>
       <div className='workspace'>
-        <a className='skip-link' href='#main-content'>
-          본문으로 이동
-        </a>
         <header className='app-header'>
           <button type='button' className='brand subtle' onClick={() => setLibrary(true)}>
             Protocol Studio
@@ -792,6 +789,9 @@ export function App() {
             void storage.controller.retry();
           }}
           onImport={importBundle}
+          onExport={storage.exportBundle}
+          onLegacyExport={storage.exportLegacy}
+          onBackupExport={storage.exportBackup}
         />
         <div className={`app-body${viewId === 'compare' && !library ? ' is-comparing' : ''}`}>
           <nav className='navigation' aria-label='작업 공간'>

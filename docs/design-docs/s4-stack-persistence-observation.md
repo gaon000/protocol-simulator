@@ -2,13 +2,13 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 범위: [S3](s3-reliable-stream-lite.md)의 실제 stack view/trace/artifacts를 보존하는 v2 저장·복구·관찰 API. [전체 설계](layered-stack-v2.md)와 [단계별 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다. 사용자 화면과 현재 기본 DB 경로의 전환·스택 응답성 실측은 S5다.
+구현 범위: [S3](s3-reliable-stream-lite.md)의 실제 stack view/trace/artifacts를 보존하는 v2 저장·복구·관찰 API. [전체 설계](layered-stack-v2.md)와 [단계별 계획](../exec-plans/completed/20261106-layered-protocol-stacks.md)을 따른다. S4 단계에서 보류한 사용자 화면·기본 DB 전환과 정량 실측은 [S5](s5-stack-workspace.md)에서 완료했다.
 
 ## 저장 형식과 소유권
 
 [workspace-v2-model.ts](../../src/domain/workspace-v2-model.ts)의 WorkspaceV2는 schemaVersion 2, mode workspace, legacy(v1 WorkspaceData 전체), stack(activeDraftId 또는 null, drafts, runs)으로 구성한다. envelope는 schemaVersion/revision/data, bundle은 schemaVersion/kind/data다. kind는 기존 protocol-studio-bundle이다. 두 영역을 합쳐 초안/기록 각각 100개·workspace/bundle 64 MiB 한도를 적용한다. legacy 항목을 네 인스턴스 실행으로 변환하지 않는다.
 
-StackDraft는 mode stack, 독립 id, configuration 전체, raw 편집 문자열, version/updatedAt, optional suite를 갖는다. 구조 검사와 실행 검사를 분리해 아직 연결되지 않은 포트·정의/규칙 참조·불완전한 JSON 편집을 보관한다. 유효한 raw JSON은 configuration의 해당 값과 같아야 하며, raw는 실제 JSON Pointer를 가리킨다. 실행은 완전한 모델 검사와 raw 대조를 다시 통과해야 한다.
+StackDraft는 mode stack, 독립 id, configuration 전체, raw 편집 문자열, version/updatedAt, optional suite를 갖는다. 구조 검사와 실행 검사를 분리해 아직 연결되지 않은 포트·정의/규칙 참조·불완전한 JSON 편집을 보관한다. 정상 형태의 유효한 raw JSON은 configuration의 해당 값과 같아야 하며, raw는 실제 JSON Pointer를 가리킨다. [S5](s5-stack-workspace.md)는 문법이 맞아도 필수 구조가 깨진 입력을 적용하지 않고 raw에 보관하며 실행을 차단한다. 실행은 완전한 모델 검사와 raw 대조를 다시 통과해야 한다.
 
 SavedStackRun은 mode stack, id/experimentId/createdAt/draftVersion과 **실제 StackView 전체**를 담는다. snapshot·네 인스턴스·trace·record-local artifacts·상태/판정을 함께 capture한다. 취소/reset·초안 삭제 뒤에도 실제 payload를 유지한다. snapshot에 없는 bytes를 재생성하지 않는다.
 
@@ -29,7 +29,7 @@ upgrade transaction에서 v1 envelope를 검사하고 revision/legacy 내용 그
 
 blocked는 실패를 안내하고 뒤늦게 풀리는 pending upgrade도 abort한다. 사용자의 명시적 재시도 없이 뒤에서 갱신하지 않는다. versionchange는 열린 연결을 닫는다. 갱신 뒤 v1의 open(name, 1)은 VersionError로 차단되며, 더 새로운 DB 버전에도 이 adapter가 쓰지 않는다. 두 탭 write는 같은 revision에서 하나만 반영한다. replaceLegacy도 같은 CAS/전체 검사 아래 stack 영역을 보존한다.
 
-현재 App은 기존 v1 adapter를 유지한다. S4 API를 호출하면 실제 DB가 갱신되지만 앱 화면에서 이를 자동 호출하지 않으며 S5에서 UI를 v2 controller로 전환한다. 이미 v2로 갱신한 DB를 구형 화면에서 열면 기존 오류/메모리 보존 경로로 처리하며 조용히 새 v1 DB를 만들거나 자료를 삭제하지 않는다.
+S4 구현 시점의 App은 기존 v1 adapter를 유지했다. 현재 [S5 진입](s5-stack-workspace.md)은 v2 controller와 저장 worker를 기본으로 사용한다. 이미 v2로 갱신한 DB를 이전 버전 앱에서 열면 기존 오류/메모리 보존 경로로 처리하며 조용히 새 v1 DB를 만들거나 자료를 삭제하지 않는다.
 
 [workspace-v2-operations.ts](../../src/application/workspace-v2-operations.ts)의 exportWorkspaceV2는 전체 자료를 내보낸다. v1 내보내기는 stack 항목이 있을 때 명시적 legacy 선택을 요구한다. readLegacyBackup과 exportLegacyBackup은 보관한 v1 원본을 읽고 v1 bundle로 내보내며 DB downgrade/자동 삭제를 수행하지 않는다.
 

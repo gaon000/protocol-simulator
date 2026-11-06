@@ -49,3 +49,8 @@ Node의 monotonic clock으로 Playwright 동작·확인까지 wall time을 재�
 [GitHub Actions](../../.github/workflows/check.yml)는 master/codex branch push, master 대상 PR, 수동 실행을 받는다. contents read만 사용하고 checkout credential을 유지하지 않는다. 공식 actions의 고정 commit을 사용한다. .nvmrc의 Node와 pnpm 9.15.0, frozen lockfile, Chromium/Firefox와 OS 의존성을 설치하고 동일한 `pnpm check`를 실행한다. 실패 trace와 성능 report를 7일 보관하며 credential·실제 서버/기기 설정은 필요하지 않다. [Playwright CI 안내](https://playwright.dev/docs/ci-intro), [checkout](https://github.com/actions/checkout), [setup-node](https://github.com/actions/setup-node)를 참고했다.
 
 workflow 파일 존재·로컬 검사·원격 job 결과는 별도 증거다. 최종 commit의 원격 CI 실행 여부/결과와 미실행 범위는 실행 계획·완료 응답에 명시한다. 배포 workflow나 실제 통신 검증은 구성하지 않는다.
+
+
+## S5 계층 연결 확장
+
+[S5 작업 공간](s5-stack-workspace.md)은 동일한 브라우저·viewport·키보드 기준과 기존 다섯 응답성 fixture를 유지한다. 추가 세 fixture는 실제 스택 scheduler의 정확한 10000 trace(원자적 타이머 재시작 포함), 실제 한 MiB 앱 프레임/16개 provider 조각, 화면에서 실행한 20사례/12020 trace다. 첫 둘은 20개 활성 중단점과 필터 60회를 포함한다. 그림/선택/설명·history/커버리지/비교 500ms, 표시 32768자, byte 창 256 bytes, 실행/저장·rAF/long-task의 기존 상한을 그대로 적용한다. 실제 최종 수치와 실패/수정/재검증은 [완료 계획](../exec-plans/completed/20261106-layered-protocol-stacks.md)이 소유한다. 기본 저장은 실제 native IndexedDB와 strict 검사를 worker에서 처리하며 quota/abort 주입도 해당 worker API 경계에서 검사한다.

@@ -29,6 +29,11 @@ export type StackStatus =
 export type StackTimer = { generation: number; active: boolean; due: number };
 export type StackPortState = 'ready' | 'failed' | 'closed';
 export type StackInstanceView = {
+  readonly buffers?: {
+    readonly codecBytes: number;
+    readonly variableBytes: number;
+    readonly portBytes: number;
+  };
   readonly endpoint: StackEndpoint;
   readonly stateId: string;
   readonly variables: Readonly<Record<string, JsonValue>>;

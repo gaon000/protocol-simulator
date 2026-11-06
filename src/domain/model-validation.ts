@@ -116,19 +116,28 @@ function inspectJson(
 ): void {
   const ancestors = new Set<object>();
   let count = 0;
-  function visit(item: unknown, path: string, depth: number): void {
+  function visit(item: unknown, parentPath: string, depth: number, key?: string | number): void {
     count++;
     if (count > limits.maxNodes) {
       if (count === limits.maxNodes + 1)
-        reader.issue(path, 'json-limit', 'JSON node limit exceeded');
+        reader.issue(
+          key === undefined ? parentPath : pointer(parentPath, key),
+          'json-limit',
+          'JSON node limit exceeded',
+        );
       return;
     }
     if (depth > limits.maxDepth) {
-      reader.issue(path, 'json-depth', 'JSON depth limit exceeded');
+      reader.issue(
+        key === undefined ? parentPath : pointer(parentPath, key),
+        'json-depth',
+        'JSON depth limit exceeded',
+      );
       return;
     }
     if (item === null || typeof item === 'string' || typeof item === 'boolean') return;
     if (typeof item === 'number' && Number.isFinite(item)) return;
+    const path = key === undefined ? parentPath : pointer(parentPath, key);
     if (typeof item !== 'object' || item === null) {
       reader.issue(path, 'json-value', 'Expected finite JSON data');
       return;
@@ -165,7 +174,7 @@ function inspectJson(
             'json-value',
             'JSON arrays require plain values without holes or accessors',
           );
-        else visit(descriptor.value, pointer(path, index), depth + 1);
+        else visit(descriptor.value, path, depth + 1, index);
       }
     } else {
       for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(item))) {
@@ -173,7 +182,7 @@ function inspectJson(
           reader.issue(pointer(path, key), 'json-accessor', 'JSON cannot contain accessors');
         else if (!descriptor.enumerable)
           reader.issue(pointer(path, key), 'json-property', 'JSON properties must be enumerable');
-        else visit(descriptor.value, pointer(path, key), depth + 1);
+        else visit(descriptor.value, path, depth + 1, key);
         if (count > limits.maxNodes) break;
       }
     }

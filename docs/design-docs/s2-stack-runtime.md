@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 범위: DOM 없는 스택 실행 코어. [S1 모델/바이트](s1-stack-models.md)와 [전체 설계](layered-stack-v2.md)를 사용한다. 실제 provider는 [S3](s3-reliable-stream-lite.md), 저장/관찰 API는 [S4](s4-stack-persistence-observation.md)에 구현했다. 화면/기본 DB 전환은 [S5 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)에 남아 있다.
+구현 범위: DOM 없는 스택 실행 코어. [S1 모델/바이트](s1-stack-models.md)와 [전체 설계](layered-stack-v2.md)를 사용한다. 실제 provider는 [S3](s3-reliable-stream-lite.md), 저장/관찰 API는 [S4](s4-stack-persistence-observation.md)에 구현했다. 화면/기본 DB 전환은 [S5 계획](../exec-plans/completed/20261106-layered-protocol-stacks.md)에 남아 있다.
 
 ## 모듈과 진입점
 

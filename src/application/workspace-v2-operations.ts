@@ -1,4 +1,4 @@
-import { freezeOwned } from '../domain/immutable-data.ts';
+import { freezeOwned, isOwnedImmutable } from '../domain/immutable-data.ts';
 import type { ValidationResult } from '../domain/protocol-model.ts';
 import type { StackExperiment } from '../domain/stack-model.ts';
 import type { StackView } from '../domain/stack-runtime-model.ts';
@@ -37,7 +37,7 @@ export function captureStackRun(
     experimentId,
     createdAt: Date.now(),
     draftVersion,
-    view: structuredClone(view),
+    view: isOwnedImmutable(view) ? view : structuredClone(view),
   });
 }
 /** Remap workspace/group identities only; endpoint, trace, payload and definition references stay record-local. */

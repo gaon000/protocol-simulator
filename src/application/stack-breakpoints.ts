@@ -1,5 +1,5 @@
 import type { JsonValue } from '../domain/execution-contract.ts';
-import { freezeOwned } from '../domain/immutable-data.ts';
+import { freezeOwned, isOwnedImmutable } from '../domain/immutable-data.ts';
 import { parseJsonData } from '../domain/model-validation.ts';
 import type { ValidationResult } from '../domain/protocol-model.ts';
 import { parseBytesValue } from '../domain/stack-bytes.ts';
@@ -198,14 +198,23 @@ export function matchStackBreakpoints(
   }
   return undefined;
 }
+const verifiedSnapshots = new WeakMap<StackSnapshot, WeakSet<StackSnapshot>>();
 /** Preserve queue-operation atomicity while returning the first observed stop and its trailing committed events. */
 export function runStackWithBreakpoints(
   engine: StackScheduler,
   plan: StackBreakpointPlan,
   budget = 64,
 ) {
-  if (canonicalStackJson(engine.snapshot) !== canonicalStackJson(plan.snapshot))
-    throw new Error('중단점 계획이 현재 실행 snapshot과 다릅니다.');
+  let verified = verifiedSnapshots.get(engine.snapshot);
+  if (!verified?.has(plan.snapshot)) {
+    if (canonicalStackJson(engine.snapshot) !== canonicalStackJson(plan.snapshot))
+      throw new Error('중단점 계획이 현재 실행 snapshot과 다릅니다.');
+    if (isOwnedImmutable(engine.snapshot) && isOwnedImmutable(plan.snapshot)) {
+      verified ??= new WeakSet();
+      verified.add(plan.snapshot);
+      verifiedSnapshots.set(engine.snapshot, verified);
+    }
+  }
   if (!plan.points.length) return { view: engine.runBatch(budget), stop: undefined };
   let stop: StackBreakpointStop | undefined;
   const view = engine.runBatch(budget, (events) => {

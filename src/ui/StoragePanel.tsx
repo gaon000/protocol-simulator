@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { exportWorkspace } from '../application/workspace-operations.ts';
 import type { SaveState } from '../application/workspace-controller.ts';
+import { exportWorkspace } from '../application/workspace-operations.ts';
+import type { ValidationResult } from '../domain/protocol-model.ts';
 import { WORKSPACE_POLICY, type WorkspaceData } from '../domain/workspace-model.ts';
 
 /** Make save success/failure visible and stage local files before applying imported data. */
@@ -9,16 +10,25 @@ export function StoragePanel({
   onSave,
   onRetry,
   onImport,
+  onExport,
+  onLegacyExport,
+  onBackupExport,
 }: {
   state: SaveState;
   onSave: () => void;
   onRetry: () => void;
   onImport: (text: string) => Promise<string | undefined>;
+  onExport?: () => ValidationResult<string>;
+  onLegacyExport?: () => ValidationResult<string>;
+  onBackupExport?: () => Promise<ValidationResult<string>>;
 }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   function download(data: WorkspaceData) {
-    const exported = exportWorkspace(data);
+    const exported = onExport ? onExport() : exportWorkspace(data);
+    downloadResult(exported);
+  }
+  function downloadResult(exported: ValidationResult<string>) {
     if (!exported.success) {
       setError(exported.diagnostics[0]?.message ?? '내보내기 실패');
       return;
@@ -45,12 +55,35 @@ export function StoragePanel({
         {status}
       </p>
       <div className='storage-actions'>
-        <button type='button' disabled={!state.ready || state.status === 'saving'} onClick={onSave}>
+        <button
+          type='button'
+          disabled={busy || !state.ready || state.status === 'saving'}
+          onClick={onSave}
+        >
           지금 저장
         </button>
         <button type='button' onClick={() => download(state.data)}>
           내보내기
         </button>
+        {onLegacyExport && (
+          <button type='button' onClick={() => downloadResult(onLegacyExport())}>
+            v1 자료만 내보내기
+          </button>
+        )}
+        {onBackupExport && (
+          <button
+            type='button'
+            onClick={async () => {
+              try {
+                downloadResult(await onBackupExport());
+              } catch {
+                setError('이전 원본을 읽지 못했습니다. 현재 메모리 자료는 유지합니다.');
+              }
+            }}
+          >
+            이전 v1 원본 복구 파일
+          </button>
+        )}
         <label className='file-control'>
           bundle 가져오기
           <input
@@ -81,7 +114,7 @@ export function StoragePanel({
       {state.error && (
         <div role='alert'>
           <p>{state.error}</p>
-          <button type='button' onClick={onRetry}>
+          <button type='button' disabled={busy} onClick={onRetry}>
             저장 다시 시도
           </button>
           <p>메모리 초안과 기록은 유지됩니다. 내보내기로 파일을 보관할 수 있습니다.</p>

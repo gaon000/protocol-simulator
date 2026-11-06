@@ -29,8 +29,9 @@
 
 - [P6 로컬 저장·파일·과거 실행](p6-persistence-replay.md) — Accepted. IndexedDB transaction·revision 충돌·quota 복구, invalid draft·bundle 검증과 읽기 전용 탐색/snapshot 재실행.
 - [P7 v1 검증·응답성·지원 범위](p7-validation.md) — Accepted. Chromium/Firefox·키보드/화면 크기·실제 상한 성능 기준과 CI 증거 경계.
-- [계층 연결 프로토콜 스택](layered-stack-v2.md) — Accepted. S1~S4 코어/provider/예제·저장/관찰 API를 구현했으며 UI/기본 저장 경로 연결은 S5.
+- [계층 연결 프로토콜 스택](layered-stack-v2.md) — Accepted. S1~S5 코어/provider/예제·저장/관찰 API와 화면/기본 저장 경로를 연결했다. 최종 검증은 실행 계획을 따른다.
 - [S1 스택 모델·포트·바이트](s1-stack-models.md) — Accepted. v2 JSON/API·typed 포트와 topology 검사·bounded bytes 표현식·run/record 소유 자료와 자원 회계. S2 진입 계약.
 - [S2 스택 실행 코어](s2-stack-runtime.md) — Accepted. 공유 규칙 검사·한 clock/queue·fork/예약/commit, endpoint별 수명·실제 byte provenance·prefix/legacy 보존.
 - [S3 ReliableStreamLite](s3-reliable-stream-lite.md) — Accepted. 방향별 DATA/ACK·분할/캐시·seq/유한 재시도·중복 억제와 실제 Ping/Pong·제한된 HTTP 스택 예제/출처/사본.
 - [S4 스택 저장·관찰](s4-stack-persistence-observation.md) — Accepted. 별도 v2 workspace/DB upgrade·legacy 보관/복구·endpoint/prefix 재생/도구·중단점/회귀/비교 API와 native IndexedDB 검증.
+- [S5 스택 작업 공간](s5-stack-workspace.md) — Accepted. 스택 작성·worker 실행/관찰·기본 v2 저장·legacy 원본 복구와 응답성 경계.

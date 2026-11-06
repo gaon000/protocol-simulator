@@ -1,4 +1,5 @@
 import { freezeOwned } from '../domain/immutable-data.ts';
+import { parseJsonData } from '../domain/model-validation.ts';
 import { valueAt } from '../domain/json-pointer.ts';
 import type { ValidationResult } from '../domain/protocol-model.ts';
 import type { StackExperiment } from '../domain/stack-model.ts';
@@ -52,6 +53,7 @@ export function prepareStackSeries(
   });
   for (const [path, text] of Object.entries(draft.raw)) {
     try {
+      if (!parseJsonData(JSON.parse(text)).success) return failure('유한한 JSON 값을 확인하세요.');
       if (
         canonicalStackJson(JSON.parse(text)) !==
         canonicalStackJson(valueAt(draft.configuration, path))

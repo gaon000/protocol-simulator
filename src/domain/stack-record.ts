@@ -282,6 +282,7 @@ export function parseStackView(value: unknown): ValidationResult<StackView> {
         'tainted',
         'timers',
         'ports',
+        'buffers',
       ]);
       if (!actor) continue;
       const protocol = stackProtocolAt(snapshot.value, endpoint);
@@ -308,6 +309,21 @@ export function parseStackView(value: unknown): ValidationResult<StackView> {
       variables(actor.variables, protocol, `/instances/${key}/variables`);
       timers(actor.timers, protocol, `/instances/${key}/timers`);
       ports(actor.ports, protocol, `/instances/${key}/ports`);
+      if (actor.buffers !== undefined) {
+        const buffers = r.object(actor.buffers, `/instances/${key}/buffers`, [
+          'codecBytes',
+          'variableBytes',
+          'portBytes',
+        ]);
+        if (buffers)
+          for (const name of ['codecBytes', 'variableBytes', 'portBytes'])
+            r.number(
+              buffers[name],
+              `/instances/${key}/buffers/${name}`,
+              0,
+              config.limits.maxLiveBytes,
+            );
+      }
     }
   const eventMap = new Map(trace.value.map((event) => [event.eventId, event]));
   const committed = new Map(

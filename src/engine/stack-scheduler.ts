@@ -929,7 +929,19 @@ export class StackScheduler {
       processedOperations: this.#processed,
       pendingOperations: this.#queue.size,
       instances: Object.fromEntries(
-        [...this.#actors].map(([key, actor]) => [key, structuredClone(actor.view())]),
+        [...this.#actors].map(([key, actor]) => [
+          key,
+          {
+            ...structuredClone(actor.view()),
+            buffers: {
+              codecBytes: this.#data.store.ownerBytes(`${key}/codec`),
+              variableBytes: this.#data.store.ownerBytes(`${key}/variables`),
+              portBytes: [actor.protocol.requires.id, providedStackPort(actor.protocol)?.id]
+                .filter((id): id is string => id !== undefined)
+                .reduce((sum, id) => sum + this.#data.store.ownerBytes(`${key}/${id}/pending`), 0),
+            },
+          },
+        ]),
       ),
       events: data.trace,
       artifacts: data.artifacts,

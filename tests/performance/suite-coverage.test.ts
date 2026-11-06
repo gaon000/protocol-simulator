@@ -49,16 +49,16 @@ test('20 actual 10k-event cases keep coverage opening and selection within the b
   const persisted = await page.evaluate(
     async () =>
       new Promise<number>((resolve, reject) => {
-        const request = indexedDB.open('protocol-studio', 1);
+        const request = indexedDB.open('protocol-studio', 2);
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           const db = request.result;
-          const tx = db.transaction('workspace', 'readonly');
-          const get = tx.objectStore('workspace').get('current');
+          const tx = db.transaction('workspace-v2', 'readonly');
+          const get = tx.objectStore('workspace-v2').get('current');
           tx.oncomplete = () => {
             db.close();
             resolve(
-              get.result.data.runs.reduce(
+              get.result.data.legacy.runs.reduce(
                 (sum: number, record: { view: { events: unknown[] } }) =>
                   sum + record.view.events.length,
                 0,

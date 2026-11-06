@@ -57,15 +57,15 @@ async function stored(page: Page) {
   return page.evaluate(
     async () =>
       new Promise<WorkspaceData>((resolve, reject) => {
-        const opened = indexedDB.open('protocol-studio', 1);
+        const opened = indexedDB.open('protocol-studio', 2);
         opened.onerror = () => reject(opened.error);
         opened.onsuccess = () => {
           const db = opened.result;
-          const tx = db.transaction('workspace', 'readonly');
-          const request = tx.objectStore('workspace').get('current');
+          const tx = db.transaction('workspace-v2', 'readonly');
+          const request = tx.objectStore('workspace-v2').get('current');
           tx.oncomplete = () => {
             db.close();
-            resolve(request.result.data);
+            resolve(request.result.data.legacy);
           };
           tx.onabort = () => {
             db.close();
