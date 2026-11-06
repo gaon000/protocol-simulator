@@ -29,6 +29,7 @@ async function load(page: Page, data: WorkspaceData) {
     buffer: Buffer.from(JSON.stringify({ schemaVersion: 1, kind: 'protocol-studio-bundle', data })),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
 }
 async function start(page: Page, config: ExperimentDefinition) {
   await load(page, createWorkspace(config));

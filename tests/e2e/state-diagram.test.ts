@@ -199,6 +199,7 @@ test('large definition pages expose all rules and states while keeping the SVG b
     buffer: Buffer.from(JSON.stringify({ schemaVersion: 1, kind: 'protocol-studio-bundle', data })),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await view(page, '프로토콜');
   const graph = page.getByRole('region', { name: '프로토콜 상태도', exact: true });
   await expect(graph).toContainText('상태 1/2 · 전체 54개');

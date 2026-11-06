@@ -33,6 +33,7 @@ async function load(page: Page, config: ExperimentDefinition) {
     ),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await page.getByRole('button', { name: /^(현재 초안 |새 설정으로 )?전체 실행$/ }).click();
   await expect(page.getByText(/관찰 완료 · 가상 시간/)).toBeVisible();
 }
@@ -164,6 +165,7 @@ test('repeated experiment replay explains retry and rejected exhausted guards fo
     ),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await tab(page, '반복 실험');
   await page.getByLabel('seed 목록', { exact: true }).fill('1');
   await page.getByRole('button', { name: '반복 실행 시작', exact: true }).click();
@@ -263,6 +265,7 @@ test('oversized values and unsupported snapshots show explicit limits without mo
     ),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await tab(page, '실행');
   await page.getByRole('combobox', { name: '과거 실행 선택' }).selectOption(record.id);
   const commit = view.events.find((event) => event.kind === 'transition');

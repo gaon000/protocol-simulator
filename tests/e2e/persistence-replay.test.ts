@@ -139,6 +139,7 @@ test('exported bundle imports as a new copy on ID collision; corrupt and oversiz
   expect(path).not.toBeNull();
   await page.getByLabel('bundle 가져오기', { exact: true }).setInputFiles(path ?? '');
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await save(page);
   const merged = await stored(page);
   expect(merged.data.drafts).toHaveLength(2);
@@ -329,6 +330,7 @@ test('import captures cancellation of an unfinished live run, and deleting its r
     ),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await save(page);
   expect((await stored(page)).data.runs.find((item) => item.id === current?.id)?.view.status).toBe(
     'cancelled',

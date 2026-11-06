@@ -30,7 +30,7 @@
 
 ## Outcomes & Retrospective
 
-로컬 전체 검사를 통과했다. Node 570·문서 50·Chromium/Firefox UI 314·native DB 14·응답성 9다. 최종 전체 검사에서 legacy 1 MiB 저장 1377ms/3000ms, native 10k 최대 task 66ms/250ms였다. 기존 605동작 편집과 undo/redo도 같은 500ms 기준을 유지했다. 보완 코드 `8f2daff167fa27bd481929d26e6bbf3559784122`의 [원격 CI](https://github.com/gaon000/protocol-simulator/actions/runs/42256191134)도 같은 전체 검사를 통과했다. 완료 기록만 갱신한 최종 master SHA의 CI는 전달 응답에서 별도로 확인한다.
+로컬 전체 검사를 통과했다. Node 570·문서 50·Chromium/Firefox UI 314·native DB 14·응답성 9다. 최종 전체 검사에서 legacy 1 MiB 저장 1377ms/3000ms, native 10k 최대 task 66ms/250ms였다. 기존 605동작 편집과 undo/redo도 같은 500ms 기준을 유지했다. 보완 코드 `8f2daff167fa27bd481929d26e6bbf3559784122`의 [원격 CI](https://github.com/gaon000/protocol-simulator/actions/runs/42256191134)도 같은 전체 검사를 통과했다. 후속 가져오기 검사 보강까지 포함한 최종 master SHA의 CI는 전달 응답에서 별도로 확인한다.
 
 ## Context and Orientation
 
@@ -53,6 +53,12 @@ Node 24.18.0·pnpm 9.15.0, `pnpm check`·공백 검사와 [P7](../../design-docs
 ## Artifacts and Notes
 
 로그: 보완 원격 `/private/tmp/authoring-fix-ci.log`, 최종 로컬 `/private/tmp/authoring-ci-fix-check.log`, `/private/tmp/authoring-ci-failed.log`, `/private/tmp/authoring-ci-second.log`, `/private/tmp/authoring-performance-repeat.log`. 원격 trace는 해당 Actions artifact에 남는다.
+
+## 마스터 검증의 추가 발견
+
+문서 커밋 `4074914`의 [마스터 CI](https://github.com/gaon000/protocol-simulator/actions/runs/42257631090)는 Firefox의 기존 커버리지 검사에서 첫 탭 전환을 놓쳐 UI 313개 통과/1개 실패로 종료했다. 저장·새로고침 전 단계이며 성능 검사는 시작되지 않았다. trace의 검증 표시가 있는 화면과 제거 뒤 화면에서 탭 위치가 이동했고, 클릭 뒤에도 실험 구성 화면에 남았다. `8f2daff`의 통과와 구분한다.
+
+기존 linked 검사에 넣은 실제 준비 상태 대기를 같은 성공 안내를 사용하는 UI 검사 13개 파일의 17곳으로 확장했다. 적용 안내 확인 뒤 file input이 다시 활성화될 때까지 기다리고 다음 탭/실행/저장 조작을 한다. 고정 sleep·timeout/재시도·fixture·앱 코드·성능 상한은 바꾸지 않는다. 이 보강 뒤 로컬 최신 build/strict 타입·Chromium/Firefox UI 314개와 lint/format·문서 50개·공백 검사를 통과했다(`/private/tmp/import-ready-e2e.log`). 제품 source는 `8f2daff`와 같으며 최종 커밋의 원격 결과는 전달 응답에서 별도로 확인한다.
 
 ## Interfaces and Dependencies
 

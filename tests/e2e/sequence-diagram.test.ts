@@ -20,6 +20,7 @@ async function load(page: Page, config: ExperimentDefinition) {
     ),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await page.getByRole('button', { name: /^(현재 초안 |새 설정으로 )?전체 실행$/ }).click();
   await expect(page.getByText(/관찰 완료 · 가상 시간/)).toBeVisible();
   await page.locator('summary').filter({ hasText: '통신 시퀀스 보기' }).click();

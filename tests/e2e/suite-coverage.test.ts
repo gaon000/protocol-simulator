@@ -33,6 +33,7 @@ async function load(page: Page, draft: DraftRecord, runs: readonly SavedRun[] = 
     ),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await tab(page, '시나리오 묶음');
 }
 async function open(page: Page) {

@@ -30,6 +30,7 @@ async function load(page: Page, configuration?: ExperimentDefinition) {
       ),
     });
     await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+    await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   }
   await view(page, '프로토콜');
 }

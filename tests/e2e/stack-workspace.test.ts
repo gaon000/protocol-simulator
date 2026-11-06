@@ -333,6 +333,7 @@ test('editing during a real stack run checkpoints a partial run and mode switchi
     buffer: Buffer.from(JSON.stringify({ schemaVersion: 2, kind: 'protocol-studio-bundle', data })),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '새 스택 전체 실행', exact: true }).click();
   await expect(page.getByRole('button', { name: '스택 일시 정지', exact: true })).toBeEnabled();
   await tab(page, '편집');

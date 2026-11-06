@@ -26,6 +26,7 @@ async function load(page: Page, data = createWorkspace(createExampleCopy('ping_p
     buffer: Buffer.from(JSON.stringify({ schemaVersion: 1, kind: 'protocol-studio-bundle', data })),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await tab(page, '실행');
 }
 async function open(page: Page) {

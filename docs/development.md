@@ -73,6 +73,8 @@ Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim�
 
 Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium 156.0.8078.4/Firefox 157.0의 실제 폼 작성·필드/조건/장애 변경·ACK 손실/유한 재시도·seed 재현·청크 원인·진단 초점·제어/상태 격리·키보드·390px 화면과 아홉 예제의 코어/화면 비교·HTTP 바이트/CL·TCP seq/ack·출처/사본이다. 실제 native IndexedDB의 새로고침 복원·invalid draft·bundle 왕복/거부·탭 충돌·quota/transaction abort·복구·snapshot 재실행도 검사한다. quota/abort는 테스트에서 API를 감싸 주입하며 실제 저장장치 고장 검증은 아니다. 통신은 가상 엔진이며 실제 네트워크 E2E는 없다.
 
+bundle 가져오기 성공 안내는 메모리 적용 시점이다. 파일 처리와 저장 정리가 남을 수 있으므로 UI 검사의 다음 탭/실행 조작은 파일 입력이 다시 활성화된 실제 가져오기 종료 뒤 시작한다. 고정 sleep이나 제한 시간 증가로 대신하지 않는다.
+
 테스트 수집 실패·전부 skip·예상보다 줄어든 범위를 통과로 해석하지 않는다. fixture·타이머·mock·외부 자원은 테스트 종료 시 정리한다.
 
 상태도 검사는 catalog 정의·평행/자기/역방향 전이·없는/중복 ID·유한 페이지·history cursor·snapshot 편집 대상과 Chromium/Firefox의 실제 선택/키보드·초점·좁은 화면을 포함한다. `src/application/state-diagram.ts`는 DOM 없이 검사하고 SVG에서 원본 정의를 변경하지 않는다. 후속 범위는 [상태도 계획](exec-plans/completed/20261102-protocol-state-diagram.md)을 따른다.

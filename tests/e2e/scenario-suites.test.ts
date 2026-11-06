@@ -26,6 +26,7 @@ async function load(page: Page, draft: DraftRecord) {
     ),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await tab(page, '시나리오 묶음');
 }
 async function run(page: Page) {
@@ -141,6 +142,7 @@ test('case settings survive source edits, native reload and bundle collisions wh
   if (!path) throw new Error('Missing download');
   await page.getByLabel('bundle 가져오기', { exact: true }).setInputFiles(path);
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await save(page);
   const after = await stored(page);
   expect(after.data.runs).toHaveLength(12);

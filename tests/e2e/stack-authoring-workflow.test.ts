@@ -80,6 +80,7 @@ async function load(page: Page, data: WorkspaceV2) {
     buffer: Buffer.from(JSON.stringify({ schemaVersion: 2, kind: 'protocol-studio-bundle', data })),
   });
   await expect(page.getByText(/검증한 bundle을 적용/)).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '계층 연결 스택', exact: true }).click();
 }
 for (const width of [1440, 768, 390])
