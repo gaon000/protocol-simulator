@@ -1,10 +1,11 @@
+import { planDatagram } from '../domain/datagram-policy.ts';
 import { EXECUTION_POLICY } from '../domain/execution-contract.ts';
 import type { Direction, EnvironmentDefinition } from '../domain/protocol-model.ts';
 import {
-  EnvironmentLimit,
   type DeliveryEvent,
   type EnvironmentEvent,
   type EnvironmentFactory,
+  EnvironmentLimit,
   type Transmission,
   type WirePayload,
 } from '../engine/environment-port.ts';
@@ -27,28 +28,10 @@ function datagramEnvironment(
   definition: Extract<EnvironmentDefinition, { kind: 'datagram' }>,
   random: () => number,
 ) {
-  const drops = new Set(
-    definition.targetedDrops.map((item) => `${item.direction}:${item.transmission}`),
-  );
   function* transmit(tx: Transmission): Iterable<EnvironmentEvent> {
-    const direction = directionOf(tx);
-    const settings = definition.directions[direction];
-    const targeted = drops.has(`${direction}:${tx.transmission}`);
-    const draws = targeted ? [] : Array.from({ length: 4 }, () => random());
-    const [loss = 0, duplicate = 0, originalDelay = 0, duplicateDelay = 0] = draws;
-    const dropped = targeted || loss < settings.lossRate;
-    const duplicated = !dropped && duplicate < settings.duplicateRate;
-    const arrival = (sample: number) =>
-      safeTime(
-        tx.timeMs +
-          Math.max(0, settings.delayMs + Math.round((sample * 2 - 1) * settings.jitterMs)),
-      );
-    const deliveries: { copy: 'original' | 'duplicate'; timeMs: number }[] = dropped
-      ? []
-      : [
-          { copy: 'original', timeMs: arrival(originalDelay) },
-          ...(duplicated ? [{ copy: 'duplicate' as const, timeMs: arrival(duplicateDelay) }] : []),
-        ];
+    const decision = planDatagram(definition, tx.from, tx.timeMs, tx.transmission, random);
+    const { direction, draws, deliveries, outcome } = decision;
+    const dropped = !deliveries.length;
     const payload = dropped ? undefined : copyPayload(tx.payload);
     yield {
       kind: 'notice',
@@ -59,13 +42,7 @@ function datagramEnvironment(
         operation: 'datagram-decision',
         direction,
         transmission: tx.transmission,
-        outcome: targeted
-          ? 'drop-targeted'
-          : dropped
-            ? 'drop-random'
-            : duplicated
-              ? 'duplicate'
-              : 'deliver',
+        outcome,
         draws,
         deliveries,
       },

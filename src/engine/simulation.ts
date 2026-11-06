@@ -31,6 +31,7 @@ import {
 } from './environment-port.ts';
 import { EventQueue } from './event-queue.ts';
 import { EvaluationFault, equalJson, evaluateCondition, evaluateValue } from './expressions.ts';
+import { matchingRules } from './rule-evaluation.ts';
 
 type TerminalStatus = RunResult['status'];
 
@@ -331,11 +332,15 @@ export class SimulationEngine {
     let ruleId: string | undefined;
     try {
       const context = { variables: actor.variables, ...(message ? { message } : {}) };
-      const matching = actor.protocol.rules.filter((rule) => {
-        if (rule.fromStateId !== actor.stateId || !equalJson(rule.event, event)) return false;
-        ruleId = rule.id;
-        return !rule.condition || evaluateCondition(rule.condition, context);
-      });
+      const matching = matchingRules(
+        actor.protocol.rules,
+        actor.stateId,
+        event,
+        (rule) => !rule.condition || evaluateCondition(rule.condition, context),
+        (rule) => {
+          ruleId = rule.id;
+        },
+      );
       if (matching.length !== 1) {
         ruleId = undefined;
         throw new EvaluationFault(

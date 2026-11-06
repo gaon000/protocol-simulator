@@ -27,6 +27,11 @@ export type JsonLinesCodec = {
   readonly push: (chunk: Uint8Array) => DecodeBatch;
   readonly finish: () => DecodeBatch;
   readonly abort: () => void;
+  readonly fork: () => JsonLinesCodec;
+  readonly bufferedBytes: () => number;
+  readonly pushTracked: (
+    chunk: Uint8Array,
+  ) => DecodeBatch & { readonly frameBytes: readonly number[] };
 };
 export type DatagramCodec = {
   readonly encode: (message: unknown) => ValidationResult<Uint8Array>;
@@ -179,88 +184,101 @@ export function createJsonLinesCodec(
   const checked = configuration(value, 'json-lines', limits);
   if (!checked.success) return checked;
   const { protocol, messageBytes, bufferBytes } = checked.value;
-  let pending = new Uint8Array(Math.min(1024, messageBytes, bufferBytes));
-  let buffered = 0;
-  let frame = 0;
-  let ended = false;
-  let terminalDiagnostics: readonly ModelDiagnostic[] = [];
-  function stop(diagnostics: readonly ModelDiagnostic[]): void {
-    terminalDiagnostics = diagnostics;
-    ended = true;
-    pending = new Uint8Array(0);
-    buffered = 0;
-  }
-  function push(chunk: Uint8Array): DecodeBatch {
-    if (ended)
-      return {
-        messages: [],
-        diagnostics: [{ path: '/', code: 'codec-closed', message: 'Decoder is already closed' }],
-        closed: true,
-      };
-    const messages: ProtocolMessage[] = [];
-    let start = 0;
-    for (let end = 0; end < chunk.length; end++) {
-      const size = buffered + end - start + 1;
-      if (size > messageBytes || size > bufferBytes) {
+  function build(state?: {
+    pending: Uint8Array;
+    buffered: number;
+    frame: number;
+    ended: boolean;
+    diagnostics: readonly ModelDiagnostic[];
+  }): JsonLinesCodec {
+    let pending =
+      state?.pending.slice() ?? new Uint8Array(Math.min(1024, messageBytes, bufferBytes));
+    let buffered = state?.buffered ?? 0;
+    let frame = state?.frame ?? 0;
+    let ended = state?.ended ?? false;
+    let terminalDiagnostics: readonly ModelDiagnostic[] = state?.diagnostics ?? [];
+    let frameBytes: number[] = [];
+    function stop(diagnostics: readonly ModelDiagnostic[]): void {
+      terminalDiagnostics = diagnostics;
+      ended = true;
+      pending = new Uint8Array(0);
+      buffered = 0;
+    }
+    function push(chunk: Uint8Array): DecodeBatch {
+      frameBytes = [];
+      if (ended)
+        return {
+          messages: [],
+          diagnostics: [{ path: '/', code: 'codec-closed', message: 'Decoder is already closed' }],
+          closed: true,
+        };
+      const messages: ProtocolMessage[] = [];
+      let start = 0;
+      for (let end = 0; end < chunk.length; end++) {
+        const size = buffered + end - start + 1;
+        if (size > messageBytes || size > bufferBytes) {
+          stop([
+            {
+              path: `/frames/${frame}`,
+              code: size > messageBytes ? 'message-limit' : 'buffer-limit',
+              message: 'Incomplete or complete frame exceeds byte limit',
+            },
+          ]);
+          break;
+        }
+        if (chunk[end] !== 10 && end !== chunk.length - 1) continue;
+        if (size > pending.length) {
+          const grown = new Uint8Array(
+            Math.min(Math.max(size, pending.length * 2), messageBytes, bufferBytes),
+          );
+          grown.set(pending.subarray(0, buffered));
+          pending = grown;
+        }
+        pending.set(chunk.subarray(start, end + 1), buffered);
+        buffered = size;
+        start = end + 1;
+        if (chunk[end] !== 10) continue;
+        const parsed = parseBytes(protocol, pending.subarray(0, buffered - 1));
+        if (!parsed.success) {
+          stop(
+            parsed.diagnostics.map((item) => ({
+              ...item,
+              path: `/frames/${frame}${item.path === '/' ? '' : item.path}`,
+            })),
+          );
+          break;
+        }
+        messages.push(parsed.value);
+        frameBytes.push(buffered);
+        buffered = 0;
+        frame++;
+      }
+      return { messages, diagnostics: terminalDiagnostics, closed: ended };
+    }
+    function finish(): DecodeBatch {
+      if (!ended && buffered)
         stop([
           {
             path: `/frames/${frame}`,
-            code: size > messageBytes ? 'message-limit' : 'buffer-limit',
-            message: 'Incomplete or complete frame exceeds byte limit',
+            code: 'incomplete-frame',
+            message: 'EOF before the required LF delimiter',
           },
         ]);
-        break;
-      }
-      if (chunk[end] !== 10 && end !== chunk.length - 1) continue;
-      if (size > pending.length) {
-        const grown = new Uint8Array(
-          Math.min(Math.max(size, pending.length * 2), messageBytes, bufferBytes),
-        );
-        grown.set(pending.subarray(0, buffered));
-        pending = grown;
-      }
-      pending.set(chunk.subarray(start, end + 1), buffered);
-      buffered = size;
-      start = end + 1;
-      if (chunk[end] !== 10) continue;
-      const parsed = parseBytes(protocol, pending.subarray(0, buffered - 1));
-      if (!parsed.success) {
-        stop(
-          parsed.diagnostics.map((item) => ({
-            ...item,
-            path: `/frames/${frame}${item.path === '/' ? '' : item.path}`,
-          })),
-        );
-        break;
-      }
-      messages.push(parsed.value);
-      buffered = 0;
-      frame++;
+      ended = true;
+      pending = new Uint8Array(0);
+      return { messages: [], diagnostics: terminalDiagnostics, closed: true };
     }
-    return { messages, diagnostics: terminalDiagnostics, closed: ended };
-  }
-  function finish(): DecodeBatch {
-    if (!ended && buffered)
-      stop([
-        {
-          path: `/frames/${frame}`,
-          code: 'incomplete-frame',
-          message: 'EOF before the required LF delimiter',
-        },
-      ]);
-    ended = true;
-    pending = new Uint8Array(0);
-    return { messages: [], diagnostics: terminalDiagnostics, closed: true };
-  }
-  return {
-    success: true,
-    value: {
+    return {
       encode: (message) => encodeBytes(protocol, message, messageBytes, true),
       push,
       finish,
       abort: () => stop([]),
-    },
-  };
+      fork: () => build({ pending, buffered, frame, ended, diagnostics: terminalDiagnostics }),
+      bufferedBytes: () => buffered,
+      pushTracked: (chunk) => ({ ...push(chunk), frameBytes }),
+    };
+  }
+  return { success: true, value: build() };
 }
 
 /** Encode or decode exactly one complete JSON message per datagram; never join packets. */

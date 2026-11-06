@@ -29,5 +29,6 @@
 
 - [P6 로컬 저장·파일·과거 실행](p6-persistence-replay.md) — Accepted. IndexedDB transaction·revision 충돌·quota 복구, invalid draft·bundle 검증과 읽기 전용 탐색/snapshot 재실행.
 - [P7 v1 검증·응답성·지원 범위](p7-validation.md) — Accepted. Chromium/Firefox·키보드/화면 크기·실제 상한 성능 기준과 CI 증거 경계.
-- [계층 연결 프로토콜 스택](layered-stack-v2.md) — Accepted. 응용/전송 인스턴스·서비스 포트·단일 scheduler·바이트·legacy 호환과 단계별 관찰 확장 설계. S1 모델/검사를 구현했으며 실행·저장·UI는 후속.
+- [계층 연결 프로토콜 스택](layered-stack-v2.md) — Accepted. 응용/전송 인스턴스·서비스 포트·단일 scheduler·바이트·legacy 호환과 단계별 관찰 확장 설계. S1 모델/검사와 S2 코어를 구현했으며 실제 신뢰성 provider·저장·UI는 후속.
 - [S1 스택 모델·포트·바이트](s1-stack-models.md) — Accepted. v2 JSON/API·typed 포트와 topology 검사·bounded bytes 표현식·run/record 소유 자료와 자원 회계. S2 진입 계약.
+- [S2 스택 실행 코어](s2-stack-runtime.md) — Accepted. 공유 규칙 검사·한 clock/queue·fork/예약/commit, endpoint별 수명·실제 byte provenance·prefix/legacy 보존.

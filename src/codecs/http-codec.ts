@@ -264,130 +264,143 @@ export function createHttpCodec(
     bufferMaximum > EXECUTION_POLICY.maxBufferBytes
   )
     return failure('codec-limits', 'Invalid HTTP byte limits');
-  let pending = new Uint8Array(Math.min(1024, maximum, bufferMaximum));
-  let buffered = 0;
-  let header: Header | undefined;
-  let ended = false;
-  let frame = 0;
-  let diagnostics: readonly ModelDiagnostic[] = [];
-  function stop(errors: readonly ModelDiagnostic[]) {
-    diagnostics = errors;
-    ended = true;
-    pending = new Uint8Array(0);
-    buffered = 0;
-    header = undefined;
-  }
-  function error(code: string, message: string) {
-    stop([{ path: `/frames/${frame}`, code, message }]);
-  }
-  function ensure(size: number): boolean {
-    if (size > maximum) {
-      error('message-limit', 'HTTP message exceeds its byte limit');
-      return false;
+  function build(state?: {
+    pending: Uint8Array;
+    buffered: number;
+    header: Header | undefined;
+    ended: boolean;
+    frame: number;
+    diagnostics: readonly ModelDiagnostic[];
+  }): JsonLinesCodec {
+    let pending = state?.pending.slice() ?? new Uint8Array(Math.min(1024, maximum, bufferMaximum));
+    let buffered = state?.buffered ?? 0;
+    let header: Header | undefined = state?.header;
+    let ended = state?.ended ?? false;
+    let frame = state?.frame ?? 0;
+    let diagnostics: readonly ModelDiagnostic[] = state?.diagnostics ?? [];
+    let frameBytes: number[] = [];
+    function stop(errors: readonly ModelDiagnostic[]) {
+      diagnostics = errors;
+      ended = true;
+      pending = new Uint8Array(0);
+      buffered = 0;
+      header = undefined;
     }
-    if (size > bufferMaximum) {
-      error('buffer-limit', 'HTTP frame exceeds the receive buffer limit');
-      return false;
+    function error(code: string, message: string) {
+      stop([{ path: `/frames/${frame}`, code, message }]);
     }
-    if (size > pending.length) {
-      const grown = new Uint8Array(
-        Math.min(maximum, bufferMaximum, Math.max(size, pending.length * 2)),
-      );
-      grown.set(pending.subarray(0, buffered));
-      pending = grown;
+    function ensure(size: number): boolean {
+      if (size > maximum) {
+        error('message-limit', 'HTTP message exceeds its byte limit');
+        return false;
+      }
+      if (size > bufferMaximum) {
+        error('buffer-limit', 'HTTP frame exceeds the receive buffer limit');
+        return false;
+      }
+      if (size > pending.length) {
+        const grown = new Uint8Array(
+          Math.min(maximum, bufferMaximum, Math.max(size, pending.length * 2)),
+        );
+        grown.set(pending.subarray(0, buffered));
+        pending = grown;
+      }
+      return true;
     }
-    return true;
-  }
-  function complete(messages: ProtocolMessage[]) {
-    if (!header || header.message.http?.kind === 'raw' || !header.message.http) return;
-    let body: string;
-    try {
-      body = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
-        pending.subarray(header.headerBytes, buffered),
-      );
-    } catch {
-      error('http-body-utf8', 'The declared body is not complete valid UTF-8');
-      return;
+    function complete(messages: ProtocolMessage[]) {
+      if (!header || header.message.http?.kind === 'raw' || !header.message.http) return;
+      let body: string;
+      try {
+        body = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
+          pending.subarray(header.headerBytes, buffered),
+        );
+      } catch {
+        error('http-body-utf8', 'The declared body is not complete valid UTF-8');
+        return;
+      }
+      const values = Object.fromEntries([
+        ...Object.entries(header.values),
+        [header.message.http.bodyFieldId, body],
+      ]);
+      const parsed = validateProtocolMessage(protocol, { messageId: header.message.id, values });
+      if (!parsed.success) {
+        stop(parsed.diagnostics);
+        return;
+      }
+      messages.push(parsed.value);
+      frameBytes.push(buffered);
+      buffered = 0;
+      header = undefined;
+      frame++;
     }
-    const values = Object.fromEntries([
-      ...Object.entries(header.values),
-      [header.message.http.bodyFieldId, body],
-    ]);
-    const parsed = validateProtocolMessage(protocol, { messageId: header.message.id, values });
-    if (!parsed.success) {
-      stop(parsed.diagnostics);
-      return;
-    }
-    messages.push(parsed.value);
-    buffered = 0;
-    header = undefined;
-    frame++;
-  }
-  function push(chunk: Uint8Array): DecodeBatch {
-    if (ended)
-      return {
-        messages: [],
-        diagnostics: [{ path: '/', code: 'codec-closed', message: 'Decoder is already closed' }],
-        closed: true,
-      };
-    const messages: ProtocolMessage[] = [];
-    let offset = 0;
-    while (offset < chunk.length && !ended) {
-      if (header) {
-        const total = header.headerBytes + header.bodyLength;
-        const count = Math.min(total - buffered, chunk.length - offset);
-        if (!ensure(buffered + count)) break;
-        pending.set(chunk.subarray(offset, offset + count), buffered);
-        buffered += count;
-        offset += count;
-        if (buffered === total) complete(messages);
-      } else {
-        if (!ensure(buffered + 1)) break;
-        pending[buffered++] = chunk[offset++] ?? 0;
-        if (buffered > 65_536) {
-          error('http-header-limit', 'Headers exceed the 64 KiB codec limit');
-          break;
-        }
-        if (
-          buffered >= 4 &&
-          pending[buffered - 4] === 13 &&
-          pending[buffered - 3] === 10 &&
-          pending[buffered - 2] === 13 &&
-          pending[buffered - 1] === 10
-        ) {
-          const parsed = readHeaders(protocol, pending.subarray(0, buffered));
-          if (!parsed.success) {
-            stop(parsed.diagnostics.map((item) => ({ ...item, path: `/frames/${frame}` })));
+    function push(chunk: Uint8Array): DecodeBatch {
+      frameBytes = [];
+      if (ended)
+        return {
+          messages: [],
+          diagnostics: [{ path: '/', code: 'codec-closed', message: 'Decoder is already closed' }],
+          closed: true,
+        };
+      const messages: ProtocolMessage[] = [];
+      let offset = 0;
+      while (offset < chunk.length && !ended) {
+        if (header) {
+          const total = header.headerBytes + header.bodyLength;
+          const count = Math.min(total - buffered, chunk.length - offset);
+          if (!ensure(buffered + count)) break;
+          pending.set(chunk.subarray(offset, offset + count), buffered);
+          buffered += count;
+          offset += count;
+          if (buffered === total) complete(messages);
+        } else {
+          if (!ensure(buffered + 1)) break;
+          pending[buffered++] = chunk[offset++] ?? 0;
+          if (buffered > 65_536) {
+            error('http-header-limit', 'Headers exceed the 64 KiB codec limit');
             break;
           }
-          header = parsed.value;
-          if (!ensure(header.headerBytes + header.bodyLength)) break;
-          if (header.bodyLength === 0) complete(messages);
+          if (
+            buffered >= 4 &&
+            pending[buffered - 4] === 13 &&
+            pending[buffered - 3] === 10 &&
+            pending[buffered - 2] === 13 &&
+            pending[buffered - 1] === 10
+          ) {
+            const parsed = readHeaders(protocol, pending.subarray(0, buffered));
+            if (!parsed.success) {
+              stop(parsed.diagnostics.map((item) => ({ ...item, path: `/frames/${frame}` })));
+              break;
+            }
+            header = parsed.value;
+            if (!ensure(header.headerBytes + header.bodyLength)) break;
+            if (header.bodyLength === 0) complete(messages);
+          }
         }
       }
+      return { messages, diagnostics, closed: ended };
     }
-    return { messages, diagnostics, closed: ended };
-  }
-  function finish(): DecodeBatch {
-    if (!ended && buffered)
-      error(
-        header ? 'http-incomplete-body' : 'http-incomplete-headers',
-        header
-          ? `EOF after ${buffered - header.headerBytes} of ${header.bodyLength} body bytes`
-          : 'EOF before CRLF header termination',
-      );
-    ended = true;
-    pending = new Uint8Array(0);
-    header = undefined;
-    return { messages: [], diagnostics, closed: true };
-  }
-  return {
-    success: true,
-    value: {
+    function finish(): DecodeBatch {
+      if (!ended && buffered)
+        error(
+          header ? 'http-incomplete-body' : 'http-incomplete-headers',
+          header
+            ? `EOF after ${buffered - header.headerBytes} of ${header.bodyLength} body bytes`
+            : 'EOF before CRLF header termination',
+        );
+      ended = true;
+      pending = new Uint8Array(0);
+      header = undefined;
+      return { messages: [], diagnostics, closed: true };
+    }
+    return {
       encode: (message) => encodeMessage(protocol, message, maximum),
       push,
       finish,
       abort: () => stop([]),
-    },
-  };
+      fork: () => build({ pending, buffered, header, ended, frame, diagnostics }),
+      bufferedBytes: () => buffered,
+      pushTracked: (chunk) => ({ ...push(chunk), frameBytes }),
+    };
+  }
+  return { success: true, value: build() };
 }

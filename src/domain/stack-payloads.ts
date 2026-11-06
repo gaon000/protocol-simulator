@@ -112,6 +112,15 @@ export function parseStackTrace(
   artifacts: unknown,
   limits: StackLimits = defaultStackLimits(),
 ): ValidationResult<readonly StackTrace[]> {
+  return traceBatch(value, artifacts, limits);
+}
+
+function traceBatch(
+  value: unknown,
+  artifacts: unknown,
+  limits: StackLimits,
+  prefix?: { readonly ids: ReadonlySet<string>; readonly last: StackTrace | undefined },
+): ValidationResult<readonly StackTrace[]> {
   const parsedLimits = parseStackLimits(limits);
   if (!parsedLimits.success) return parsedLimits;
   const json = parseJsonData(value, { maxDepth: 64, maxNodes: 500_000 });
@@ -122,9 +131,9 @@ export function parseStackTrace(
     return failure('/', 'trace-limit', 'Global trace event limit exceeded');
   const ids = new Set<string>();
   const ranges: PayloadRange[] = [];
-  let runId: string | undefined;
-  let previousSequence = -1;
-  let previousTime = 0;
+  let runId: string | undefined = prefix?.last?.runId;
+  let previousSequence = prefix?.last?.sequence ?? -1;
+  let previousTime = prefix?.last?.timeMs ?? 0;
   r.array(value, '', (item, path) => {
     const event = r.object(
       item,
@@ -162,6 +171,8 @@ export function parseStackTrace(
       'timer',
       'transition',
       'diagnostic',
+      'environment',
+      'connection',
       'service-request',
       'service-accepted',
       'service-received',
@@ -178,7 +189,7 @@ export function parseStackTrace(
     r.array(event.sourceEventIds, `${path}/sourceEventIds`, (source, location) => {
       r.text(source, location, true);
       if (typeof source === 'string') {
-        if (!ids.has(source))
+        if (!ids.has(source) && !prefix?.ids.has(source))
           r.issue(location, 'source-reference', 'Source must be an earlier event in this record');
         if (sources.has(source)) r.issue(location, 'duplicate-source', 'Repeated source event');
         sources.add(source);
@@ -189,7 +200,7 @@ export function parseStackTrace(
       if (parsed) ranges.push(parsed);
     });
     if (typeof event.eventId === 'string') {
-      if (ids.has(event.eventId))
+      if (ids.has(event.eventId) || prefix?.ids.has(event.eventId))
         r.issue(`${path}/eventId`, 'duplicate-id', 'Duplicate trace event ID');
       ids.add(event.eventId);
     }
@@ -227,12 +238,19 @@ export class StackPayloadStore {
   readonly #handles = new WeakSet<object>();
   readonly #owners = new Map<
     string,
-    { readonly kind: PayloadOwner['kind']; readonly ranges: readonly PayloadRange[] }
+    {
+      readonly kind: PayloadOwner['kind'];
+      readonly ranges: readonly PayloadRange[];
+      readonly bytes: number;
+    }
   >();
   readonly #committed = new Set<string>();
   readonly #trace: StackTrace[] = [];
   readonly #eventIds = new Set<string>();
   readonly #runId: string;
+  readonly #serialized = new Map<string, import('./stack-model.ts').BytesValue>();
+  #reserving = false;
+  #reservedHandles: PayloadRange[] = [];
   #nextId = 1;
   #uniqueBytes = 0;
   #liveBytes = 0;
@@ -251,6 +269,7 @@ export class StackPayloadStore {
   #handle(payloadId: string, offset: number, length: number): PayloadRange {
     const handle = Object.freeze({ payloadId, offset, length });
     this.#handles.add(handle);
+    if (this.#reserving) this.#reservedHandles.push(handle);
     return handle;
   }
   #owns(range: PayloadRange): boolean {
@@ -273,12 +292,14 @@ export class StackPayloadStore {
       payloads: [...ids].map((payloadId) => {
         const block = this.#blocks.get(payloadId);
         if (!block) throw new Error('Committed payload ownership was lost');
-        return { payloadId, bytes: block.toJSON() };
+        let bytes = this.#serialized.get(payloadId);
+        if (!bytes) {
+          bytes = block.toJSON();
+          this.#serialized.set(payloadId, bytes);
+        }
+        return { payloadId, bytes };
       }),
     };
-  }
-  #artifactSize(trace: readonly StackTrace[], ids: ReadonlySet<string>): number {
-    return jsonSize({ trace, artifacts: this.#artifacts(ids) });
   }
   get usage(): PayloadUsage {
     return Object.freeze({
@@ -320,7 +341,15 @@ export class StackPayloadStore {
     if (!block) return failure('/', 'payload-reference', 'Payload is absent');
     return { success: true, value: block.slice(range.offset, range.length).copy() };
   }
-  setOwner(owner: PayloadOwner, ranges: readonly PayloadRange[]): ValidationResult<PayloadUsage> {
+  /** Check live handle ownership without copying its bytes. */
+  owns(range: PayloadRange): boolean {
+    return this.#owns(range);
+  }
+  setOwner(
+    owner: PayloadOwner,
+    ranges: readonly PayloadRange[],
+    logicalBytes = ranges.reduce((sum, range) => sum + range.length, 0),
+  ): ValidationResult<PayloadUsage> {
     if (
       !/^[A-Za-z_][A-Za-z0-9_/-]*$/.test(owner.id) ||
       !['codec', 'provider', 'port'].includes(owner.kind)
@@ -335,27 +364,32 @@ export class StackPayloadStore {
     const previous = this.#owners.get(owner.id);
     if (previous && previous.kind !== owner.kind)
       return failure('/owner', 'payload-owner', 'Owner kind cannot change');
-    const length = ranges.reduce((sum, range) => sum + range.length, 0);
+    const length = logicalBytes;
+    if (
+      !Number.isSafeInteger(length) ||
+      length < ranges.reduce((sum, range) => sum + range.length, 0)
+    )
+      return failure('/ranges', 'live-buffer-limit', 'Logical bytes must cover all owned ranges');
     const maximum =
       owner.kind === 'codec'
         ? this.#limits.maxCodecBufferBytes
         : owner.kind === 'port'
           ? this.#limits.maxPortBytes
           : this.#limits.maxLiveBytes;
-    const oldLength = previous?.ranges.reduce((sum, range) => sum + range.length, 0) ?? 0;
+    const oldLength = previous?.bytes ?? 0;
     if (length > maximum || this.#liveBytes - oldLength + length > this.#limits.maxLiveBytes)
       return failure(
         '/ranges',
         'live-buffer-limit',
         'Per-owner or global logical buffer budget exceeded',
       );
-    this.#owners.set(owner.id, { kind: owner.kind, ranges: [...ranges] });
+    this.#owners.set(owner.id, { kind: owner.kind, ranges: [...ranges], bytes: length });
     this.#liveBytes += length - oldLength;
     return { success: true, value: this.usage };
   }
   releaseOwner(ownerId: string): void {
     const owner = this.#owners.get(ownerId);
-    if (owner) this.#liveBytes -= owner.ranges.reduce((sum, range) => sum + range.length, 0);
+    if (owner) this.#liveBytes -= owner.bytes;
     this.#owners.delete(ownerId);
   }
   collectUnreferenced(): void {
@@ -366,6 +400,7 @@ export class StackPayloadStore {
       if (!keep.has(id)) {
         this.#uniqueBytes -= block.byteLength;
         this.#blocks.delete(id);
+        this.#serialized.delete(id);
       }
   }
   clearLive(): void {
@@ -374,14 +409,54 @@ export class StackPayloadStore {
     this.collectUnreferenced();
   }
 
+  /** Stage private blocks/owners until trace reservation succeeds; rollback cannot erase a commit. */
+  beginReservation(): { readonly rollback: () => void; readonly commit: () => void } {
+    if (this.#reserving) throw new Error('Nested payload reservation');
+    this.#reserving = true;
+    this.#reservedHandles = [];
+    const blocks = new Map(this.#blocks);
+    const owners = new Map(this.#owners);
+    const serialized = new Map(this.#serialized);
+    const unique = this.#uniqueBytes;
+    const live = this.#liveBytes;
+    const next = this.#nextId;
+    const count = this.#trace.length;
+    let closed = false;
+    return {
+      rollback: () => {
+        if (closed) return;
+        if (count !== this.#trace.length) throw new Error('Cannot roll back committed trace');
+        this.#blocks.clear();
+        for (const [key, value] of blocks) this.#blocks.set(key, value);
+        this.#owners.clear();
+        for (const [key, value] of owners) this.#owners.set(key, value);
+        this.#serialized.clear();
+        for (const [key, value] of serialized) this.#serialized.set(key, value);
+        this.#uniqueBytes = unique;
+        this.#liveBytes = live;
+        this.#nextId = next;
+        for (const handle of this.#reservedHandles) this.#handles.delete(handle);
+        this.#reservedHandles = [];
+        this.#reserving = false;
+        closed = true;
+      },
+      commit: () => {
+        if (closed) return;
+        this.#reserving = false;
+        this.#reservedHandles = [];
+        closed = true;
+      },
+    };
+  }
+
   /** Validate/reserve the entire trace batch before committing any event or retained payload. */
   appendTrace(events: readonly StackTrace[]): ValidationResult<PayloadUsage> {
     const json = parseJsonData(events, { maxDepth: 64, maxNodes: 500_000 });
     if (!json.success) return json;
     if (events.length + this.#trace.length > this.#limits.maxTraceEvents)
       return failure('/', 'trace-limit', 'Global trace event limit exceeded');
-    const ids = new Set(this.#committed);
-    const eventIds = new Set(this.#eventIds);
+    const ids = new Set<string>();
+    const eventIds = new Set<string>();
     for (const [index, event] of events.entries()) {
       if (
         !event ||
@@ -390,7 +465,8 @@ export class StackPayloadStore {
         event.mode !== 'stack' ||
         event.runId !== this.#runId ||
         !/^[A-Za-z_][A-Za-z0-9_-]*$/.test(event.eventId) ||
-        eventIds.has(event.eventId)
+        eventIds.has(event.eventId) ||
+        this.#eventIds.has(event.eventId)
       )
         return failure(
           `/${index}`,
@@ -410,10 +486,21 @@ export class StackPayloadStore {
       }
       eventIds.add(event.eventId);
     }
-    const next = [...this.#trace, ...events];
-    const validated = parseStackTrace(next, this.#artifacts(ids), this.#limits);
+    const validated = traceBatch(events, this.#artifacts(ids), this.#limits, {
+      ids: this.#eventIds,
+      last: this.#trace.at(-1),
+    });
     if (!validated.success) return validated;
-    const artifactBytes = this.#artifactSize(next, ids);
+    const fresh = new Set([...ids].filter((id) => !this.#committed.has(id)));
+    const entries = this.#artifacts(fresh).payloads;
+    const artifactBytes =
+      this.#artifactBytes +
+      events.reduce((sum, event) => sum + jsonSize(event), 0) +
+      Math.max(0, events.length - (this.#trace.length ? 0 : 1)) +
+      entries.reduce((sum, entry) => sum + jsonSize(entry), 0) +
+      Math.max(0, entries.length - (this.#committed.size ? 0 : 1));
+    if (artifactBytes > this.#limits.maxArtifactBytes)
+      return failure('/', 'artifact-limit', 'Trace plus payload artifacts exceed the global limit');
     for (const event of events) {
       this.#trace.push(freezeOwned(structuredClone(event)));
       this.#eventIds.add(event.eventId);

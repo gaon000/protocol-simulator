@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 범위: domain 모델·검사·소유 자료 도구. 스택 실행기·코덱 조합·화면·workspace/IndexedDB 연결은 아직 없다. [전체 설계](layered-stack-v2.md)와 [S1~S5 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다.
+구현 범위: domain 모델·검사·소유 자료 도구. 이를 사용하는 실행기/코덱 조합은 [S2](s2-stack-runtime.md)에서 구현했으며 화면·workspace/IndexedDB 연결은 후속이다. [전체 설계](layered-stack-v2.md)와 [S1~S5 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)을 따른다.
 
 ## JSON 형식과 버전
 
@@ -13,7 +13,7 @@
 | native protocol | `mode: 'stack-protocol'`, id/revision/label, layer/codec, requires/provides, 메시지·상태·변수·타이머·규칙 |
 | legacy application | `mode: 'legacy-application'`, `adapterVersion: 'v1-application-ports/1'`, 정확한 v1 source 전체와 requires. id/revision은 source와 동일 |
 | experiment | `mode: 'stack'`, 정의 전체, nodes.A/B.instances, bindings, 단일 link, scenario, seed, limits |
-| snapshot | `mode: 'stack'`, `engineVersion: 'stack-1'`, `randomAlgorithm: 'mulberry32-v1'`, configuration 전체. engineVersion은 S2가 구현할 계약의 식별자이며 실행기가 존재한다는 뜻이 아님 |
+| snapshot | `mode: 'stack'`, `engineVersion: 'stack-1'`, `randomAlgorithm: 'mulberry32-v1'`, configuration 전체. S2가 별도 실행 경로에서 소비하는 계약 |
 | trace | `mode: 'stack'`, run/event ID·timeMs·증가 sequence·endpoint, 선택 portId/linkId, kind·sourceEventIds·payloads·JSON data |
 | artifacts | `mode: 'stack-artifacts'`, payloads의 payloadId와 실제 bytes. payload ID는 이 record 안에서만 해석 |
 
@@ -57,7 +57,7 @@ no-op 규칙은 상태를 유지하고 `ignore: true`를 명시해야 하며 조
 
 handle은 store가 발급한 객체 정체성으로 확인한다. 다른 store의 동일 runId/payloadId·복사/위조한 JSON handle을 live API에서 사용할 수 없다. 저장된 range는 해당 record의 `parseRunArtifacts`/`readArtifactRange`로만 해석하며 다른 record와 공유 원인/내용이라고 판단하지 않는다.
 
-`setOwner`는 codec/port별 한도와 전체 live 한도를 모두 확인한 후 소유 범위 전체를 원자적으로 교체한다. 실패하면 기존 소유권/회계가 유지된다. `appendTrace`는 전체 batch의 버전·ID·순서·이전 source ID·소유 handle·trace+실제 base64 artifacts의 직렬화 합계를 확인한 뒤 한 번에 보존한다. 이 예약은 자료 도구의 계약이며 S2의 상태/효과/큐 처리 원자성 구현은 별도다.
+`setOwner`는 codec/port별 한도와 전체 live 한도를 모두 확인한 후 소유 범위 전체를 원자적으로 교체한다. 실패하면 기존 소유권/회계가 유지된다. 선택 logicalBytes는 전체 range 길이를 포함한 packet 메타데이터 비용도 셀 수 있다. `appendTrace`는 전체 batch의 버전·ID·순서·이전 source ID·소유 handle·trace+실제 base64 artifacts의 직렬화 합계를 확인한 뒤 한 번에 보존한다. S2는 beginReservation의 rollback/commit을 통해 상태·효과·큐 처리 예약과 조합한다.
 
 `capture()`는 trace와 사용된 원본 블록의 불변 자료를 반환한다. `clearLive()`는 owner와 관찰되지 않은 임시 블록만 정리하며 committed trace 블록은 남긴다. 캡처한 자료는 store/새 실행과 독립적이다. record 삭제 뒤 store/capture의 참조를 놓으면 일반 GC 대상이 된다. DB 저장은 아직 연결하지 않았다.
 

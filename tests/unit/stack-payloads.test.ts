@@ -195,3 +195,54 @@ test('v2 trace validation enforces order, actual earlier causes and the same rec
     false,
   );
 });
+
+test('rollback restores owner budgets and revoked temporary capabilities cannot alias reused payload IDs', () => {
+  const store = new StackPayloadStore('run');
+  const original = ok(store.add(Uint8Array.of(1)));
+  ok(store.setOwner({ id: 'A/port', kind: 'port' }, [original], 10));
+  const before = store.usage;
+  const reservation = store.beginReservation();
+  const temp = ok(store.add(Uint8Array.of(2)));
+  const sliced = ok(store.slice(original, 0, 1));
+  ok(store.setOwner({ id: 'A/port', kind: 'port' }, [temp], 20));
+  reservation.rollback();
+  assert.deepEqual(store.usage, before);
+  assert.equal(store.read(temp).success, false);
+  assert.equal(store.read(sliced).success, false);
+  const reused = ok(store.add(Uint8Array.of(3)));
+  assert.equal(temp.payloadId, reused.payloadId);
+  assert.equal(store.read(temp).success, false);
+  assert.deepEqual(ok(store.read(reused)), Uint8Array.of(3));
+  assert.equal(store.setOwner({ id: 'A/port', kind: 'port' }, [original], 0).success, false);
+});
+
+test('incremental trace reservations account exact serialized bytes including shared payloads and commas', () => {
+  const store = new StackPayloadStore('run');
+  const range = ok(store.add(Uint8Array.of(1, 2, 3)));
+  for (let index = 1; index <= 12; index++) {
+    ok(
+      store.appendTrace([
+        {
+          ...stackTraceFixture([range]),
+          eventId: `event_${index}`,
+          sequence: index,
+          sourceEventIds: index === 1 ? [] : [`event_${index - 1}`],
+        },
+      ]),
+    );
+    const capture = store.capture();
+    assert.equal(
+      new TextEncoder().encode(JSON.stringify(capture)).length,
+      store.usage.artifactBytes,
+    );
+  }
+  assert.equal(store.capture().artifacts.payloads.length, 1);
+  const before = store.capture();
+  assert.equal(
+    store.appendTrace([
+      { ...stackTraceFixture([range]), eventId: 'bad', sequence: 13, sourceEventIds: ['missing'] },
+    ]).success,
+    false,
+  );
+  assert.deepEqual(store.capture(), before);
+});

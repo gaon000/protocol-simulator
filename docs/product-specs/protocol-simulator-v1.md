@@ -29,7 +29,7 @@
 
 응용·전송 두 계층의 프로토콜을 각각 정의할 수 있고 한 번의 실행은 한 계층을 대상으로 한다. 하위 계층은 서비스 모델로 제공한다. 여러 사용자 정의 계층의 연결 실행은 후속 범위다. 계층 이름과 요청·응답 같은 통신 패턴은 별개의 속성이다. 응용 계층 프로토콜도 데이터그램을 사용할 수 있다.
 
-2026-11-06에 [계층 연결 후속 설계](../design-docs/layered-stack-v2.md)의 [S1 모델/검사](../design-docs/s1-stack-models.md)를 구현했다. [S1~S5 구현 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)의 실제 실행·화면·저장은 후속이며 본 명세의 현재 사용자 실행은 단일 계층이다.
+2026-11-06에 [계층 연결 후속 설계](../design-docs/layered-stack-v2.md)의 [S1 모델/검사](../design-docs/s1-stack-models.md)와 [S2 공유 실행 코어](../design-docs/s2-stack-runtime.md)를 구현했다. [S1~S5 구현 계획](../exec-plans/active/20261106-layered-protocol-stacks.md)의 신뢰성 provider·화면·저장은 후속이며 본 명세의 현재 사용자 화면은 단일 계층이다.
 
 ### V1-002: 하위 서비스와 호환성
 
@@ -259,7 +259,7 @@ literal/평가 값은 1024 node·누적 8192 character·깊이 16으로 제한�
 | 첫 버전의 데스크톱 웹 기준 | Resolved | 합의된 설계의 화면 기준. 배포·브라우저 지원 범위는 별도 |
 | UI 프레임워크와 최초 production dependency | Resolved | P0에서 React·React DOM 선택과 사용자 승인 기록. 이후 추가는 별도 확인 |
 | 자원 상한, 지원 브라우저, 저장 구현 | Resolved | P0/P6/P7에서 실행 10k/1 MiB·workspace 64 MiB·IndexedDB·Chromium/Firefox와 응답성 기준 확정. [검증 경계](../design-docs/p7-validation.md) |
-| 사용자 정의 계층 연결 | In Progress | S1 모델/포트/바이트·검사 구현. 실제 실행·provider·저장·UI는 후속이며 현재 v1 사용자 실행 범위 밖 |
+| 사용자 정의 계층 연결 | In Progress | S1 모델/검사·S2 공유 실행 코어 구현. 실제 신뢰성 provider·저장·UI는 후속이며 현재 v1 사용자 화면 범위 밖 |
 | 실제 네트워크 연결 | Deferred | 계층 연결 설계에도 포함하지 않음 |
 
 ## 관련 문서

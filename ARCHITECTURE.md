@@ -34,8 +34,12 @@
 | [src/application/batch-experiments.ts](src/application/batch-experiments.ts), [src/ui/BatchExperiments.tsx](src/ui/BatchExperiments.tsx), [useBatchExperiments.ts](src/ui/useBatchExperiments.ts) | 같은 seed 목록의 조건 조합·독립 엔진/유한 scheduler·실제 결과 집계와 기존 history 연결. SavedRun의 optional batch metadata로 보존 |
 | [src/domain/execution-contract.ts](src/domain/execution-contract.ts) | 서비스 포트, 버전·상한, 이벤트 정렬·난수·snapshot 기초 계약 |
 | [src/domain/protocol-model.ts](src/domain/protocol-model.ts), [model-validation.ts](src/domain/model-validation.ts) | 전체 정의·기록·결과 타입과 JSON/구조/의미·참조 검사 |
-| [src/domain/stack-model.ts](src/domain/stack-model.ts), [stack-validation.ts](src/domain/stack-validation.ts), [stack-protocol-validation.ts](src/domain/stack-protocol-validation.ts) | S1 v2 정의·서비스 포트·네 인스턴스/참조·wire 호환성·시나리오·불변 snapshot, 명시적 v1 앱 adapter. 실행/UI/DB에는 아직 연결하지 않음 |
+| [src/domain/stack-model.ts](src/domain/stack-model.ts), [stack-validation.ts](src/domain/stack-validation.ts), [stack-protocol-validation.ts](src/domain/stack-protocol-validation.ts) | S1 v2 정의·서비스 포트·네 인스턴스/참조·wire 호환성·시나리오·불변 snapshot, 명시적 v1 앱 adapter. 별도 S2 코어에 연결하며 UI/DB는 후속 |
 | [src/domain/stack-bytes.ts](src/domain/stack-bytes.ts), [stack-expressions.ts](src/domain/stack-expressions.ts), [stack-payloads.ts](src/domain/stack-payloads.ts) | canonical 바이트·유한 표현식, run별 private payload/handle·global/owner 예산·불변 trace artifacts |
+| [src/application/create-stack-simulation.ts](src/application/create-stack-simulation.ts), [src/domain/stack-runtime-model.ts](src/domain/stack-runtime-model.ts) | 독립 스택 생성/snapshot 재실행·session fence와 endpoint별 view/기대 판정 |
+| [src/engine/protocol-runtime.ts](src/engine/protocol-runtime.ts), [stack-scheduler.ts](src/engine/stack-scheduler.ts), [service-router.ts](src/engine/service-router.ts) | 네 독립 runtime·한 clock/queue·로컬 요청/통지·예약/commit·오류/전체 관찰 수명 |
+| [src/engine/stack-codec.ts](src/engine/stack-codec.ts), [stack-data.ts](src/engine/stack-data.ts) | fork 가능한 기존 byte 코덱/native 논리 packet 조합, actual frame/bytes·변수/slice/concat의 기여 범위 |
+| [src/engine/rule-evaluation.ts](src/engine/rule-evaluation.ts), [src/domain/datagram-policy.ts](src/domain/datagram-policy.ts) | v1/스택 공통 후보 검사·targeted drop/4-draw 순수 결정. v1의 기존 큐/trace 의미는 보존 |
 | [src/codecs/message-codecs.ts](src/codecs/message-codecs.ts), [http-codec.ts](src/codecs/http-codec.ts) | JSON Lines·JSON datagram·논리 패킷·제한된 HTTP/1.1과 바이트 상한 |
 | [src/domain/http-schema.ts](src/domain/http-schema.ts) | HTTP 필드 binding·헤더·서비스 요구 검사 |
 | [src/engine/simulation.ts](src/engine/simulation.ts), [event-queue.ts](src/engine/event-queue.ts) | 가상 실행·규칙·타이머·기록·결과와 유한 이벤트 큐 |
@@ -71,7 +75,7 @@ UI → application → domain·engine·codecs·environments 의존 방향을 사
 
 ## 계층 연결 후속 설계
 
-현재 실행은 A/B 각각 프로토콜 하나와 하위 환경으로 구성한다. [계층 연결 설계](docs/design-docs/layered-stack-v2.md)는 응용/전송 네 인스턴스와 로컬 서비스 포트·최하위 링크를 한 scheduler로 실행하는 후속 구조다. [S1 모델·검사](docs/design-docs/s1-stack-models.md)는 위 domain 모듈에서 구현했다. ProtocolRuntime·ServiceRouter·StackScheduler·workspace/DB 연결은 아직 구현하지 않았다.
+현재 사용자 화면은 A/B 각각 프로토콜 하나와 하위 환경으로 구성한다. [계층 연결 설계](docs/design-docs/layered-stack-v2.md)의 [S1 모델·검사](docs/design-docs/s1-stack-models.md)와 [S2 단일 scheduler/runtime/router](docs/design-docs/s2-stack-runtime.md)는 DOM 없는 별도 실행 경로로 구현했다. 실제 ReliableStreamLite·workspace/DB·관찰 도구/UI 연결은 아직 구현하지 않았다.
 
 [구현 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)은 S1 모델/검사, S2 실행 코어, S3 사용자 정의 provider, S4 저장/관찰, S5 화면/검증 순서다. 기존 v1 자료·실행 의미와 source/snapshot/prefix 경계를 보존하며 실제 구현이 진행될 때 모듈 지도와 기준 문서를 갱신한다.
 

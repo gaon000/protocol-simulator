@@ -270,6 +270,8 @@ export type StackTrace = {
     | 'timer'
     | 'transition'
     | 'diagnostic'
+    | 'environment'
+    | 'connection'
     | 'service-request'
     | 'service-accepted'
     | 'service-received'
