@@ -12,7 +12,7 @@
 | --- | --- |
 | native protocol | `mode: 'stack-protocol'`, id/revision/label, layer/codec, requires/provides, 메시지·상태·변수·타이머·규칙 |
 | legacy application | `mode: 'legacy-application'`, `adapterVersion: 'v1-application-ports/1'`, 정확한 v1 source 전체와 requires. id/revision은 source와 동일 |
-| experiment | `mode: 'stack'`, 정의 전체, nodes.A/B.instances, bindings, 단일 link, scenario, seed, limits |
+| experiment | `mode: 'stack'`, 정의 전체, nodes.A/B.instances, bindings, 단일 link, scenario, seed, limits. S3의 optional origin(exampleId/version)은 출처이며 기존 origin 없는 자료도 유효 |
 | snapshot | `mode: 'stack'`, `engineVersion: 'stack-1'`, `randomAlgorithm: 'mulberry32-v1'`, configuration 전체. S2가 별도 실행 경로에서 소비하는 계약 |
 | trace | `mode: 'stack'`, run/event ID·timeMs·증가 sequence·endpoint, 선택 portId/linkId, kind·sourceEventIds·payloads·JSON data |
 | artifacts | `mode: 'stack-artifacts'`, payloads의 payloadId와 실제 bytes. payload ID는 이 record 안에서만 해석 |

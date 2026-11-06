@@ -40,6 +40,7 @@
 | [src/engine/protocol-runtime.ts](src/engine/protocol-runtime.ts), [stack-scheduler.ts](src/engine/stack-scheduler.ts), [service-router.ts](src/engine/service-router.ts) | 네 독립 runtime·한 clock/queue·로컬 요청/통지·예약/commit·오류/전체 관찰 수명 |
 | [src/engine/stack-codec.ts](src/engine/stack-codec.ts), [stack-data.ts](src/engine/stack-data.ts) | fork 가능한 기존 byte 코덱/native 논리 packet 조합, actual frame/bytes·변수/slice/concat의 기여 범위 |
 | [src/engine/rule-evaluation.ts](src/engine/rule-evaluation.ts), [src/domain/datagram-policy.ts](src/domain/datagram-policy.ts) | v1/스택 공통 후보 검사·targeted drop/4-draw 순수 결정. v1의 기존 큐/trace 의미는 보존 |
+| [src/examples/reliable-stream-lite.ts](src/examples/reliable-stream-lite.ts), [reliable-stack-examples.ts](src/examples/reliable-stack-examples.ts) | S3의 양방향 DATA/ACK·분할/유한 재전송/중복 제거 규칙과 실제 JSON Lines·제한된 HTTP 스택. 별도 버전 있는 원본/사본 metadata/API |
 | [src/codecs/message-codecs.ts](src/codecs/message-codecs.ts), [http-codec.ts](src/codecs/http-codec.ts) | JSON Lines·JSON datagram·논리 패킷·제한된 HTTP/1.1과 바이트 상한 |
 | [src/domain/http-schema.ts](src/domain/http-schema.ts) | HTTP 필드 binding·헤더·서비스 요구 검사 |
 | [src/engine/simulation.ts](src/engine/simulation.ts), [event-queue.ts](src/engine/event-queue.ts) | 가상 실행·규칙·타이머·기록·결과와 유한 이벤트 큐 |
@@ -75,7 +76,7 @@ UI → application → domain·engine·codecs·environments 의존 방향을 사
 
 ## 계층 연결 후속 설계
 
-현재 사용자 화면은 A/B 각각 프로토콜 하나와 하위 환경으로 구성한다. [계층 연결 설계](docs/design-docs/layered-stack-v2.md)의 [S1 모델·검사](docs/design-docs/s1-stack-models.md)와 [S2 단일 scheduler/runtime/router](docs/design-docs/s2-stack-runtime.md)는 DOM 없는 별도 실행 경로로 구현했다. 실제 ReliableStreamLite·workspace/DB·관찰 도구/UI 연결은 아직 구현하지 않았다.
+현재 사용자 화면은 A/B 각각 프로토콜 하나와 하위 환경으로 구성한다. [계층 연결 설계](docs/design-docs/layered-stack-v2.md)의 [S1 모델·검사](docs/design-docs/s1-stack-models.md)·[S2 단일 scheduler/runtime/router](docs/design-docs/s2-stack-runtime.md)·[S3 ReliableStreamLite/응용 예제](docs/design-docs/s3-reliable-stream-lite.md)는 DOM 없는 별도 실행 경로로 구현했다. workspace/DB·관찰 도구/UI 연결은 아직 구현하지 않았다.
 
 [구현 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)은 S1 모델/검사, S2 실행 코어, S3 사용자 정의 provider, S4 저장/관찰, S5 화면/검증 순서다. 기존 v1 자료·실행 의미와 source/snapshot/prefix 경계를 보존하며 실제 구현이 진행될 때 모듈 지도와 기준 문서를 갱신한다.
 

@@ -231,6 +231,7 @@ export type StackExperiment = {
   readonly mode: 'stack';
   readonly id: string;
   readonly label: string;
+  readonly origin?: { readonly exampleId: string; readonly version: number };
   readonly seed: number;
   readonly definitions: readonly StackProtocol[];
   readonly nodes: Readonly<Record<ParticipantId, { readonly instances: readonly StackInstance[] }>>;

@@ -3,7 +3,7 @@
 상태: In Progress
 종료일: 미종료
 기준일: 2026-11-06
-구현 상태: S1을 master에 반영하고 S2 공유 runtime/scheduler/router 구현·로컬 전체 검증을 완료했다. S3~S5는 미착수다.
+구현 상태: S1/S2를 master에 반영했고 S3 ReliableStreamLite·실제 계층 연결 예제와 전체 로컬 검증을 완료했다. S4/S5는 미착수다.
 
 [ExecPlan 운영 규칙](../index.md)을 따른다. 기능의 계약은 [계층 연결 설계](../../design-docs/layered-stack-v2.md), S1의 실제 JSON/API는 [모델·검사 계약](../../design-docs/s1-stack-models.md)이 소유한다. 전체 스택 실행·저장·화면 완료와 S1 완료를 구분한다.
 
@@ -21,7 +21,8 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - [x] 2026-11-06 S1 — 스택/포트/바이트 모델·검사·불변 자료 계약. 별도 v2 domain 모듈·59개 신규 Node 검사와 S2 진입 API 문서.
 - [x] 2026-11-06: S1 commit `1df48c7` master 병합·푸시와 [정확한 HEAD CI](https://github.com/gaon000/protocol-simulator/actions/runs/42146718353) 통과. `codex/s2-stack-runtime`에서 S2 구현 착수.
 - [x] 2026-11-06 S2 — 공유 후보 검사/환경 결정·네 runtime·단일 scheduler/router·forkable codec·예약/commit·세대별 수명. 신규 35개 Node 검사와 S2 계약 문서.
-- [ ] S3 — ReliableStreamLite와 실제 계층 연결·장애 검증.
+- [x] 2026-11-06: S2 최종 commit `88ba047` master 반영과 [CI](https://github.com/gaon000/protocol-simulator/actions/runs/42154827680) 통과. `codex/s3-reliable-stream-lite`에서 S3 구현.
+- [x] 2026-11-06 S3 — ReliableStreamLite와 실제 계층 연결·장애 검증. 신규 Node 27개·예제 5개와 전체 로컬 회귀 검사 통과.
 - [ ] S4 — 저장 v2·legacy 호환·재생과 관찰/검증 도구 확장.
 - [ ] S5 — 스택 구성 화면·응용 예제·전체/브라우저/응답성 검증.
 
@@ -38,6 +39,8 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - S1 fixture에서 protocol.messages와 packet schema.messages가 같은 배열을 참조하면 structuredClone도 그 내부 alias를 유지한다. 스키마 불일치 검사는 별도 사본을 사용해 실제 JSON 입력과 같은 조건으로 검증한다.
 - S1의 전체 trace 재검사를 매 append에 적용하면 10k 실행에서 이미 보존한 prefix를 계속 읽는다. S2는 신규 batch와 prefix ID/마지막 순서, 실제 직렬화 증분만 검사하고 외부 record reader의 전체 검사는 유지한다.
 - 기존 코덱은 closure 상태를 소유한다. v1 push 결과를 바꾸지 않고 fork/bufferedBytes/pushTracked를 추가해 partial UTF-8/HTTP header·body를 격리하고 실제 frame 크기로 source 범위를 소비한다.
+- ReliableStreamLite의 seq는 TCP 바이트 순번과 달리 DATA 조각마다 하나 증가한다. write 경계를 보존하지 않고 FIFO에 쌓인 여러 write를 한 조각으로 보낼 수 있다. pending 전체와 offset을 유지해 매 ACK마다 큰 남은 버퍼를 새 값으로 복사하지 않는다.
+- 1바이트 DATA 예제는 왕복마다 가상 시간이 지나 기존 500ms 앱 기한 안에 HTTP 교환이 끝나지 않는다. 해당 새 예제 사본만 deadline 15000ms/observation 16000ms로 명시하고 기존 v1 HTTP 예제는 유지한다.
 
 ## Decision Log
 
@@ -53,10 +56,13 @@ A/B 각각의 응용·전송 인스턴스를 서비스 포트로 연결하고, �
 - 2026-11-06 S2: runtime/codec·payload 소유권을 준비하고 한 operation의 자원 예약 뒤 반영한다. 규칙 오류는 실패한 규칙만 반영하지 않고, 같은 read에서 앞서 성공한 메시지와 원시 수신은 보존한다. 한도 실패는 전체 operation을 반영하지 않는다.
 - 2026-11-06 S2: data service-indication은 코덱에 전달하며 native가 해당 raw 이벤트를 명시적으로 선언한 경우 먼저 같은 operation에서 처리한다. failed/closed는 명시적 native 서비스 이벤트 또는 connection 규약으로 처리한다.
 - 2026-11-06 S2: 실제 source byte 범위는 변수/field/service-payload·slice/concat·프레임에서 전달한다. payload 내용 공유와 인과관계를 분리한다. 신뢰성은 test forward/split/merge나 router가 보충하지 않는다.
+- 2026-11-06 S3: 두 provider의 tx/rx 방향·seq·cache·FIFO·timer를 독립 변수로 두고 사용자 규칙으로만 재전송/중복 억제를 구현했다. ACK는 DATA 방향/현재 seq를 대조하고 미래 DATA에는 ACK/read를 만들지 않는다.
+- 2026-11-06 S3: seq 소진을 실패로 명시하고 번호를 재사용하지 않는다. 실패 때 live pending/queued/cache를 비우되 과거 read/deliver와 기록 자료는 보존한다. 빈 write는 명시적 ignore이며 큐 concat 한도는 limit-reached다.
+- 2026-11-06 S3: 알려진 앱의 새 사본에 StreamFailed·terminal failed 무시, Ping 요청 deliver와 timeout 뒤 늦은 Pong 무시를 명시했다. 일반 조합 함수는 사용자 앱의 규칙을 자동 보충하지 않는다. optional origin/버전 있는 별도 catalog API를 추가했으며 v1 catalog/화면/DB는 변경하지 않았다.
 
 ## Outcomes & Retrospective
 
-S1의 정의/포트/바이트 자료에 S2의 실제 네 runtime·단일 scheduler/router·forkable codec·예약/반영·수명/기대 판정을 연결했다. App/workspace/DB는 변경하지 않았다. S2 검증 결과는 아래에 기록하며 실제 신뢰성 provider·저장/관찰/UI는 S3~S5에 남아 있다.
+S1/S2 위에서 S3의 실제 양방향 ReliableStreamLite·JSON Lines/제한된 HTTP와 첫 ACK 손실 예제 5개를 구현했다. 신규 Node 27개와 전체 회귀 검사를 통과했다. App/workspace/DB는 변경하지 않았으며 저장/관찰/UI 통합은 S4/S5에 남아 있다.
 
 ## Context and Orientation
 
@@ -72,7 +78,7 @@ S1의 정의/포트/바이트 자료에 S2의 실제 네 runtime·단일 schedul
 | [커버리지](../../../src/application/suite-coverage.ts), [비교](../../../src/application/run-comparison.ts), [중단점](../../../src/application/breakpoints.ts) | 현재 participant 타깃과 한도/버전 경계 |
 | [작업 공간](../../../src/ui/App.tsx) | 편집·실행 세대·history cursor·공유 선택·모든 보기 연결 |
 
-S1/S2의 실제 신규 경로는 [S1 계약](../../design-docs/s1-stack-models.md)·[S2 실행 계약](../../design-docs/s2-stack-runtime.md)과 [구조 지도](../../../ARCHITECTURE.md)에 등록했다. S3~S5 경로는 아래의 구현 후보이며 아직 존재하는 모듈로 표현하지 않는다.
+S1~S3의 실제 신규 경로는 [S1 계약](../../design-docs/s1-stack-models.md)·[S2 실행 계약](../../design-docs/s2-stack-runtime.md)·[S3 provider/예제](../../design-docs/s3-reliable-stream-lite.md)와 [구조 지도](../../../ARCHITECTURE.md)에 등록했다. S4/S5 경로는 아래의 구현 후보이며 아직 존재하는 모듈로 표현하지 않는다.
 
 ## Plan of Work
 
@@ -178,6 +184,13 @@ S2 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 - 최종 자원 점검에서 bytes 변수뿐 아니라 보관한 JSON 객체/배열·문자열도 논리 버퍼 예산에 포함했다. 원본 commit `fc9768e`의 `pnpm check` 이후 이 보완과 회계 우회/rollback 사례를 추가하고 전체 Node 438개·type/lint/format·문서 43개 검사를 다시 통과했다. 로그는 `/private/tmp/protocol-s2-final-node.log`다. 공유 v1 코덱·UI·브라우저 경로는 이 보완에서 변경하지 않았다.
 - 테스트용 forward/split/merge provider와 기존 HTTP 정의를 코어 fixture로 조합했다. 사용자 catalog의 ReliableStreamLite·재전송/ACK 신뢰성, 저장 v2/upgrade·관찰 도구·스택 UI/브라우저 성능은 아직 구현·검증하지 않았다.
 
+S3 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
+
+- 최종 `pnpm check` 통과: lint/format/type·Node 465개(신규 27개)·Markdown 44개·build·Chromium/Firefox 244개·기존 1-worker 응답성 5개. 한도/임곗값은 변경하지 않았다. 스택을 기존 UI/DB에 연결하지 않았으므로 브라우저 결과는 v1 회귀 증거다.
+- 실제 DATA/ACK·서비스 bytes·앱 판정을 이용해 다섯 catalog 예제, 첫 ACK 손실/동일 DATA 재전송/앱 한 번 전달, DATA 중복/지연 역전·잘못된 방향/순번 ACK·미래 DATA 무시, 여러/합쳐진 write·양방향 동시 Waiting, UTF-8/JSON/HTTP 경계, 정확한 RTO, 빈 write·retry/seq 소진·안전 정수 마지막 번호·FIFO 한도·실패 전 접두부와 늦은 응답, 원본/사본/snapshot 및 run/step/batch/observer 동등성을 검사했다. 여섯 seed의 손실/중복/jitter도 순서 있는 실제 byte 접두부를 유지했다.
+- 첫 FIFO overflow fixture의 legacy 기대 조건 빈 배열은 기존 계약상 유효하지 않아 실제 Idle 상태 기대 조건으로 바로잡았다. 기존 Firefox 취소 E2E는 클릭 안정성을 기다리는 사이 묶음이 모두 끝나 버튼이 사라졌다. 브라우저 시계로 실제 부분 실행을 유지한 뒤 다른 탭에서 취소하고 시계를 재개하도록 수정했다. 양 브라우저 각 3회 통과 후 전체 검사를 통과했다. 제품 실행 속도/스케줄러는 변경하지 않았다.
+- 최종 로그는 `/private/tmp/protocol-s3-check-final.log`다. 실제 외부 통신·전체 TCP/HTTP 표준 적합성·스택 저장/관찰/UI·스택 1 MiB/대형 묶음의 브라우저 응답성은 이 단계에서 구현하거나 검증하지 않았다.
+
 ## Idempotence and Recovery
 
 모든 변경은 feature branch에서 기존 사용자 변경을 보존한다. S1~S3의 미완성 모델/엔진을 App·기존 저장 형식에 노출하지 않는다. 단계별 verified commit으로 이어가며 실패한 단계에서는 이전 실행/자료를 보존하고 다음 단계를 공개하지 않는다.
@@ -195,4 +208,4 @@ S2 검증(2026-11-06, macOS·Node 24.18.0·pnpm 9.15.0):
 
 ## Interfaces and Dependencies
 
-전체 계획은 stack 모델/bytes/서비스·scheduler/runtime·v2 snapshot/trace/workspace/bundle/DB와 모든 endpoint 관찰 도구에 걸친다. S1/S2는 DOM 없는 실행 경로·Node fixture와 공유 가능한 코덱/순수 검사·환경 결정 경계를 구현한다. App·패키지·DB·외부 서비스는 변경하지 않는다. 신규 production dependency는 추가하지 않았으며 필요해지면 기존 승인 규칙을 적용한다.
+전체 계획은 stack 모델/bytes/서비스·scheduler/runtime·v2 snapshot/trace/workspace/bundle/DB와 모든 endpoint 관찰 도구에 걸친다. S1~S3는 DOM 없는 실행 경로·실제 provider/응용 예제·Node 검사와 공유 가능한 코덱/순수 검사·환경 결정 경계를 구현한다. App·패키지·DB·외부 서비스는 변경하지 않는다. 신규 production dependency는 추가하지 않았으며 필요해지면 기존 승인 규칙을 적용한다.

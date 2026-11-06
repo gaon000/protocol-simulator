@@ -417,6 +417,7 @@ export function parseStackExperiment(value: unknown): ValidationResult<StackExpe
     'mode',
     'id',
     'label',
+    'origin',
     'seed',
     'definitions',
     'nodes',
@@ -430,6 +431,13 @@ export function parseStackExperiment(value: unknown): ValidationResult<StackExpe
   r.choice(node.mode, '/mode', ['stack']);
   r.text(node.id, '/id', true);
   r.text(node.label, '/label');
+  if (Object.hasOwn(node, 'origin')) {
+    const origin = r.object(node.origin, '/origin', ['exampleId', 'version']);
+    if (origin) {
+      r.text(origin.exampleId, '/origin/exampleId', true);
+      r.number(origin.version, '/origin/version', 1);
+    }
+  }
   r.number(node.seed, '/seed', 0, 0xffff_ffff);
   r.array(
     node.definitions,

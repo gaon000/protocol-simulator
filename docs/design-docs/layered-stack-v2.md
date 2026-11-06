@@ -2,7 +2,7 @@
 
 상태: Accepted
 기준일: 2026-11-06
-구현 상태: [S1 모델·검사·바이트 자료 계약](s1-stack-models.md)과 [S2 공유 runtime/scheduler/router](s2-stack-runtime.md)를 구현했다. 실제 신뢰성 provider·화면·workspace/DB 저장은 미구현이며 현재 사용자 화면은 v1 단일 계층 모델이다.
+구현 상태: [S1 모델·검사·바이트](s1-stack-models.md)·[S2 공유 runtime/scheduler/router](s2-stack-runtime.md)·[S3 ReliableStreamLite/응용 예제](s3-reliable-stream-lite.md)를 구현했다. 화면·workspace/DB·관찰 도구 연결은 미구현이며 현재 사용자 화면은 v1 단일 계층 모델이다.
 
 ## 문제와 목표
 

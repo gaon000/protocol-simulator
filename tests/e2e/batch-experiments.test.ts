@@ -119,6 +119,7 @@ test('two source versions stay independently comparable with a common seed list'
 test('bounded slices can be cancelled from another tab and stale callbacks never append more runs', async ({
   page,
 }) => {
+  await page.clock.install({ time: new Date('2026-11-06T00:00:00Z') });
   await page.goto('/');
   const data = createWorkspace(createEventLimitExperiment());
   await page.getByLabel('bundle 가져오기', { exact: true }).setInputFiles({
@@ -129,12 +130,16 @@ test('bounded slices can be cancelled from another tab and stale callbacks never
   await expect(
     page.getByText('검증한 bundle을 적용했습니다. 충돌한 항목은 새 사본으로 추가했습니다.'),
   ).toBeVisible();
+  await page.clock.pauseAt(new Date('2026-11-06T01:00:00Z'));
   await tab(page, '반복 실험');
   await page.getByLabel('seed 목록', { exact: true }).fill('1,2,3,4,5');
   await page.getByRole('button', { name: '반복 실행 시작', exact: true }).click();
   await expect(page.getByRole('progressbar', { name: '반복 실행 진행률' })).toBeVisible();
+  // Keep a real partial engine alive while browser actionability checks move between tabs.
+  await page.clock.runFor(1);
   await tab(page, '통신 환경');
   await page.getByRole('button', { name: '반복 실행 중단', exact: true }).click();
+  await page.clock.resume();
   await save(page);
   const before = await stored(page);
   const runs = before.data.runs.filter((record) => record.batch);
