@@ -19,3 +19,4 @@
 | [두 실행 결과 나란히 비교](20261105-side-by-side-run-comparison.md) | 2026-11-05 | frozen 설정/결과·상태/변수/판정·순서 보존 관찰 차이와 각 쪽 재생/회귀 쌍 진입 | 로컬 Node 344·문서 39·Chromium/Firefox E2E 244·응답성 5. 두 10k/두 1 MiB·390px/한도 확인. 인과/최장 경로 증명·실제 통신/배포는 범위 밖 |
 | [계층 연결 프로토콜 스택](20261106-layered-protocol-stacks.md) | 2026-11-06 | S1~S5 네 endpoint·ReliableStreamLite·관찰/편집/회귀/비교 화면·기본 DB2 저장 | 로컬 Node 520·문서 46·UI 270·native DB 14·응답성 8. CI 성능 실패 보완·지연 복원 경계 재검증. 실제 네트워크·배포는 범위 밖 |
 | [메시지의 계층별 이동 경로](20261106-stack-message-journey.md) | 2026-11-06 | 실제 byte 출처와 구간의 네 단계 보기·필드/byte 강조·제어 후속·시퀀스/기록 연결 | 로컬 Node 538·문서 47·UI 278·native DB 14·응답성 8. 같은 내용/변수 범위의 모호함·prefix/한도 유지. 실제 통신·schema 변경 없음 |
+| [스택 규칙 폼 편집](20261106-stack-rule-forms.md) | 2026-11-06 | 이벤트·조건·표현식·순차 동작 폼과 raw 원자적 이동·JSON/저장 왕복 | 로컬 Node 552·문서 48·UI 296·native DB 14·응답성 9. 605개 실제 동작·unknown/한도·snapshot 격리. 실행/저장 schema·의존성 변경 없음 |

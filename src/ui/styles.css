@@ -1872,3 +1872,49 @@ pre {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 }
+
+.stack-rule-form {
+  min-width: 0;
+  border: 1px solid #b4c9da;
+  border-radius: 8px;
+  padding: 0.8rem;
+  background: #f5f9fc;
+  margin-block: 0.6rem;
+}
+.rule-boundary {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.rule-tree,
+.rule-list-item,
+.rule-action-detail {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #cbd9e4;
+  border-radius: 6px;
+  margin-block: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.rule-actions {
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.7rem;
+}
+.rule-choice,
+.rule-literal,
+.rule-tree-fallback {
+  min-width: 0;
+}
+.stack-rule-form select,
+.stack-rule-form input,
+.stack-rule-form textarea {
+  max-width: 100%;
+}
+.stack-rule-form small {
+  display: block;
+  color: #52687b;
+  margin-block: 0.3rem;
+}

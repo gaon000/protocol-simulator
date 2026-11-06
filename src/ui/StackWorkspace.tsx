@@ -5,6 +5,7 @@ import {
   synchronizeStackMessages,
 } from '../application/edit-stack.ts';
 import { compileStackBreakpoints } from '../application/stack-breakpoints.ts';
+import { editStackRuleList } from '../application/stack-rule-authoring.ts';
 import { StackWorkerClient } from '../application/stack-worker-client.ts';
 import type {
   StackDebugSettings,
@@ -241,10 +242,16 @@ export function StackWorkspace({
   function updateDraft(change: (draft: StackDraft) => StackDraft) {
     if (!draft) return;
     const id = draft.id;
-    host.full.update((data) => ({
-      ...data,
-      stack: { ...data.stack, drafts: data.stack.drafts.map((d) => (d.id === id ? change(d) : d)) },
-    }));
+    host.full.update((data) => {
+      const before = data.stack.drafts.find((d) => d.id === id);
+      if (!before) return data;
+      const next = change(before);
+      if (next === before) return data;
+      return {
+        ...data,
+        stack: { ...data.stack, drafts: data.stack.drafts.map((d) => (d.id === id ? next : d)) },
+      };
+    });
   }
   async function edit(path: string, value: JsonValue | undefined) {
     generation.current++;
@@ -601,6 +608,11 @@ export function StackWorkspace({
               void json(path, text);
             }}
             diagnostics={diagnostics}
+            list={(path, operation) => {
+              generation.current++;
+              void control('pause');
+              updateDraft((d) => editStackRuleList(d, path, operation));
+            }}
             synchronize={async (protocol) => {
               await control('pause');
               updateDraft((d) => ({

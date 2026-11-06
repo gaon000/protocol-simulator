@@ -79,6 +79,8 @@ Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에
 
 ## CI와 릴리스
 
+스택 규칙 폼은 [V1-021](product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)을 따른다. 코어는 exact 이벤트 범위·지원 문법·순차 대입의 실행 결과·raw 원자적 이동과 큰/unknown 트리를 검사한다. 두 브라우저는 실제 작성/실행·snapshot 격리·native 저장/복원·중첩 byte/JSON 왕복·오류 초점과 키보드/viewport를 검사한다. 605개 실제 동작의 별도 작성 응답성 fixture와 기존 여덟 fixture를 순차 실행한다.
+
 두 실행 비교는 [V1-019](product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다. Node는 catalog 재실행·실행별 ID 무시·정상/ACK 손실/중복·시각 차이·revision/기대 변경·부분/없음/null/0/false·모순/구버전·각 cursor·wire 한도/참조·두 10k 관찰 보존을 검사한다. Chromium/Firefox는 변수/첫 차이/대응 전이→선택 쪽 설명 재생·회귀 쌍 진입·좌우 교환·부분·native 저장/초안 격리·20행/390px/키보드·구버전/다른 ID·선택 삭제를 검사한다. 별도 두 10k/두 1 MiB fixture에서 열기/선택/페이지 500ms·DOM 32768자를 검사하고 기존 응답성 3개의 상한을 유지한다.
 
 시나리오 검증 커버리지는 [V1-018](product-specs/protocol-simulator-v1.md#v1-018-시나리오-묶음의-검증-커버리지)을 따른다. 코어는 실제 정상/손실/중복 횟수·초기/자기 전이·부분/삭제·공통 정의/버전·모순 trace 제외·rollback·wire 참조 보존과 10k 기록을 검사한다. Chromium/Firefox는 실제 묶음 실행→미관찰 필터→첫 관찰 재생/설명, 초기 cursor·이전 snapshot·native 복원·평행 규칙·페이지/390px/키보드·구버전/빈 규칙을 검사한다. 별도 응답성 검사에 실제 20사례×10k 기록의 열기/선택 500ms·DOM 32768자와 저장 원본 보존을 추가하고 기존 두 fixture의 모든 상한을 유지한다.

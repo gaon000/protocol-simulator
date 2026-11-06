@@ -47,6 +47,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 ## 선택 문서
 
+스택의 [규칙 폼 편집](product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)을 구현·검증했다. 이벤트·조건·값 표현식·동작 목록의 작성과 JSON/저장 왕복 검증은 [작업 계획](exec-plans/completed/20261106-stack-rule-forms.md)을 따른다.
+
 스택의 [메시지 이동 경로](product-specs/protocol-simulator-v1.md#v1-020-메시지의-계층별-이동-경로)를 구현하고 전체 로컬 검증을 통과했다. 실제 byte 출처에 따른 네 단계·필드/byte 강조·기록 연결과 검증 근거는 [작업 계획](exec-plans/completed/20261106-stack-message-journey.md)을 따른다.
 
 v1의 제품 규칙·화면과 하위 서비스·상태·타이머·재현성 계약을 분리할 필요가 생겨 Product Specs와 Design Docs를 도입했다. 두 영역은 index와 재사용 양식을 포함한다. 독립적인 기술 결정 문서·용어 사전·skill은 현재 필요가 없어 추가하지 않았다. 실제로 추가한 문서만 이 지도에 링크한다.

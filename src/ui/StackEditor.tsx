@@ -6,12 +6,15 @@ import type { ModelDiagnostic } from '../domain/protocol-model.ts';
 import { type StackProtocol, stackProtocolBody } from '../domain/stack-model.ts';
 import { stackObject, stackProtocolAt, stackTarget } from '../domain/stack-record.ts';
 import type { StackDraft } from '../domain/workspace-v2-model.ts';
+import type { RuleListEdit } from '../application/stack-rule-authoring.ts';
+import { StackRuleForm } from './StackRuleForm.tsx';
 
 type Editor = {
   draft: StackDraft;
   edit: (path: string, value: JsonValue | undefined) => void;
   json: (path: string, text: string) => void;
   diagnostics: readonly ModelDiagnostic[];
+  list: (path: string, operation: RuleListEdit) => void;
 };
 const Context = createContext<Editor | null>(null);
 function useStackEditor() {
@@ -150,6 +153,7 @@ export function StackEditor({
   edit,
   json,
   diagnostics,
+  list,
   synchronize,
 }: Editor & { synchronize: (protocol: StackProtocol) => void }) {
   const [tab, setTab] = useState('연결');
@@ -157,6 +161,10 @@ export function StackEditor({
   const [messageIndex, setMessageIndex] = useState(0);
   const [statePage, setStatePage] = useState(0);
   const [rulePage, setRulePage] = useState(0);
+  const [formIndex, setFormIndex] = useState(-1);
+  const [jsonRule, setJsonRule] = useState(-1);
+  const [formFocusPath, setFormFocusPath] = useState<string>();
+  const [formFocusVersion, setFormFocusVersion] = useState(0);
   const configuration = draft.configuration;
   const endpoints = (['A', 'B'] as const).flatMap((participant) =>
     configuration.nodes[participant].instances.map((i) => ({ participant, instanceId: i.id })),
@@ -253,7 +261,7 @@ export function StackEditor({
     );
   }
   return (
-    <Context value={{ draft, edit, json, diagnostics }}>
+    <Context value={{ draft, edit, json, diagnostics, list }}>
       <section className='stack-editor' aria-label='스택 편집'>
         <div className='stack-tabs' role='tablist' aria-label='스택 편집 영역'>
           {['연결', '프로토콜 정의', '하위 환경', '입력·기대 조건'].map((name) => (
@@ -376,6 +384,8 @@ export function StackEditor({
                   setMessageIndex(0);
                   setRulePage(0);
                   setStatePage(0);
+                  setFormIndex(-1);
+                  setJsonRule(-1);
                 }}
               >
                 {endpoints.map((e) => (
@@ -664,35 +674,74 @@ export function StackEditor({
                             label='다음 상태'
                             options={body.states.map((s) => s.id)}
                           />
-                          <Json
-                            path={`${prefix}/rules/${index}/event`}
-                            label='입력·수신·타이머·포트 이벤트 JSON'
-                          />
-                          {rule.condition ? (
-                            <Json
-                              path={`${prefix}/rules/${index}/condition`}
-                              label='조건 JSON'
-                              optional
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setFormFocusPath(undefined);
+                              setFormIndex(formIndex === index ? -1 : index);
+                            }}
+                          >
+                            규칙 폼 {formIndex === index ? '닫기' : '열기'} · {rule.id.slice(0, 60)}{' '}
+                            · {index + 1}
+                          </button>
+                          {formIndex === index && (
+                            <StackRuleForm
+                              key={`${target}:${prefix}:${index}:${formFocusPath ?? ''}:${formFocusVersion}`}
+                              draft={draft}
+                              protocol={protocol}
+                              rule={rule}
+                              path={`${prefix}/rules/${index}`}
+                              edit={edit}
+                              json={json}
+                              list={list}
+                              diagnostics={diagnostics}
+                              {...(formFocusPath ? { focusPath: formFocusPath } : {})}
                             />
-                          ) : (
-                            <button
-                              type='button'
-                              onClick={() =>
-                                edit(`${prefix}/rules/${index}/condition`, {
-                                  kind: 'compare',
-                                  operator: 'eq',
-                                  left: { kind: 'literal', value: 1 },
-                                  right: { kind: 'literal', value: 1 },
-                                })
-                              }
-                            >
-                              조건 추가 · {rule.id}
-                            </button>
                           )}
-                          <Json
-                            path={`${prefix}/rules/${index}/actions`}
-                            label='순서대로 실행할 동작 JSON'
-                          />
+                          <details
+                            open={jsonRule === index}
+                            onToggle={(event) => {
+                              if (event.currentTarget.open) setJsonRule(index);
+                              else setJsonRule((old) => (old === index ? -1 : old));
+                            }}
+                          >
+                            <summary>
+                              규칙 JSON 편집 · {rule.id.slice(0, 60)} · {index + 1}
+                            </summary>
+                            {jsonRule === index && (
+                              <>
+                                <Json
+                                  path={`${prefix}/rules/${index}/event`}
+                                  label='입력·수신·타이머·포트 이벤트 JSON'
+                                />
+                                {rule.condition ? (
+                                  <Json
+                                    path={`${prefix}/rules/${index}/condition`}
+                                    label='조건 JSON'
+                                    optional
+                                  />
+                                ) : (
+                                  <button
+                                    type='button'
+                                    onClick={() =>
+                                      edit(`${prefix}/rules/${index}/condition`, {
+                                        kind: 'compare',
+                                        operator: 'eq',
+                                        left: { kind: 'literal', value: 1 },
+                                        right: { kind: 'literal', value: 1 },
+                                      })
+                                    }
+                                  >
+                                    조건 추가 · {rule.id}
+                                  </button>
+                                )}
+                                <Json
+                                  path={`${prefix}/rules/${index}/actions`}
+                                  label='순서대로 실행할 동작 JSON'
+                                />
+                              </>
+                            )}
+                          </details>
                           <Field
                             path={`${prefix}/rules/${index}/ignore`}
                             label='명시적 무시'
@@ -700,7 +749,11 @@ export function StackEditor({
                           />
                           <button
                             type='button'
-                            onClick={() => edit(`${prefix}/rules/${index}`, undefined)}
+                            onClick={() => {
+                              setFormIndex(-1);
+                              setJsonRule(-1);
+                              edit(`${prefix}/rules/${index}`, undefined);
+                            }}
                           >
                             규칙 삭제 · {rule.id}
                           </button>
@@ -710,20 +763,31 @@ export function StackEditor({
                   <button
                     type='button'
                     disabled={rulePage === 0}
-                    onClick={() => setRulePage(Math.max(0, rulePage - 1))}
+                    onClick={() => {
+                      setFormIndex(-1);
+                      setJsonRule(-1);
+                      setRulePage(Math.max(0, rulePage - 1));
+                    }}
                   >
                     이전 규칙 페이지
                   </button>
                   <button
                     type='button'
                     disabled={rulePage + 1 >= page(body.rules, rulePage).pages}
-                    onClick={() => setRulePage(rulePage + 1)}
+                    onClick={() => {
+                      setFormIndex(-1);
+                      setJsonRule(-1);
+                      setRulePage(rulePage + 1);
+                    }}
                   >
                     다음 규칙 페이지
                   </button>
                   <button
                     type='button'
-                    onClick={() =>
+                    onClick={() => {
+                      setFormIndex(body.rules.length);
+                      setRulePage(Math.floor(body.rules.length / 20));
+                      setJsonRule(-1);
                       edit(`${prefix}/rules`, [
                         ...body.rules,
                         {
@@ -733,8 +797,8 @@ export function StackEditor({
                           event: { kind: 'input', messageId: body.messages[0]?.id ?? 'message' },
                           actions: [],
                         },
-                      ])
-                    }
+                      ]);
+                    }}
                   >
                     규칙 추가
                   </button>
@@ -881,6 +945,28 @@ export function StackEditor({
                 key={index}
                 type='button'
                 onClick={() => {
+                  const match = /^\/definitions\/(\d+)\/(?:source\/)?rules\/(\d+)(?:\/|$)/.exec(
+                    d.path,
+                  );
+                  if (match) {
+                    const definition = configuration.definitions[Number(match[1])];
+                    const owner = endpoints.find((endpoint) => {
+                      const instance = configuration.nodes[endpoint.participant].instances.find(
+                        (i) => i.id === endpoint.instanceId,
+                      );
+                      return (
+                        instance?.definition.id === definition?.id &&
+                        instance?.definition.revision === definition?.revision
+                      );
+                    });
+                    if (owner) setTarget(stackTarget(owner));
+                    const rule = Number(match[2]);
+                    setRulePage(Math.floor(rule / 20));
+                    setFormIndex(rule);
+                    setJsonRule(rule);
+                    setFormFocusPath(d.path);
+                    setFormFocusVersion((version) => version + 1);
+                  }
                   setTab(
                     d.path.startsWith('/scenario')
                       ? '입력·기대 조건'
@@ -894,6 +980,11 @@ export function StackEditor({
                     let path = d.path;
                     while (path) {
                       const node =
+                        document.getElementById(`stack-form-${encodeURIComponent(path)}`) ??
+                        document.getElementById(
+                          `stack-form-${encodeURIComponent(`${path}/$json`)}`,
+                        ) ??
+                        document.getElementById(`stack-form-group-${encodeURIComponent(path)}`) ??
                         document.getElementById(`stack-${encodeURIComponent(path)}`) ??
                         document.getElementById(`stack-group-${encodeURIComponent(path)}`);
                       if (node) {

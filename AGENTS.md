@@ -30,6 +30,8 @@
 
 중단점은 [V1-017](docs/product-specs/protocol-simulator-v1.md#v1-017-중단점과-조건부-실행-정지)을 따른다. 실제 transition.after/parsed와 frozen source를 평가하며 live queue 원자성·history 이벤트 경계를 구분한다. 같은 이벤트 재정지·미관찰 commit·rollback을 추정하지 않고 debugger 오류를 실행 실패로 만들지 않는다. 탭별 설정·20개/값 한도·session fence와 중단점 없는 최종 trace 동등성을 유지한다.
 
+스택 규칙 폼은 [V1-021](docs/product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)을 따른다. 기존 native/legacy 문법과 exact 정의 revision을 사용하고 미완성 값·JSON의 원래 경로를 보존한다. 리스트와 하위 raw를 함께 이동하며 실행 snapshot을 수정하지 않는다. 트리/목록/JSON 한도와 기존 실행 진단을 유지한다.
+
 ## 먼저 읽을 문서
 
 - [문서 지도](docs/index.md): 작업에 필요한 문서 찾기.
