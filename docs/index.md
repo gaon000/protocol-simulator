@@ -43,6 +43,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 [두 실행 결과 나란히 비교](exec-plans/completed/20261105-side-by-side-run-comparison.md)를 구현·검증했다. 당시 설정·결과·관찰 차이와 양쪽의 실제 기록 위치를 연결한다. 기준은 [V1-019](product-specs/protocol-simulator-v1.md#v1-019-두-실행-결과-나란히-비교)를 따른다.
 
+후속 [계층 연결 프로토콜 스택 설계](design-docs/layered-stack-v2.md)를 합의·문서화했다. 현재 단일 계층 실행과 구분되는 미구현 설계이며, [S1~S5 구현 계획](exec-plans/active/20261106-layered-protocol-stacks.md)은 Ready다. 서비스 포트·네 인스턴스의 단일 가상 시계, 사용자 정의 스트림 provider와 legacy 저장/관찰 호환성을 단계별로 검증한다.
+
 ## 선택 문서
 
 v1의 제품 규칙·화면과 하위 서비스·상태·타이머·재현성 계약을 분리할 필요가 생겨 Product Specs와 Design Docs를 도입했다. 두 영역은 index와 재사용 양식을 포함한다. 독립적인 기술 결정 문서·용어 사전·skill은 현재 필요가 없어 추가하지 않았다. 실제로 추가한 문서만 이 지도에 링크한다.

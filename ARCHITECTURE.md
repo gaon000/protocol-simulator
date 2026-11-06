@@ -67,6 +67,12 @@ UI → application → domain·engine·codecs·environments 의존 방향을 사
 
 설계는 바이트 스트림과 데이터그램 서비스를 구분한다. P1은 실행 정의의 환경 호환성·참조와 개별 메시지의 프레이밍·값·바이트 상한을 검사한다. 전체 엔진은 P2에서 구현했고 장애·합쳐 읽기·종료 환경은 P4에서 구현했다. 참여자 상태·타이머를 실행별로 격리하고 전송·수신·해석·상위 처리 완료와 환경 원인을 각각 기록한다. 상한을 강제하고 긴 실행은 batch 64·trace 200행 페이지·유한 JSON 미리보기로 표시한다. [P7 검증 계약](docs/design-docs/p7-validation.md)의 실제 10k/1 MiB 응답성 기준과 별도 CI를 사용한다.
 
+## 계층 연결 후속 설계
+
+현재 실행은 A/B 각각 프로토콜 하나와 하위 환경으로 구성한다. [계층 연결 설계](docs/design-docs/layered-stack-v2.md)는 응용/전송 네 인스턴스와 로컬 서비스 포트·최하위 링크를 한 scheduler로 실행하는 후속 구조다. 제안한 ProtocolRuntime·ServiceRouter·StackScheduler·v2 자료/저장은 아직 구현하지 않았으며 위 실제 모듈 지도와 구분한다.
+
+[구현 계획](docs/exec-plans/active/20261106-layered-protocol-stacks.md)은 S1 모델/검사, S2 실행 코어, S3 사용자 정의 provider, S4 저장/관찰, S5 화면/검증 순서다. 기존 v1 자료·실행 의미와 source/snapshot/prefix 경계를 보존하며 실제 구현이 진행될 때 모듈 지도와 기준 문서를 갱신한다.
+
 ## 변경 관리
 
 공통 책임이나 의존 방향이 바뀌면 이 문서를 갱신한다. 중요한 선택의 대안과 이유는 필요할 때 결정 기록으로 남긴다. 완료된 실행 계획은 과거 근거이며 현재 계약은 이 문서와 현재 기능 문서를 기준으로 확인한다.
