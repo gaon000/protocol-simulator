@@ -4,6 +4,7 @@ import type { SavedStackRun } from '../domain/workspace-v2-model.ts';
 import type { StackBreakpoint, StackBreakpointStop } from './stack-breakpoints.ts';
 import type { StackPanelQuery } from './stack-panel-model.ts';
 import type { StackSeriesPlan } from './stack-series.ts';
+import type { StackViewTransfer } from './stack-view-transfer.ts';
 
 export type StackRunMeta = {
   readonly id: string;
@@ -94,6 +95,13 @@ export type StackWorkerReply =
       readonly done: boolean;
       readonly record?: SavedStackRun;
     };
+
+export type StackWorkerWireReply =
+  | StackWorkerReply
+  | (Omit<Extract<StackWorkerReply, { type: 'view' }>, 'type' | 'view'> & {
+      readonly type: 'view-transfer';
+      readonly transfer: StackViewTransfer;
+    });
 
 /** Index one immutable observation inside the private worker; this key never establishes causal correspondence. */
 export function stackObservationKey(id: string, view: StackView): string {

@@ -5,7 +5,9 @@ import {
   type StackWorkerCommand,
   type StackWorkerReply,
   type StackWorkerRequest,
+  type StackWorkerWireReply,
 } from './stack-worker-protocol.ts';
+import { StackViewReceiver } from './stack-view-transfer.ts';
 
 class WorkerFailure extends Error {
   readonly code: string | undefined;
@@ -26,15 +28,26 @@ export class StackWorkerClient {
   #closed = false;
   readonly #registered = new WeakMap<SavedStackRun, Promise<string>>();
   readonly #published = new WeakMap<StackView, string>();
+  readonly #receiver = new StackViewReceiver();
   onEvent: (event: Exclude<StackWorkerReply, { type: 'response' }>) => void = () => {};
   onError: (message: string) => void = () => {};
   constructor(
     worker = new Worker(new URL('./stack-ui-worker.ts', import.meta.url), { type: 'module' }),
   ) {
     this.#worker = worker;
-    worker.onmessage = (event: MessageEvent<StackWorkerReply>) => {
-      const reply = event.data;
+    worker.onmessage = (event: MessageEvent<StackWorkerWireReply>) => {
       if (this.#closed) return;
+      let reply: StackWorkerReply;
+      if (event.data.type === 'view-transfer') {
+        try {
+          const { type: _type, transfer, ...meta } = event.data;
+          reply = { ...meta, type: 'view', view: this.#receiver.receive(transfer) };
+        } catch (error) {
+          this.onError(String(error));
+          this.close();
+          return;
+        }
+      } else reply = event.data;
       if (reply.type !== 'response') {
         if (reply.type === 'view')
           this.#published.set(reply.view, stackObservationKey(reply.meta.id, reply.view));

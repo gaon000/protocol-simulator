@@ -19,17 +19,18 @@ import {
 } from './stack-panel-model.ts';
 import { primeOwnedStackRecord } from './stack-replay.ts';
 import { createStackSeriesSession } from './stack-series.ts';
+import { StackViewPublisher } from './stack-view-transfer.ts';
 import {
   stackObservationKey,
   type StackRunMeta,
   type StackWorkerCommand,
-  type StackWorkerReply,
+  type StackWorkerWireReply,
   type StackWorkerRequest,
 } from './stack-worker-protocol.ts';
 
 const scope = globalThis as unknown as {
   onmessage: ((event: MessageEvent<StackWorkerRequest>) => void) | null;
-  postMessage: (message: StackWorkerReply) => void;
+  postMessage: (message: StackWorkerWireReply) => void;
 };
 let engine: import('../engine/stack-scheduler.ts').StackScheduler | undefined;
 let meta: StackRunMeta | undefined;
@@ -41,6 +42,7 @@ let series: ReturnType<typeof createStackSeriesSession> | undefined;
 let seriesTimer: ReturnType<typeof setTimeout> | undefined;
 let awaitingSeriesAck: number | undefined;
 const records = new Map<string, SavedStackRun>();
+const publisher = new StackViewPublisher();
 class MissingRecord extends Error {}
 function register(record: SavedStackRun) {
   const owned = freezeOwned(record);
@@ -81,7 +83,14 @@ function publish(
     draftVersion: meta.draftVersion,
     view,
   });
-  scope.postMessage({ type: 'view', meta, view, running, checkpoint, ...(stop ? { stop } : {}) });
+  scope.postMessage({
+    type: 'view-transfer',
+    meta,
+    transfer: publisher.capture(view),
+    running,
+    checkpoint,
+    ...(stop ? { stop } : {}),
+  });
 }
 function advance(id: string, one = false) {
   if (!engine || engine.runId !== id || !debug) return;

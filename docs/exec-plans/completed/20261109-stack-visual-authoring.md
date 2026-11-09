@@ -80,3 +80,5 @@ Node 24.18.0·pnpm 9.15.0에서 source 변경 뒤 관련 Node 테스트, 최종 
 `dd3a259`의 [첫 원격 CI](https://github.com/gaon000/protocol-simulator/actions/runs/42553970900)는 새 상태도 UI 20개를 포함한 UI 333개를 통과했고 기존 Firefox 반복 실험의 99기록 가져오기 검사 한 곳에서 실패했다. trace의 가져오기 처리 행이 사라지며 탭 위치가 이동했고, 클릭 뒤 실험 구성에 남았다. 적용 안내는 메모리 적용 시점이며 파일 처리/저장 정리 종료와 구분해야 한다. native DB/성능 단계는 시작되지 않았다.
 
 해당 파일에서 완전한 성공 문구를 기다리던 두 곳에도 file input 재활성화 대기를 추가했다. 같은 규칙의 기존 regex 대기들과 일치시키며 앱 source·100기록 fixture/시계·timeout/재시도/성능 상한은 바꾸지 않았다. 로컬 Chromium/Firefox 반복 실험 12개와 strict 타입·lint/format·문서/공백 검사를 다시 확인했다(`/private/tmp/stack-visual-ci-batch-check.log`). 최종 전달 SHA의 전체 원격 결과는 완료 응답에서 별도로 확인한다.
+
+후속 `d5f520b` CI는 UI 334개·native DB 14개를 통과했지만 기존 native 10k의 최대 long task가 두 시도에서 270/301ms로 250ms를 넘었다. 보존한 trace와 CPU 프로파일로 전체 prefix 반복 수신/동결 비용을 확인해 [스택 관찰 증분 전달](20261109-stack-observation-transfer.md)을 보완했다. 저장/엔진 schema와 성능 기준을 유지하고 전체 로컬 검사(Node 586·문서 52·UI 334·native DB 14·응답성 10)를 다시 통과했다. 최종 전달 SHA 원격 결과는 완료 응답에서 확인한다.
