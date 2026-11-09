@@ -134,6 +134,7 @@ test('bounded slices can be cancelled from another tab and stale callbacks never
   await expect(
     page.getByText('검증한 bundle을 적용했습니다. 충돌한 항목은 새 사본으로 추가했습니다.'),
   ).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await page.clock.pauseAt(new Date('2026-11-06T01:00:00Z'));
   await tab(page, '반복 실험');
   await page.getByLabel('seed 목록', { exact: true }).fill('1,2,3,4,5');
@@ -258,6 +259,7 @@ test('saved groups survive bundle import and the final available record cannot o
   await expect(
     page.getByText('검증한 bundle을 적용했습니다. 충돌한 항목은 새 사본으로 추가했습니다.'),
   ).toBeVisible();
+  await expect(page.getByLabel('bundle 가져오기', { exact: true })).toBeEnabled();
   await tab(page, '반복 실험');
   await expect(page.getByRole('table')).toContainText('99 / 0 / 0');
   const start = page.getByRole('button', { name: '반복 실행 시작', exact: true });
