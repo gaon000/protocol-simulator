@@ -1975,3 +1975,31 @@ pre {
 .new-stack-wizard dd {
   margin-inline-start: 1rem;
 }
+.stack-scenario-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.4fr);
+  gap: 1rem;
+  align-items: start;
+}
+.stack-scenario-lists,
+.stack-scenario-item,
+.stack-scenario-fields {
+  min-width: 0;
+}
+.scenario-row,
+.stack-scenario-fields button {
+  display: block;
+  width: 100%;
+  margin-block: 0.3rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.stack-scenario-layout button[aria-pressed="true"] {
+  border-color: var(--accent, #2563eb);
+  background: #eaf2ff;
+}
+@media (max-width: 960px) {
+  .stack-scenario-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

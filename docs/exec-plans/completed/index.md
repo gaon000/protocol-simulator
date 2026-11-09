@@ -24,3 +24,4 @@
 | [작성 기능 CI 검증과 저장 비용](20261107-stack-authoring-ci-validation.md) | 2026-11-07 | 소유 JSON의 정확한 byte 크기 재사용·가져오기 준비 상태 대기 | 로컬/원격 Node 570·문서 50·UI 314·native DB 14·응답성 9. 기존 시간/크기/저장 계약 유지, 보완 코드 CI `42256191134` 통과 |
 | [스택 상태도 시각적 편집](20261109-stack-visual-authoring.md) | 2026-11-09 | 네 endpoint의 상태/전이 작성·선언 이벤트·단일 선택 폼과 기존 이력/저장 | 로컬 Node 581·문서 51·UI 334·native DB 14·응답성 10. 125상태/605규칙·미지원 표현식/raw·live/snapshot 보존. 엔진/저장 schema 유지 |
 | [스택 관찰의 증분 전달](20261109-stack-observation-transfer.md) | 2026-11-09 | 실제 불변 event/byte suffix만 전달·정확한 기준본 복원/거부 | 로컬 Node 586·문서 52·UI 334·native DB 14·응답성 10. 기존 10k 반복 수신 비용 보완, snapshot/저장·성능 상한 유지 |
+| [스택 시나리오·기대 조건 폼](20261109-stack-scenario-forms.md) | 2026-11-09 | 정확한 대상의 typed 메시지/네 기대·생략/기본값·raw/이력·사례/회귀 | 로컬 Node 593·문서 53·UI 356·native DB 14·응답성 11. 입력/기대 125개·129필드/125메시지·큰 pending JSON과 원본 보존. 기존 엔진/저장 계약 유지 |

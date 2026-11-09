@@ -271,7 +271,7 @@ test('declaration list deletion/remapping retains the other unfinished value and
     editStackList(blocked, base, { kind: 'add', value: { id: 'x', type: 'integer', initial: 0 } }),
     blocked,
   );
-  assert.equal(editStackList(source, '/scenario/inputs', { kind: 'remove', index: 0 }), source);
+  assert.equal(editStackList(source, '/bindings', { kind: 'remove', index: 0 }), source);
 });
 
 test('multiple revisions of the same protocol remain distinct after restore and subsequent edits', () => {

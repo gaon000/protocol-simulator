@@ -26,9 +26,10 @@ export function editStackList(
   now = Date.now(),
 ): StackDraft {
   if (
-    !/^\/definitions\/\d+\/(?:source\/)?(?:rules\/\d+\/|rules$|states$|variables$|timers$)/.test(
+    (!/^\/definitions\/\d+\/(?:source\/)?(?:rules\/\d+\/|rules$|states$|variables$|timers$)/.test(
       path,
-    ) ||
+    ) &&
+      !/^\/scenario\/(?:inputs|expectations)$/.test(path)) ||
     blockingStackRaw(draft.raw, path)
   )
     return draft;

@@ -21,6 +21,7 @@ import type {
 } from '../application/stack-diagram-authoring.ts';
 import { blockingStackRaw } from '../application/edit-stack-list.ts';
 import { StackDraftDiagram } from './StackDraftDiagram.tsx';
+import { StackScenarioForm } from './StackScenarioForm.tsx';
 
 type Editor = {
   draft: StackDraft;
@@ -1030,82 +1031,15 @@ export function StackEditor({
           </>
         )}
         {tab === '입력·기대 조건' && (
-          <>
-            <Field path='/scenario/observationMs' label='관찰 기간 ms' number />
-            {configuration.scenario.inputs.slice(0, 20).map((input, index) => (
-              <Section path={`/scenario/inputs/${index}`} title={`입력 ${input.id}`} key={index}>
-                <Field path={`/scenario/inputs/${index}/id`} label='입력 ID' />
-                <Field path={`/scenario/inputs/${index}/timeMs`} label='입력 시각 ms' number />
-                {endpointControl(`/scenario/inputs/${index}/target`, '입력 대상')}
-                <Json path={`/scenario/inputs/${index}/message`} label='입력 메시지와 값 JSON' />
-                <button type='button' onClick={() => edit(`/scenario/inputs/${index}`, undefined)}>
-                  입력 삭제 · {input.id}
-                </button>
-              </Section>
-            ))}
-            <button
-              type='button'
-              onClick={() =>
-                edit('/scenario/inputs', [
-                  ...configuration.scenario.inputs,
-                  {
-                    id: unique(configuration.scenario.inputs, 'input'),
-                    timeMs: 0,
-                    target: configuration.scenario.inputs[0]?.target ??
-                      endpoints[0] ?? { participant: 'A', instanceId: 'app' },
-                    message: structuredClone(
-                      configuration.scenario.inputs[0]?.message ?? {
-                        messageId: 'message',
-                        values: {},
-                      },
-                    ),
-                  },
-                ])
-              }
-            >
-              입력 추가
-            </button>
-            {configuration.scenario.expectations.slice(0, 20).map((expectation, index) => (
-              <Section
-                path={`/scenario/expectations/${index}`}
-                title={`기대 ${expectation.id}`}
-                key={index}
-              >
-                <Field path={`/scenario/expectations/${index}/id`} label='기대 조건 ID' />
-                {endpointControl(`/scenario/expectations/${index}/target`, '기대 대상')}
-                <Json
-                  path={`/scenario/expectations/${index}`}
-                  label='상태·횟수·값·완료 기한 JSON'
-                />
-                <button
-                  type='button'
-                  onClick={() => edit(`/scenario/expectations/${index}`, undefined)}
-                >
-                  기대 삭제 · {expectation.id}
-                </button>
-              </Section>
-            ))}
-            <button
-              type='button'
-              onClick={() =>
-                edit('/scenario/expectations', [
-                  ...configuration.scenario.expectations,
-                  {
-                    id: unique(configuration.scenario.expectations, 'expected'),
-                    kind: 'state',
-                    target: endpoints[0] ?? { participant: 'A', instanceId: 'app' },
-                    stateId: body?.initialStateId ?? 'Idle',
-                  },
-                ])
-              }
-            >
-              기대 조건 추가
-            </button>
-            {(configuration.scenario.inputs.length > 20 ||
-              configuration.scenario.expectations.length > 20) && (
-              <p>목록은 처음 20개를 표시합니다. 전체 자료는 bundle에 보존됩니다.</p>
-            )}
-          </>
+          <StackScenarioForm
+            key={`${draft.id}:${formFocusVersion}`}
+            draft={draft}
+            edit={edit}
+            json={json}
+            list={list}
+            diagnostics={diagnostics}
+            {...(formFocusPath ? { focusPath: formFocusPath } : {})}
+          />
         )}
         <section aria-label='스택 정의 진단'>
           <h3>정의 진단 · {diagnostics.length}개</h3>

@@ -47,6 +47,8 @@ v1은 [제품 명세](product-specs/protocol-simulator-v1.md) → [기술 설계
 
 ## 선택 문서
 
+[스택 시나리오 폼](product-specs/protocol-simulator-v1.md#v1-026-스택-시나리오기대-조건의-폼-편집)의 입력 메시지·네 기대 조건 typed 작성과 기존 사례/회귀 연결을 구현·검증했다. 실제 범위·검증은 [완료 계획](exec-plans/completed/20261109-stack-scenario-forms.md)에 기록한다.
+
 [스택 상태도 시각적 편집](exec-plans/completed/20261109-stack-visual-authoring.md)을 구현·검증했으며 현재 작성 계약은 [V1-025](product-specs/protocol-simulator-v1.md#v1-025-스택-초안-상태도의-시각적-작성)를 따른다. 기존 SVG·native/legacy 규칙 폼과 config/raw 이력을 사용하고 실행 snapshot은 읽기 전용으로 유지한다.
 
 작성 기능의 [원격 CI 후속 검증](exec-plans/completed/20261107-stack-authoring-ci-validation.md)을 완료했다. 가져오기 준비 상태와 큰 자료의 중복 크기 계산을 보완하고 기존 기준의 전체 로컬/원격 검사를 통과했다.

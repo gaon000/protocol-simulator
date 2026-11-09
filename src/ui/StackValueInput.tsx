@@ -68,7 +68,13 @@ export function StackFormBoundary(
 
 /** Edit literal or declared initial values with the same integer/hex raw contract as rule expressions. */
 export function StackValueInput(
-  props: StackInputProps & { path: string; native: boolean; type?: StackValueType; label?: string },
+  props: StackInputProps & {
+    path: string;
+    native: boolean;
+    type?: StackValueType;
+    label?: string;
+    multiline?: boolean;
+  },
 ) {
   const { draft, path, native, edit, json, type: declared, label = '값' } = props;
   const value = valueAt(draft.configuration, path),
@@ -168,16 +174,35 @@ export function StackValueInput(
         </label>
       ) : type === 'string' &&
         typeof value === 'string' &&
+        props.multiline &&
+        value.includes('\r') ? (
+        <>
+          <small>CR 문자를 보존하는 문자열입니다. 줄바꿈은 JSON의 {'\\r\\n'}으로 수정하세요.</small>
+          <StackJsonInput {...props} label={`${label} JSON (CRLF는 \\r\\n)`} />
+        </>
+      ) : type === 'string' &&
+        typeof value === 'string' &&
         value.length <= RULE_FORM_POLICY.jsonChars ? (
-        <label className='control'>
+        <label className='control' htmlFor={idFor(path)}>
           <span>{declared ? label : '문자열 값'}</span>
-          <input
-            {...common}
-            aria-label={declared ? label : '문자열 값'}
-            value={value}
-            maxLength={RULE_FORM_POLICY.jsonChars}
-            onChange={(e) => edit(path, e.target.value)}
-          />
+          {props.multiline ? (
+            <textarea
+              {...common}
+              aria-label={declared ? label : '문자열 값'}
+              rows={3}
+              value={value}
+              maxLength={RULE_FORM_POLICY.jsonChars}
+              onChange={(e) => edit(path, e.target.value)}
+            />
+          ) : (
+            <input
+              {...common}
+              aria-label={declared ? label : '문자열 값'}
+              value={value}
+              maxLength={RULE_FORM_POLICY.jsonChars}
+              onChange={(e) => edit(path, e.target.value)}
+            />
+          )}
         </label>
       ) : type === 'boolean' ? (
         <label className='control'>

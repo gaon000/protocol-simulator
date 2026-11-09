@@ -69,6 +69,8 @@ Node 버전을 맞춘 상태에서 저장소 루트 기준이다. Corepack shim�
 
 ## 테스트 환경과 격리
 
+스택 시나리오 폼은 [V1-026](product-specs/protocol-simulator-v1.md#v1-026-스택-시나리오기대-조건의-폼-편집)을 따른다. 코어에서 exact/중복/없는 참조·미완성 선언·생략/0/false/빈 bytes·네 기대 구조·raw 원자적 이동과 실제 엔진/이력/저장 격리를 검사한다. 두 브라우저에서는 typed 작성→실제 판정·사례 회귀·native 복원·숫자/hex raw·부모 JSON 복구·125번째 진단/후보 검색·CRLF·390px 키보드를 확인한다. 별도 큰 실제 모델로 입력/기대 125개·필드 129개·메시지 125개에서 작성/선택/페이지/undo·redo 500ms와 DOM 32768자·전체 저장 원본 보존을 검사하고 기존 P7 상한은 유지한다.
+
 코어는 Node 내장 runner로 외부 연동 없이 실행한다. seed·가상 시간의 계약을 검사하며 wall-clock sleep을 사용하지 않는다. P0 reference fixture의 산식과 P4 실제 adapter의 결과를 각각 검사한다. 손실·중복·재전송·전체 관찰 기간의 전달 횟수/내용도 검증한다.
 
 Playwright는 기존 개발 서버를 재사용하지 않고 `127.0.0.1:4173`에 전용 Vite preview 서버를 시작·종료한다. 해당 포트가 사용 중이면 실패하며 임의의 기존 앱을 검사하지 않는다. 테스트마다 브라우저 context를 분리하고 실패 trace는 `test-results/`에 남긴다. 현재 브라우저 검증 범위는 Chromium 156.0.8078.4/Firefox 157.0의 실제 폼 작성·필드/조건/장애 변경·ACK 손실/유한 재시도·seed 재현·청크 원인·진단 초점·제어/상태 격리·키보드·390px 화면과 아홉 예제의 코어/화면 비교·HTTP 바이트/CL·TCP seq/ack·출처/사본이다. 실제 native IndexedDB의 새로고침 복원·invalid draft·bundle 왕복/거부·탭 충돌·quota/transaction abort·복구·snapshot 재실행도 검사한다. quota/abort는 테스트에서 API를 감싸 주입하며 실제 저장장치 고장 검증은 아니다. 통신은 가상 엔진이며 실제 네트워크 E2E는 없다.

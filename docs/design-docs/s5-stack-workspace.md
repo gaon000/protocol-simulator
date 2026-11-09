@@ -25,6 +25,8 @@
 
 ## 실행과 관찰
 
+스택 시나리오의 선택 폼은 `StackScenarioForm`·`StackScenarioMessage`가 소유하고 순수 `stack-scenario-authoring` helper가 현재 endpoint/exact revision과 유일한 선언을 찾는다. 시나리오 리스트도 기존 `editStackList`의 raw remap을 사용하며 모든 설정은 canonical 편집/이력을 거친다. 제품 계약은 [V1-026](../product-specs/protocol-simulator-v1.md#v1-026-스택-시나리오기대-조건의-폼-편집)을 따른다.
+
 `StackWorkerClient`와 module worker가 실제 네 runtime을 소유한다. 전체/한 단계/정지/계속/취소는 runId로 격리한다. 새 실행은 정의·환경·입력/기대 조건을 고정하고 history 재실행은 선택한 저장 snapshot을 사용한다. worker가 실패하면 마지막 수신 관찰과 저장 자료를 유지한다. 실행 worker와 저장 worker는 다른 수명을 가진다.
 
 worker가 이미 발행한 불변 관찰은 전체 자료를 다시 보내지 않고 관찰 버전 key로 조회한다. 같은 저장 ID의 이전 checkpoint와 새 checkpoint는 별도 key다. worker는 최근 64개만 보관하며, 폐기된 관찰 조회는 보유한 실제 원본을 다시 등록해 한 번 재시도한다. 이 내부 key는 실행 사이 인과관계를 나타내지 않는다.
