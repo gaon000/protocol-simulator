@@ -22,3 +22,4 @@
 | [스택 규칙 폼 편집](20261106-stack-rule-forms.md) | 2026-11-06 | 이벤트·조건·표현식·순차 동작 폼과 raw 원자적 이동·JSON/저장 왕복 | 로컬 Node 552·문서 48·UI 296·native DB 14·응답성 9. 605개 실제 동작·unknown/한도·snapshot 격리. 실행/저장 schema·의존성 변경 없음 |
 | [새 스택 작성·되돌리기·설정 폼](20261107-stack-authoring-workflow.md) | 2026-11-07 | native 생성 검토/첫 실행·초안 config/raw 이력·포트/타이머/초기값 폼 | 로컬 Node 565·문서 49·UI 314·native DB 14·응답성 9. 공유 한도·fresh exact revision·외부 교체/저장 실패·605동작 undo/redo. 저장/엔진 계약 유지 |
 | [작성 기능 CI 검증과 저장 비용](20261107-stack-authoring-ci-validation.md) | 2026-11-07 | 소유 JSON의 정확한 byte 크기 재사용·가져오기 준비 상태 대기 | 로컬/원격 Node 570·문서 50·UI 314·native DB 14·응답성 9. 기존 시간/크기/저장 계약 유지, 보완 코드 CI `42256191134` 통과 |
+| [스택 상태도 시각적 편집](20261109-stack-visual-authoring.md) | 2026-11-09 | 네 endpoint의 상태/전이 작성·선언 이벤트·단일 선택 폼과 기존 이력/저장 | 로컬 Node 581·문서 51·UI 334·native DB 14·응답성 10. 125상태/605규칙·미지원 표현식/raw·live/snapshot 보존. 엔진/저장 schema 유지 |

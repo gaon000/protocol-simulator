@@ -1115,6 +1115,36 @@ pre {
   overflow-wrap: anywhere;
 }
 
+.stack-visual-details {
+  margin: 16px 0;
+  min-width: 0;
+}
+.stack-visual-authoring {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  align-items: start;
+}
+.stack-visual-authoring > section {
+  min-width: 0;
+}
+:where(.stack-visual-authoring) .diagram-controls label {
+  white-space: nowrap;
+}
+.stack-visual-authoring.has-selection {
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
+}
+.stack-visual-authoring .draft-diagram-editor {
+  border: 1px solid #bacde5;
+  border-radius: 8px;
+  padding: 12px;
+}
+@media (max-width: 960px) {
+  .stack-visual-authoring.has-selection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .batch-experiments .run-toolbar {
   position: static;
 }

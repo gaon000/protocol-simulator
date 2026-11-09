@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Controlled form rows are keyed by their stable JSON Pointer within each structural generation. */
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { JsonValue } from '../domain/execution-contract.ts';
 import { valueAt } from '../domain/json-pointer.ts';
 import type { ModelDiagnostic } from '../domain/protocol-model.ts';
@@ -9,6 +9,18 @@ import type { StackDraft } from '../domain/workspace-v2-model.ts';
 import type { RuleListEdit } from '../application/stack-rule-authoring.ts';
 import { StackRuleForm } from './StackRuleForm.tsx';
 import { StackPortForm, StackDeclarations } from './StackDefinitionForms.tsx';
+import {
+  newDiagramState,
+  validDiagramEndpoint,
+  type DraftDiagramSelection,
+} from '../application/diagram-authoring.ts';
+import type {
+  StackDiagramAppend,
+  StackDiagramCommand,
+  StackDiagramSource,
+} from '../application/stack-diagram-authoring.ts';
+import { blockingStackRaw } from '../application/edit-stack-list.ts';
+import { StackDraftDiagram } from './StackDraftDiagram.tsx';
 
 type Editor = {
   draft: StackDraft;
@@ -151,13 +163,27 @@ function page(items: readonly unknown[], value: number) {
 /** Author stable endpoints, typed ports, protocol rules, lower-link faults and endpoint-targeted scenarios. */
 export function StackEditor({
   draft,
-  edit,
-  json,
+  edit: write,
+  json: writeJson,
   diagnostics,
-  list,
+  list: writeList,
   synchronize,
-}: Editor & { synchronize: (protocol: StackProtocol) => void }) {
+  appendDiagram,
+}: Editor & {
+  synchronize: (protocol: StackProtocol) => void;
+  appendDiagram: (
+    source: StackDiagramSource,
+    command: StackDiagramCommand,
+  ) => StackDiagramAppend | undefined;
+}) {
   const [tab, setTab] = useState('연결');
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [graphSelection, setGraphSelection] = useState<{
+    key: string;
+    item: DraftDiagramSelection;
+    inList: boolean;
+  }>();
+  const [graphFocus, setGraphFocus] = useState<string>();
   const [target, setTarget] = useState('A/app');
   const [messageIndex, setMessageIndex] = useState(0);
   const [statePage, setStatePage] = useState(0);
@@ -194,6 +220,216 @@ export function StackEditor({
   const prefix = `${base}${protocol?.mode === 'legacy-application' ? '/source' : ''}`;
   const message = body?.messages[messageIndex] ?? body?.messages[0];
   const mi = message ? (body?.messages.indexOf(message) ?? 0) : 0;
+  function selectionKey(
+    current: StackDraft,
+    override?: { collection: 'states' | 'rules'; index: number; id: string },
+  ) {
+    const selectedProtocol = current.configuration.definitions[definitionIndex];
+    const currentBody = selectedProtocol && stackProtocolBody(selectedProtocol);
+    return JSON.stringify([
+      current.id,
+      target,
+      definitionIndex,
+      selectedProtocol?.id,
+      currentBody?.states.map((s, i) =>
+        override?.collection === 'states' && override.index === i ? override.id : s.id,
+      ),
+      currentBody?.rules.map((r, i) =>
+        override?.collection === 'rules' && override.index === i ? override.id : r.id,
+      ),
+    ]);
+  }
+  const graphKey = selectionKey(draft);
+  const graphItem = graphSelection?.key === graphKey ? graphSelection.item : undefined;
+  const detached = graphOpen && !graphSelection?.inList ? graphItem : undefined;
+  const collectionRaw = [
+    ...new Set(
+      ['states', 'rules']
+        .map((kind) => blockingStackRaw(draft.raw, `${prefix}/${kind}`))
+        .filter((p): p is string => p !== undefined),
+    ),
+  ];
+  function edit(path: string, value: JsonValue | undefined) {
+    const renamed = /\/(states|rules)\/(\d+)\/id$/.exec(path);
+    if (graphSelection?.key === graphKey && renamed && typeof value === 'string')
+      setGraphSelection({
+        ...graphSelection,
+        key: selectionKey(draft, {
+          collection: renamed[1] as 'states' | 'rules',
+          index: Number(renamed[2]),
+          id: value,
+        }),
+      });
+    if (/\/(states|rules)(?:\/\d+)?$/.test(path)) setGraphSelection(undefined);
+    write(path, value);
+  }
+  function json(path: string, text: string) {
+    if (/\/(states|rules)(?:\/\d+)?$/.test(path)) setGraphSelection(undefined);
+    writeJson(path, text);
+  }
+  function list(path: string, operation: RuleListEdit) {
+    if (/\/(states|rules)$/.test(path)) setGraphSelection(undefined);
+    writeList(path, operation);
+  }
+  function selectGraph(item: DraftDiagramSelection, updated?: StackDraft) {
+    setGraphSelection({ key: selectionKey(updated ?? draft), item, inList: false });
+    setFormFocusPath(undefined);
+    setJsonRule(-1);
+    if (item.kind === 'state') setStatePage(Math.floor(item.index / 20));
+    else {
+      setRulePage(Math.floor(item.index / 20));
+      setFormIndex(item.index);
+    }
+    if (updated)
+      setGraphFocus(
+        `${prefix}/${item.kind === 'state' ? 'states' : 'rules'}/${item.index}/${item.kind === 'state' ? 'label' : 'id'}`,
+      );
+  }
+  useEffect(() => {
+    if (!graphFocus) return;
+    const node = document.getElementById(`stack-${encodeURIComponent(graphFocus)}`);
+    if (node) {
+      node.focus({ preventScroll: true });
+      node.scrollIntoView({ block: 'nearest' });
+    }
+    setGraphFocus(undefined);
+  }, [graphFocus]);
+  function stateRow(index: number) {
+    const s = body?.states[index];
+    if (!s) return null;
+    const path = `${prefix}/states/${index}`;
+    const blocked = blockingStackRaw(draft.raw, path);
+    return (
+      <div className='stack-card' key={index}>
+        {blocked === path && <Json path={path} label='미완성 상태 JSON 수정' />}
+        <fieldset
+          className='rule-boundary'
+          id={`stack-group-${encodeURIComponent(path)}`}
+          tabIndex={-1}
+          disabled={blocked !== undefined}
+        >
+          <Field path={`${prefix}/states/${index}/id`} label='상태 ID' />
+          <Field path={`${prefix}/states/${index}/label`} label='상태 이름' />
+          <Field path={`${prefix}/states/${index}/terminal`} label='종료 상태' check />
+          <button
+            type='button'
+            disabled={
+              !body ||
+              body.initialStateId === s.id ||
+              !validDiagramEndpoint(body, { index, id: s.id }) ||
+              blockingStackRaw(draft.raw, `${prefix}/initialStateId`) !== undefined
+            }
+            onClick={() => edit(`${prefix}/initialStateId`, s.id)}
+          >
+            초기 상태로 지정 · {s.id}
+          </button>
+          <button type='button' onClick={() => list(`${prefix}/states`, { kind: 'remove', index })}>
+            상태 삭제 · {s.id}
+          </button>
+        </fieldset>
+      </div>
+    );
+  }
+  function ruleRow(index: number) {
+    const rule = body?.rules[index];
+    if (!rule || !protocol || !body) return null;
+    return (
+      <Section key={index} path={`${prefix}/rules/${index}`} title={rule.id}>
+        <fieldset
+          className='rule-boundary'
+          disabled={blockingStackRaw(draft.raw, `${prefix}/rules/${index}`) !== undefined}
+        >
+          <Field path={`${prefix}/rules/${index}/id`} label='규칙 ID' />
+          <Field
+            path={`${prefix}/rules/${index}/fromStateId`}
+            label='이전 상태'
+            options={body.states.map((s) => s.id)}
+          />
+          <Field
+            path={`${prefix}/rules/${index}/nextStateId`}
+            label='다음 상태'
+            options={body.states.map((s) => s.id)}
+          />
+          <button
+            type='button'
+            onClick={() => {
+              setFormFocusPath(undefined);
+              setFormIndex(formIndex === index ? -1 : index);
+            }}
+          >
+            규칙 폼 {formIndex === index ? '닫기' : '열기'} · {rule.id.slice(0, 60)} · {index + 1}
+          </button>
+        </fieldset>
+        {formIndex === index && !blockingStackRaw(draft.raw, `${prefix}/rules`) && (
+          <StackRuleForm
+            key={`${target}:${prefix}:${index}:${formFocusPath ?? ''}:${formFocusVersion}`}
+            draft={draft}
+            protocol={protocol}
+            rule={rule}
+            path={`${prefix}/rules/${index}`}
+            edit={edit}
+            json={json}
+            list={list}
+            diagnostics={diagnostics}
+            {...(formFocusPath ? { focusPath: formFocusPath } : {})}
+          />
+        )}
+        <fieldset
+          className='rule-boundary'
+          disabled={blockingStackRaw(draft.raw, `${prefix}/rules/${index}`) !== undefined}
+        >
+          <details
+            open={jsonRule === index}
+            onToggle={(event) => {
+              if (event.currentTarget.open) setJsonRule(index);
+              else setJsonRule((old) => (old === index ? -1 : old));
+            }}
+          >
+            <summary>
+              규칙 JSON 편집 · {rule.id.slice(0, 60)} · {index + 1}
+            </summary>
+            {jsonRule === index && (
+              <>
+                <Json
+                  path={`${prefix}/rules/${index}/event`}
+                  label='입력·수신·타이머·포트 이벤트 JSON'
+                />
+                {rule.condition ? (
+                  <Json path={`${prefix}/rules/${index}/condition`} label='조건 JSON' optional />
+                ) : (
+                  <button
+                    type='button'
+                    onClick={() =>
+                      edit(`${prefix}/rules/${index}/condition`, {
+                        kind: 'compare',
+                        operator: 'eq',
+                        left: { kind: 'literal', value: 1 },
+                        right: { kind: 'literal', value: 1 },
+                      })
+                    }
+                  >
+                    조건 추가 · {rule.id}
+                  </button>
+                )}
+                <Json path={`${prefix}/rules/${index}/actions`} label='순서대로 실행할 동작 JSON' />
+              </>
+            )}
+          </details>
+          <Field path={`${prefix}/rules/${index}/ignore`} label='명시적 무시' check />
+          <button
+            type='button'
+            onClick={() => {
+              setFormIndex(-1);
+              setJsonRule(-1);
+              list(`${prefix}/rules`, { kind: 'remove', index });
+            }}
+          >
+            규칙 삭제 · {rule.id}
+          </button>
+        </fieldset>
+      </Section>
+    );
+  }
   function endpointControl(
     path: string,
     label: string,
@@ -400,6 +636,71 @@ export function StackEditor({
                   실행 snapshot은 변경하지 않습니다. 같은 정의 revision을 참조하는 인스턴스는 함께
                   갱신됩니다.
                 </p>
+                {collectionRaw.map((where) => (
+                  <Json key={where} path={where} label={`상태도 미완성 JSON 수정 · ${where}`} />
+                ))}
+                <details
+                  className='stack-visual-details'
+                  open={graphOpen}
+                  onToggle={(event) => {
+                    setGraphOpen(event.currentTarget.open);
+                  }}
+                >
+                  <summary>초안 상태도 편집 보기</summary>
+                  {graphOpen && selected && (
+                    <div className={`stack-visual-authoring ${detached ? 'has-selection' : ''}`}>
+                      <StackDraftDiagram
+                        key={`${draft.id}:${target}:${definitionIndex}`}
+                        draft={draft}
+                        endpoint={selected}
+                        protocol={protocol}
+                        definition={definitionIndex}
+                        selection={graphItem}
+                        onSelect={selectGraph}
+                        append={appendDiagram}
+                      />
+                      {detached && (
+                        <section
+                          className='draft-diagram-editor'
+                          aria-label='스택 상태도 선택 편집기'
+                        >
+                          <h2>선택한 {detached.kind === 'state' ? '상태' : '규칙'} 편집</h2>
+                          <p>초안에 반영하고 자동 저장합니다. 실행 당시 정의는 유지합니다.</p>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              if (graphSelection)
+                                setGraphSelection({ ...graphSelection, inList: true });
+                              setGraphFocus(
+                                `${prefix}/${detached.kind === 'state' ? 'states' : 'rules'}/${detached.index}/id`,
+                              );
+                            }}
+                          >
+                            전체 목록에서 편집
+                          </button>
+                          {diagnostics
+                            .filter(
+                              (d) =>
+                                d.path ===
+                                  `${prefix}/${detached.kind === 'state' ? 'states' : 'rules'}/${detached.index}` ||
+                                d.path.startsWith(
+                                  `${prefix}/${detached.kind === 'state' ? 'states' : 'rules'}/${detached.index}/`,
+                                ),
+                            )
+                            .slice(0, 16)
+                            .map((d, i) => (
+                              <p key={i} role='status'>
+                                {d.path} · {d.message}
+                              </p>
+                            ))}
+                          {detached.kind === 'state'
+                            ? stateRow(detached.index)
+                            : ruleRow(detached.index)}
+                        </section>
+                      )}
+                    </div>
+                  )}
+                </details>
                 <Field path={`${base}/id`} label='프로토콜 ID' />
                 <Field path={`${prefix}/label`} label='프로토콜 이름' />
                 <Field
@@ -586,25 +887,11 @@ export function StackEditor({
                       page(body.states, statePage).index * 20,
                       (page(body.states, statePage).index + 1) * 20,
                     )
-                    .map((s, offset) => {
+                    .map((_, offset) => {
                       const index = page(body.states, statePage).index * 20 + offset;
-                      return (
-                        <div className='stack-card' key={index}>
-                          <Field path={`${prefix}/states/${index}/id`} label='상태 ID' />
-                          <Field path={`${prefix}/states/${index}/label`} label='상태 이름' />
-                          <Field
-                            path={`${prefix}/states/${index}/terminal`}
-                            label='종료 상태'
-                            check
-                          />
-                          <button
-                            type='button'
-                            onClick={() => edit(`${prefix}/states/${index}`, undefined)}
-                          >
-                            상태 삭제 · {s.id}
-                          </button>
-                        </div>
-                      );
+                      return detached?.kind === 'state' && detached.index === index
+                        ? null
+                        : stateRow(index);
                     })}
                   <button
                     type='button'
@@ -623,10 +910,10 @@ export function StackEditor({
                   <button
                     type='button'
                     onClick={() =>
-                      edit(`${prefix}/states`, [
-                        ...body.states,
-                        { id: unique(body.states, 'state'), label: '새 상태' },
-                      ])
+                      list(`${prefix}/states`, {
+                        kind: 'add',
+                        value: newDiagramState(body),
+                      })
                     }
                   >
                     상태 추가
@@ -638,106 +925,11 @@ export function StackEditor({
                       page(body.rules, rulePage).index * 20,
                       (page(body.rules, rulePage).index + 1) * 20,
                     )
-                    .map((rule, offset) => {
+                    .map((_, offset) => {
                       const index = page(body.rules, rulePage).index * 20 + offset;
-                      return (
-                        <Section key={index} path={`${prefix}/rules/${index}`} title={rule.id}>
-                          <Field path={`${prefix}/rules/${index}/id`} label='규칙 ID' />
-                          <Field
-                            path={`${prefix}/rules/${index}/fromStateId`}
-                            label='이전 상태'
-                            options={body.states.map((s) => s.id)}
-                          />
-                          <Field
-                            path={`${prefix}/rules/${index}/nextStateId`}
-                            label='다음 상태'
-                            options={body.states.map((s) => s.id)}
-                          />
-                          <button
-                            type='button'
-                            onClick={() => {
-                              setFormFocusPath(undefined);
-                              setFormIndex(formIndex === index ? -1 : index);
-                            }}
-                          >
-                            규칙 폼 {formIndex === index ? '닫기' : '열기'} · {rule.id.slice(0, 60)}{' '}
-                            · {index + 1}
-                          </button>
-                          {formIndex === index && (
-                            <StackRuleForm
-                              key={`${target}:${prefix}:${index}:${formFocusPath ?? ''}:${formFocusVersion}`}
-                              draft={draft}
-                              protocol={protocol}
-                              rule={rule}
-                              path={`${prefix}/rules/${index}`}
-                              edit={edit}
-                              json={json}
-                              list={list}
-                              diagnostics={diagnostics}
-                              {...(formFocusPath ? { focusPath: formFocusPath } : {})}
-                            />
-                          )}
-                          <details
-                            open={jsonRule === index}
-                            onToggle={(event) => {
-                              if (event.currentTarget.open) setJsonRule(index);
-                              else setJsonRule((old) => (old === index ? -1 : old));
-                            }}
-                          >
-                            <summary>
-                              규칙 JSON 편집 · {rule.id.slice(0, 60)} · {index + 1}
-                            </summary>
-                            {jsonRule === index && (
-                              <>
-                                <Json
-                                  path={`${prefix}/rules/${index}/event`}
-                                  label='입력·수신·타이머·포트 이벤트 JSON'
-                                />
-                                {rule.condition ? (
-                                  <Json
-                                    path={`${prefix}/rules/${index}/condition`}
-                                    label='조건 JSON'
-                                    optional
-                                  />
-                                ) : (
-                                  <button
-                                    type='button'
-                                    onClick={() =>
-                                      edit(`${prefix}/rules/${index}/condition`, {
-                                        kind: 'compare',
-                                        operator: 'eq',
-                                        left: { kind: 'literal', value: 1 },
-                                        right: { kind: 'literal', value: 1 },
-                                      })
-                                    }
-                                  >
-                                    조건 추가 · {rule.id}
-                                  </button>
-                                )}
-                                <Json
-                                  path={`${prefix}/rules/${index}/actions`}
-                                  label='순서대로 실행할 동작 JSON'
-                                />
-                              </>
-                            )}
-                          </details>
-                          <Field
-                            path={`${prefix}/rules/${index}/ignore`}
-                            label='명시적 무시'
-                            check
-                          />
-                          <button
-                            type='button'
-                            onClick={() => {
-                              setFormIndex(-1);
-                              setJsonRule(-1);
-                              edit(`${prefix}/rules/${index}`, undefined);
-                            }}
-                          >
-                            규칙 삭제 · {rule.id}
-                          </button>
-                        </Section>
-                      );
+                      return detached?.kind === 'rule' && detached.index === index
+                        ? null
+                        : ruleRow(index);
                     })}
                   <button
                     type='button'
@@ -767,16 +959,16 @@ export function StackEditor({
                       setFormIndex(body.rules.length);
                       setRulePage(Math.floor(body.rules.length / 20));
                       setJsonRule(-1);
-                      edit(`${prefix}/rules`, [
-                        ...body.rules,
-                        {
+                      list(`${prefix}/rules`, {
+                        kind: 'add',
+                        value: {
                           id: unique(body.rules, 'rule'),
                           fromStateId: body.initialStateId,
                           nextStateId: body.initialStateId,
                           event: { kind: 'input', messageId: body.messages[0]?.id ?? 'message' },
                           actions: [],
                         },
-                      ]);
+                      });
                     }}
                   >
                     규칙 추가
@@ -924,6 +1116,9 @@ export function StackEditor({
                 key={index}
                 type='button'
                 onClick={() => {
+                  setGraphSelection(undefined);
+                  const stateMatch = /\/states\/(\d+)(?:\/|$)/.exec(d.path);
+                  if (stateMatch) setStatePage(Math.floor(Number(stateMatch[1]) / 20));
                   setFormFocusPath(d.path);
                   setFormFocusVersion((version) => version + 1);
                   const definitionMatch = /^\/definitions\/(\d+)(?:\/|$)/.exec(d.path);

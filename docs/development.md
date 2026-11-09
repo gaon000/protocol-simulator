@@ -81,6 +81,8 @@ bundle 가져오기 성공 안내는 메모리 적용 시점이다. 파일 처�
 
 ## CI와 릴리스
 
+스택 상태도 작성은 [V1-025](product-specs/protocol-simulator-v1.md#v1-025-스택-초안-상태도의-시각적-작성)를 따른다. 코어는 현재 자료/endpoint/exact 정의·선언 이벤트·raw·ID와 실제 엔진/이력을 검사한다. 두 브라우저는 직접 작성/실행·폼 단일 소유·취소/대상 전환·native 저장/과거 snapshot·미완성 JSON·페이지/키보드를 검사한다. 별도 125상태/605규칙 fixture의 열린 상태도/옆 폼과 생성/undo/redo 응답성을 기존 아홉 fixture 뒤 순차 검사한다.
+
 새 스택 생성·초안 undo/redo·선언 폼은 [V1-022~024](product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)를 따른다. 코어는 두 전송/빈·첫 메시지 실행·identity/참조·raw/그룹/분기/한도·외부 교체와 저장 실패를 확인한다. 두 브라우저는 생성 검토/취소·공유 용량·모드/키보드·native 복원·포트/타이머/초기값과 페이지 진단을 확인하며 기존 605동작 fixture에 undo/redo의 500ms 기준을 추가한다. 이력 자체는 IndexedDB에 저장하지 않는다.
 
 스택 규칙 폼은 [V1-021](product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)을 따른다. 코어는 exact 이벤트 범위·지원 문법·순차 대입의 실행 결과·raw 원자적 이동과 큰/unknown 트리를 검사한다. 두 브라우저는 실제 작성/실행·snapshot 격리·native 저장/복원·중첩 byte/JSON 왕복·오류 초점과 키보드/viewport를 검사한다. 605개 실제 동작의 별도 작성 응답성 fixture와 기존 여덟 fixture를 순차 실행한다.

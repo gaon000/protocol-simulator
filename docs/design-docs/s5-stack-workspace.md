@@ -21,6 +21,8 @@
 
 후속 [새 작성 흐름](../product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)은 별도 검토 후 native 응용 정의와 명시적 전송 시작점을 추가한다. `WorkspaceRoot`의 탭별 이력은 config/raw만 보관하고 canonical controller에 소유한 불변 draft를 전달한다. 복원은 같은 ID의 여러 revision을 구분하는 새 identity로 참조를 함께 갱신한다. 일반 편집도 같은 ID의 최대 revision을 넘어 증가한다. 포트·변수/타이머·scalar/byte 초기값 폼은 기존 JSON/raw와 같은 경로를 사용한다. 저장 schema와 worker 실행 계약은 유지하며 상세 정책·검증은 [작성 계획](../exec-plans/completed/20261107-stack-authoring-workflow.md)이 소유한다.
 
+[스택 초안 상태도](../product-specs/protocol-simulator-v1.md#v1-025-스택-초안-상태도의-시각적-작성)는 정의 편집 안에서 지연 렌더한다. application의 생성 경계가 현재 자료·pending raw와 endpoint/exact 정의를 대조한 뒤 기존 canonical 업데이트로 추가한다. 상태/규칙의 상위 리스트도 공통 raw remap을 사용한다. 공통 `StateDiagram`은 구조 배치와 native/v1의 유한 표현을 제공하고, `StackEditor`가 선택 항목의 폼을 목록 또는 옆 편집기 한 곳에 렌더한다. 스택 실행 그림/worker·저장 schema는 바뀌지 않는다.
+
 ## 실행과 관찰
 
 `StackWorkerClient`와 module worker가 실제 네 runtime을 소유한다. 전체/한 단계/정지/계속/취소는 runId로 격리한다. 새 실행은 정의·환경·입력/기대 조건을 고정하고 history 재실행은 선택한 저장 snapshot을 사용한다. worker가 실패하면 마지막 수신 관찰과 저장 자료를 유지한다. 실행 worker와 저장 worker는 다른 수명을 가진다.

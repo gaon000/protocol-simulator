@@ -22,7 +22,9 @@ function sameEvent(left: RuleEvent, right: RuleEvent): boolean {
 
 /** Reserve existing and dangling IDs so a new state cannot silently retarget old references. */
 export function newDiagramState(
-  protocol: ProtocolDefinition,
+  protocol: Pick<ProtocolDefinition, 'states' | 'initialStateId'> & {
+    readonly rules: readonly Pick<RuleDefinition, 'fromStateId' | 'nextStateId'>[];
+  },
 ): ProtocolDefinition['states'][number] {
   const reserved = [
     ...protocol.states,
@@ -34,7 +36,7 @@ export function newDiagramState(
 
 /** Resolve a state only if both its captured index and unique nonempty ID still match. */
 export function validDiagramEndpoint(
-  protocol: ProtocolDefinition,
+  protocol: Pick<ProtocolDefinition, 'states'>,
   endpoint: DiagramEndpoint,
 ): boolean {
   return (

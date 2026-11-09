@@ -34,6 +34,8 @@
 
 새 스택 작성·편집 이력·선언 설정은 [V1-022~024](docs/product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)와 [작성 흐름 계획](docs/exec-plans/completed/20261107-stack-authoring-workflow.md)을 따른다. 생성 검토/취소와 canonical 추가를 구분한다. undo/redo는 config/raw만 새 정의 revision과 정확한 참조로 복원하고 suite/과거 실행을 덮어쓰지 않는다. 외부 교체·이력 한도·부모 raw·입력 컨트롤의 기본 키를 보존한다.
 
+스택 상태도 작성은 [V1-025](docs/product-specs/protocol-simulator-v1.md#v1-025-스택-초안-상태도의-시각적-작성)를 따른다. 현재 endpoint/정의와 자료를 확인한 원자적 생성·선언 이벤트·미해결 상태 참조 예약을 사용한다. 선택 폼은 목록/옆 편집기 한 곳에서 소유하고 부모/선택 선언의 raw를 덮어쓰지 않는다. 실행/과거 상태도는 읽기 전용이며 기존 revision·이력·저장/응답성 경계를 유지한다.
+
 ## 먼저 읽을 문서
 
 - [문서 지도](docs/index.md): 작업에 필요한 문서 찾기.

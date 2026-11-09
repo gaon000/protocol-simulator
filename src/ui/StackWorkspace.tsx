@@ -6,6 +6,10 @@ import {
 } from '../application/edit-stack.ts';
 import { compileStackBreakpoints } from '../application/stack-breakpoints.ts';
 import { editStackList } from '../application/edit-stack-list.ts';
+import {
+  appendStackDiagram,
+  type StackDiagramAppend,
+} from '../application/stack-diagram-authoring.ts';
 import type { StackEditHistory } from '../application/stack-edit-history.ts';
 import { StackWorkerClient } from '../application/stack-worker-client.ts';
 import type {
@@ -725,6 +729,19 @@ export function StackWorkspace({
               void json(path, text);
             }}
             diagnostics={diagnostics}
+            appendDiagram={(source, command) => {
+              if (host.full.view().data.stack.activeDraftId !== source.draftId) return;
+              let applied: StackDiagramAppend | undefined;
+              updateDraft((before) => {
+                applied = appendStackDiagram(before, source, command);
+                return applied?.draft ?? before;
+              });
+              if (applied) {
+                generation.current++;
+                void control('pause');
+              }
+              return applied;
+            }}
             list={(path, operation) => {
               generation.current++;
               void control('pause');

@@ -19,13 +19,9 @@ import {
   DIAGRAM_POLICY,
 } from '../application/state-diagram.ts';
 import type { JsonValue, ParticipantId } from '../domain/execution-contract.ts';
-import type {
-  Action,
-  Condition,
-  ProtocolDefinition,
-  RuleEvent,
-  ValueExpression,
-} from '../domain/protocol-model.ts';
+import type { StackAction, StackProtocolBody } from '../domain/stack-model.ts';
+import { stackDiagramEventText } from '../application/stack-diagram-authoring.ts';
+import { stackObject } from '../domain/stack-record.ts';
 
 export type DiagramActor = {
   readonly participant: ParticipantId;
@@ -40,45 +36,68 @@ export type DiagramCoverage = {
 };
 const EMPTY_ACTORS: readonly DiagramActor[] = [];
 const short = (text: string, size = 24) => (text.length > size ? `${text.slice(0, size)}…` : text);
-function expression(value: ValueExpression, depth = 0): string {
-  if (depth > 6) return '…';
-  if (value.kind === 'literal') return short(previewJson(value.value).text, 80);
-  if (value.kind === 'field') return `필드 ${short(value.fieldId)}`;
-  if (value.kind === 'variable') return `변수 ${short(value.variableId)}`;
-  return short(
-    `(${expression(value.left, depth + 1)} ${value.kind === 'add' ? '+' : '−'} ${expression(value.right, depth + 1)})`,
-    160,
-  );
-}
-function conditionText(condition: Condition | undefined, depth = 0): string {
-  if (!condition) return '추가 조건 없음';
-  if (depth > 6) return '…';
-  if (condition.kind === 'compare') {
-    const operators = { eq: '=', ne: '≠', lt: '<', lte: '≤', gt: '>', gte: '≥' };
+function expression(value: unknown, depth = 0, budget = { remaining: 64 }): string {
+  if (depth > 6 || --budget.remaining < 0) return '…';
+  const node = stackObject(value);
+  const reference = (key: string) =>
+    typeof node[key] === 'string' ? short(node[key]) : '(참조 없음)';
+  if (node.kind === 'literal' && Object.hasOwn(node, 'value'))
+    return short(previewJson(node.value as JsonValue).text, 80);
+  if (node.kind === 'field') return `필드 ${reference('fieldId')}`;
+  if (node.kind === 'variable') return `변수 ${reference('variableId')}`;
+  if (node.kind === 'service-payload') return '서비스 payload';
+  if (node.kind === 'byteLength')
+    return short(`바이트 길이 (${expression(node.value, depth + 1, budget)})`, 160);
+  if (node.kind === 'slice')
     return short(
-      `${expression(condition.left)} ${operators[condition.operator]} ${expression(condition.right)}`,
+      `바이트 구간 (${expression(node.value, depth + 1, budget)}, ${expression(node.offset, depth + 1, budget)}, ${expression(node.length, depth + 1, budget)})`,
+      160,
+    );
+  if (node.kind === 'concat' && Array.isArray(node.values))
+    return short(
+      `바이트 합치기 (${node.values
+        .slice(0, 8)
+        .map((item) => expression(item, depth + 1, budget))
+        .join(', ')}${node.values.length > 8 ? ', …' : ''})`,
+      160,
+    );
+  if (node.kind === 'add' || node.kind === 'subtract')
+    return short(
+      `(${expression(node.left, depth + 1, budget)} ${node.kind === 'add' ? '+' : '−'} ${expression(node.right, depth + 1, budget)})`,
+      160,
+    );
+  return `미지원 식 ${typeof node.kind === 'string' ? short(node.kind) : '(유형 없음)'} · JSON에서 확인`;
+}
+function conditionText(condition: unknown, depth = 0, budget = { remaining: 64 }): string {
+  if (condition === undefined) return '추가 조건 없음';
+  if (depth > 6 || --budget.remaining < 0) return '…';
+  const node = stackObject(condition);
+  if (node.kind === 'compare') {
+    const operators = { eq: '=', ne: '≠', lt: '<', lte: '≤', gt: '>', gte: '≥' };
+    const operator =
+      typeof node.operator === 'string' && Object.hasOwn(operators, node.operator)
+        ? operators[node.operator as keyof typeof operators]
+        : '?';
+    return short(
+      `${expression(node.left, depth, budget)} ${operator} ${expression(node.right, depth, budget)}`,
       180,
     );
   }
-  if (condition.kind === 'not')
-    return short(`아님 (${conditionText(condition.condition, depth + 1)})`, 180);
-  return short(
-    condition.conditions
-      .slice(0, 8)
-      .map((item) => conditionText(item, depth + 1))
-      .join(condition.kind === 'all' ? ' 그리고 ' : ' 또는 ') +
-      (condition.conditions.length > 8 ? '…' : ''),
-    180,
-  );
+  if (node.kind === 'not')
+    return short(`아님 (${conditionText(node.condition, depth + 1, budget)})`, 180);
+  if ((node.kind === 'all' || node.kind === 'any') && Array.isArray(node.conditions))
+    return short(
+      node.conditions
+        .slice(0, 8)
+        .map((item) => conditionText(item, depth + 1, budget))
+        .join(node.kind === 'all' ? ' 그리고 ' : ' 또는 ') +
+        (node.conditions.length > 8 ? '…' : ''),
+      180,
+    );
+  return '미지원 조건 · JSON에서 확인';
 }
-function eventText(event: RuleEvent): string {
-  if (event.kind === 'input') return `입력 ${short(event.messageId)}`;
-  if (event.kind === 'receive') return `수신 ${short(event.messageId)}`;
-  if (event.kind === 'timer') return `만료 ${short(event.timerId)}`;
-  if (event.kind === 'connection') return `연결 ${event.state === 'closed' ? '종료' : '실패'}`;
-  return '';
-}
-function actionText(action: Action): string {
+const eventText = stackDiagramEventText;
+function actionText(action: StackAction): string {
   if (action.kind === 'send' || action.kind === 'deliver')
     return `${action.kind === 'send' ? '하위로 전송' : '상위로 전달'} · ${short(action.messageId)}`;
   if (action.kind === 'assign')
@@ -88,6 +107,8 @@ function actionText(action: Action): string {
   if (action.kind === 'cancel-timer') return `타이머 ${short(action.timerId)} 취소`;
   if (action.kind === 'finish')
     return action.outcome === 'success' ? '성공으로 종료' : '실패로 종료';
+  if (action.kind === 'service-indicate')
+    return `상위 통지 · ${short(action.portId)} · ${action.operation}${'payload' in action ? ` · ${expression(action.payload)}` : ''}`;
   return '';
 }
 function activate(event: KeyboardEvent<SVGGElement>, callback: () => void) {
@@ -117,7 +138,9 @@ export function StateDiagram({
   coverage,
   readOnlyMessage,
 }: {
-  protocol: ProtocolDefinition;
+  protocol: Pick<StackProtocolBody, 'states' | 'initialStateId' | 'rules'> & {
+    readonly label: string;
+  };
   title: string;
   source: string;
   actors?: readonly DiagramActor[];
@@ -289,7 +312,8 @@ export function StateDiagram({
               kind: 'state',
               key: `state-${(graph.statePage - 1) * DIAGRAM_POLICY.statesPerPage}`,
             });
-            onInspect?.('state', (graph.statePage - 1) * DIAGRAM_POLICY.statesPerPage);
+            if (!connection)
+              onInspect?.('state', (graph.statePage - 1) * DIAGRAM_POLICY.statesPerPage);
           }}
         >
           상태 이전 페이지
@@ -306,7 +330,8 @@ export function StateDiagram({
               kind: 'state',
               key: `state-${(graph.statePage + 1) * DIAGRAM_POLICY.statesPerPage}`,
             });
-            onInspect?.('state', (graph.statePage + 1) * DIAGRAM_POLICY.statesPerPage);
+            if (!connection)
+              onInspect?.('state', (graph.statePage + 1) * DIAGRAM_POLICY.statesPerPage);
           }}
         >
           상태 다음 페이지

@@ -53,6 +53,8 @@ workflow 파일 존재·로컬 검사·원격 job 결과는 별도 증거다. �
 
 ## S5 계층 연결 확장
 
+[스택 상태도 작성](../product-specs/protocol-simulator-v1.md#v1-025-스택-초안-상태도의-시각적-작성)은 실제 생성→규칙 폼→실행→undo/저장/새로고침·snapshot 보존과 native/legacy·포트 이벤트·취소/오래된 연결·미완성 raw·키보드·1440/768/390px를 두 브라우저에서 검사한다. 별도 유효 정의 fixture의 125상태/605규칙에서 열린 그림/선택 폼·페이지/상태 추가/undo/redo 각각 500ms 미만, 그림/선택 폼 DOM 32768자 미만과 전체 규칙의 native 저장 보존을 확인한다. 기존 아홉 fixture의 크기/시간/표시 상한을 유지하며 총 열 fixture를 실행한다. 실제 결과는 [작업 계획](../exec-plans/completed/20261109-stack-visual-authoring.md)이 소유한다.
+
 [새 스택 작성과 편집 이력](../product-specs/protocol-simulator-v1.md#v1-022-새-스택-만들기)은 같은 두 브라우저/세 viewport와 native 저장으로 생성→첫 실행, 취소/빈 구성/공유 용량, undo/redo의 raw·분기·모드/키보드·snapshot 보존과 선언 폼을 검사한다. 기존 605개 동작 fixture에 되돌리기/다시 하기 각각 500ms 미만을 추가하며 아홉 fixture의 기존 상한은 유지한다. 실제 결과는 [작성 흐름 계획](../exec-plans/completed/20261107-stack-authoring-workflow.md)에 기록한다.
 
 [규칙 폼](../product-specs/protocol-simulator-v1.md#v1-021-스택-규칙의-조건동작-폼-편집)은 실제 605개 동작을 가진 유효 정의로 규칙 열기/동작 이동 각각 500ms 미만, 폼 DOM 32768자 미만, 목록 10개 표시와 저장 원본 605개 보존을 별도 검사한다. 중첩 조건/바이트 트리와 미완성 raw·JSON 왕복, 진단 초점·키보드·1440/768/390px는 두 브라우저에서 검사한다. 기존 여덟 응답성 fixture와 모든 상한을 유지하며 결과는 [작성 계획](../exec-plans/completed/20261106-stack-rule-forms.md)에 기록한다.
