@@ -1,5 +1,5 @@
 import { isOwnedImmutable } from './immutable-data.ts';
-import { EXECUTION_POLICY } from './execution-contract.ts';
+import { EXECUTION_POLICY, type JsonValue } from './execution-contract.ts';
 import { valueAt } from './json-pointer.ts';
 import {
   jsonByteLength,
@@ -281,6 +281,7 @@ function inspectView(value: unknown, path: string, r: Reader) {
   const seen = new Map<string, string>();
   let previousTime = 0;
   let bytes = 0;
+  const runIdBytes = typeof view.runId === 'string' ? jsonByteLength(view.runId) - 2 : undefined;
   if (Array.isArray(view.events) && view.events.length > snapshot.limits.maxEvents)
     r.issue(`${path}/events`, 'event-limit', 'Too many recorded events');
   r.array(view.events, `${path}/events`, (value, location) => {
@@ -387,7 +388,14 @@ function inspectView(value: unknown, path: string, r: Reader) {
       else if (event.kind === 'diagnostic') inspectDiagnostic(data, `${location}/data`, r);
     }
     seen.set(String(event.eventId), String(event.kind));
-    bytes += new TextEncoder().encode(JSON.stringify({ ...event, runId: '' })).length;
+    // Preserve the captured normalized-runId budget while reusing only checked immutable byte sizes.
+    bytes +=
+      isOwnedImmutable(event) &&
+      runIdBytes !== undefined &&
+      Object.hasOwn(event, 'runId') &&
+      event.runId === view.runId
+        ? jsonByteLength(event as JsonValue) - runIdBytes
+        : new TextEncoder().encode(JSON.stringify({ ...event, runId: '' })).length;
   });
   if (bytes > snapshot.limits.maxTraceBytes)
     r.issue(`${path}/events`, 'trace-limit', 'Recorded trace exceeds its captured limit');

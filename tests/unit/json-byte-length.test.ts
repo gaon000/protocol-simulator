@@ -97,3 +97,67 @@ test('failed owned validation does not evaluate accessors, freeze callers or acc
   }
   assert.equal(parseOwnedJsonData(new AlternateArray(1, 2)).success, false);
 });
+
+test('dense byte metadata counts every alias and preserves exact tighter-budget diagnostics', () => {
+  const bytes = Array.from({ length: 256 }, (_, i) => i);
+  const outer = [bytes, bytes];
+  const checked = parseOwnedJsonData(outer, { maxNodes: 515, maxDepth: 2 });
+  assert.ok(checked.success);
+  assert.equal(jsonByteLength(checked.value), actual(outer));
+  const limited = parseOwnedJsonData(checked.value, { maxNodes: 514, maxDepth: 2 });
+  assert.ok(!limited.success);
+  assert.deepEqual(
+    limited.diagnostics.map((d) => [d.path, d.code]),
+    [['/1/255', 'json-limit']],
+  );
+  const deep = parseJsonData(checked.value, { maxNodes: 515, maxDepth: 1 });
+  assert.ok(!deep.success);
+  assert.equal(deep.diagnostics[0]?.path, '/0/0');
+  const empty = parseOwnedJsonData([], { maxNodes: 1, maxDepth: 0 });
+  assert.ok(empty.success);
+  assert.equal(jsonByteLength(empty.value), 2);
+});
+
+test('byte-array optimization retains holes, hidden/extra/symbol properties and accessor rejection without executing getters', () => {
+  let calls = 0;
+  const hole = [1, 2, 3];
+  delete hole[1];
+  const hidden = [1, 2];
+  Object.defineProperty(hidden, 'toJSON', {
+    get() {
+      calls++;
+      return () => [];
+    },
+  });
+  const accessor = [1, 2];
+  Object.defineProperty(accessor, '1', {
+    get() {
+      calls++;
+      return 2;
+    },
+  });
+  const extra = Object.assign([1, 2], { extra: true });
+  const symbol = [1, 2];
+  Object.defineProperty(symbol, Symbol('extra'), { value: 3 });
+  const reordered = new Proxy(Object.assign([1, 2], { extra: true }), {
+    ownKeys: () => ['0', 'extra', 'length'],
+  });
+  for (const value of [hole, hidden, accessor, extra, symbol, reordered, [0, NaN], [0, Infinity]]) {
+    const checked = parseOwnedJsonData(value);
+    assert.ok(!checked.success);
+    assert.equal(Object.isFrozen(value), false);
+  }
+  assert.equal(calls, 0);
+  for (const value of [
+    [0, 256],
+    [0, -1],
+    [0, 1.5],
+    [0, -0],
+    [0, '1'],
+    [0, false],
+  ]) {
+    const checked = parseOwnedJsonData(value);
+    assert.ok(checked.success);
+    assert.equal(jsonByteLength(checked.value), actual(value));
+  }
+});

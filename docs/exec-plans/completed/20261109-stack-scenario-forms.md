@@ -72,3 +72,7 @@ Node 24.18.0·pnpm 9.15.0으로 관련 코어·UI, strict 타입·lint/format·�
 ## Interfaces and Dependencies
 
 작성 화면과 순수 작성 API만 확장한다. 기존 네 기대 종류·engine/storage version·schema·의존성은 유지한다.
+
+## 원격 검증 후속
+
+`d43c420`의 [첫 CI](https://github.com/gaon000/protocol-simulator/actions/runs/42566715527)는 새 UI 22개를 포함한 UI 356개·Node 593개·문서 53개·native DB 14개와 새 시나리오 성능 검사를 통과했다. 기존 legacy 1 MiB 저장 한 건이 3002.921ms/3000ms로 실패했다. 자료를 보존하고 [저장 검증 비용](20261109-workspace-save-validation.md)을 보완했다. 이후 전체 로컬 Node 597·문서 54·UI 356·native DB 14·성능 11개와 같은 3초 저장 기준을 통과했으며, 최종 전달 SHA의 원격 결과는 완료 응답에서 따로 확인한다.

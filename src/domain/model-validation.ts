@@ -120,6 +120,22 @@ export function jsonByteLength(value: JsonValue): number {
   return cached ?? jsonEncoder.encode(JSON.stringify(value)).length;
 }
 
+// Prove every own index and data descriptor before counting byte leaves without recursive visits.
+function denseByteDigits(value: readonly unknown[], names: readonly string[]): number | undefined {
+  if (names.length !== value.length + 1 || names[value.length] !== 'length') return;
+  let digits = 0;
+  for (let index = 0; index < value.length; index++) {
+    const key = names[index];
+    if (key !== String(index)) return;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !('value' in descriptor)) return;
+    const byte: unknown = descriptor.value;
+    if (typeof byte !== 'number' || !Number.isInteger(byte) || byte < 0 || byte > 255) return;
+    digits += byte < 10 ? 1 : byte < 100 ? 2 : 3;
+  }
+  return digits;
+}
+
 function inspectJson(
   value: unknown,
   reader: Reader,
@@ -212,26 +228,39 @@ function inspectJson(
     }
     if (Array.isArray(item)) {
       if (captured) serializedBytes += 2 + Math.max(0, item.length - 1);
-      for (const key of Object.getOwnPropertyNames(item))
-        if (key !== 'length' && (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= item.length))
-          reader.issue(
-            pointer(path, key),
-            'json-property',
-            'Array properties must be indexed items',
-          );
-      for (let index = 0; index < item.length && count <= limits.maxNodes; index++) {
-        const descriptor = Object.getOwnPropertyDescriptor(item, index);
-        if (!descriptor || !('value' in descriptor))
-          reader.issue(
-            pointer(path, index),
-            'json-value',
-            'JSON arrays require plain values without holes or accessors',
-          );
-        else
-          relativeDepth = Math.max(
-            relativeDepth,
-            1 + visit(descriptor.value, path, depth + 1, index),
-          );
+      const names = Object.getOwnPropertyNames(item);
+      const digits =
+        reader.diagnostics.length === diagnosticsBefore &&
+        count + item.length <= limits.maxNodes &&
+        (item.length === 0 || depth + 1 <= limits.maxDepth)
+          ? denseByteDigits(item, names)
+          : undefined;
+      if (digits !== undefined) {
+        count += item.length;
+        relativeDepth = item.length ? 1 : 0;
+        if (captured) serializedBytes += digits;
+      } else {
+        for (const key of names)
+          if (key !== 'length' && (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= item.length))
+            reader.issue(
+              pointer(path, key),
+              'json-property',
+              'Array properties must be indexed items',
+            );
+        for (let index = 0; index < item.length && count <= limits.maxNodes; index++) {
+          const descriptor = Object.getOwnPropertyDescriptor(item, index);
+          if (!descriptor || !('value' in descriptor))
+            reader.issue(
+              pointer(path, index),
+              'json-value',
+              'JSON arrays require plain values without holes or accessors',
+            );
+          else
+            relativeDepth = Math.max(
+              relativeDepth,
+              1 + visit(descriptor.value, path, depth + 1, index),
+            );
+        }
       }
     } else {
       if (captured) serializedBytes += 2;
@@ -556,15 +585,31 @@ function fieldType(field: FieldDefinition): ValueType {
   return field.type === 'enum' ? 'string' : field.type;
 }
 
+function codePointLength(value: string): number {
+  if (!/[\uD800-\uDBFF]/.test(value)) return value.length;
+  let length = value.length;
+  for (let index = 0; index + 1 < value.length; index++) {
+    const high = value.charCodeAt(index),
+      low = value.charCodeAt(index + 1);
+    if (high >= 0xd800 && high <= 0xdbff && low >= 0xdc00 && low <= 0xdfff) {
+      length--;
+      index++;
+    }
+  }
+  return length;
+}
+
 function checkFieldValue(field: FieldDefinition, value: unknown, path: string, r: Reader): void {
   let valid = false;
   switch (field.type) {
-    case 'string':
+    case 'string': {
+      const length = typeof value === 'string' ? codePointLength(value) : -1;
       valid =
         typeof value === 'string' &&
-        Array.from(value).length >= (field.minLength ?? 0) &&
-        Array.from(value).length <= (field.maxLength ?? Number.MAX_SAFE_INTEGER);
+        length >= (field.minLength ?? 0) &&
+        length <= (field.maxLength ?? Number.MAX_SAFE_INTEGER);
       break;
+    }
     case 'integer':
       valid =
         typeof value === 'number' &&

@@ -59,6 +59,63 @@ test('string length is Unicode code points while byte limits remain a codec conc
   );
 });
 
+test('string bounds retain exact Unicode iteration for surrogate pairs, lone surrogates and large ASCII values', () => {
+  const samples = [
+    '',
+    'a',
+    '가',
+    '😀',
+    '\ud800',
+    '\udc00',
+    '\ud800\ud800\udc00',
+    '\udc00\ud800\udc00',
+    'e\u0301',
+    'a'.repeat(1_048_576),
+  ];
+  const alphabet = ['a', '가', '\ud7ff', '\ud800', '\udbff', '\udc00', '\udfff', '\ue000'];
+  for (let i = 0; i < 64; i++)
+    samples.push(
+      Array.from({ length: 6 }, (_, j) => alphabet[(i + j * 13) % alphabet.length]).join(''),
+    );
+  for (const value of samples) {
+    const length = Array.from(value).length;
+    const bounds: [number, number, boolean][] = [
+      [length, length, true],
+      [length + 1, length + 1, false],
+    ];
+    if (length) bounds.push([0, length - 1, false]);
+    for (const [minLength, maxLength, success] of bounds) {
+      const base = protocolFixture();
+      const protocol = {
+        ...base,
+        messages: base.messages.map((m) => ({
+          ...m,
+          fields: m.fields.map((f) =>
+            f.id === 'text'
+              ? {
+                  id: f.id,
+                  name: f.name,
+                  placement: f.placement,
+                  required: false,
+                  type: 'string' as const,
+                  minLength,
+                  maxLength,
+                }
+              : f,
+          ),
+        })),
+      };
+      assert.equal(
+        validateProtocolMessage(protocol, {
+          messageId: 'ping',
+          values: { sequence: 1, text: value },
+        }).success,
+        success,
+      );
+    }
+  }
+});
+
 test('reports initial-state and unknown-property errors using JSON pointers', () => {
   fails(
     parseProtocolDefinition({ ...protocolFixture(), initialStateId: 'missing' }),
